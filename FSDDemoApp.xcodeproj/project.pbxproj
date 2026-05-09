@@ -45,6 +45,11 @@
 			path = FSDDemoAppUITests;
 			sourceTree = "<group>";
 		};
+		749934B72FAF58BA00C6FCBB /* specs */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = specs;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -75,6 +80,7 @@
 		749934822FAF58A100C6FCBB = {
 			isa = PBXGroup;
 			children = (
+				749934B72FAF58BA00C6FCBB /* specs */,
 				7499348D2FAF58A100C6FCBB /* FSDDemoApp */,
 				7499349D2FAF58A200C6FCBB /* FSDDemoAppTests */,
 				749934A72FAF58A200C6FCBB /* FSDDemoAppUITests */,
@@ -109,6 +115,7 @@
 			);
 			fileSystemSynchronizedGroups = (
 				7499348D2FAF58A100C6FCBB /* FSDDemoApp */,
+				749934B72FAF58BA00C6FCBB /* specs */,
 			);
 			name = FSDDemoApp;
 			packageProductDependencies = (
