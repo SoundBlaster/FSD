@@ -1,14 +1,14 @@
 //
-//  ContentView.swift
+//  ItemsPage.swift
 //  FSDDemoApp
 //
 //  Created by Egor Merkushev on 5/9/26.
 //
 
-import SwiftUI
 import SwiftData
+import SwiftUI
 
-struct ContentView: View {
+struct ItemsPage: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var items: [Item]
 
@@ -17,9 +17,9 @@ struct ContentView: View {
             List {
                 ForEach(items) { item in
                     NavigationLink {
-                        Text("Item at \(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))")
+                        ItemDetailsView(item: item)
                     } label: {
-                        Text(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))
+                        ItemRow(item: item)
                     }
                 }
                 .onDelete(perform: deleteItems)
@@ -34,9 +34,7 @@ struct ContentView: View {
                 }
 #endif
                 ToolbarItem {
-                    Button(action: addItem) {
-                        Label("Add Item", systemImage: "plus")
-                    }
+                    AddItemButton()
                 }
             }
         } detail: {
@@ -44,23 +42,14 @@ struct ContentView: View {
         }
     }
 
-    private func addItem() {
-        withAnimation {
-            let newItem = Item(timestamp: Date())
-            modelContext.insert(newItem)
-        }
-    }
-
     private func deleteItems(offsets: IndexSet) {
         withAnimation {
-            for index in offsets {
-                modelContext.delete(items[index])
-            }
+            DeleteItemsAction(modelContext: modelContext).delete(items, at: offsets)
         }
     }
 }
 
 #Preview {
-    ContentView()
+    ItemsPage()
         .modelContainer(for: Item.self, inMemory: true)
 }

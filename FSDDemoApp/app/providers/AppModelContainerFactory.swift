@@ -1,16 +1,14 @@
 //
-//  FSDDemoAppApp.swift
+//  AppModelContainerFactory.swift
 //  FSDDemoApp
 //
 //  Created by Egor Merkushev on 5/9/26.
 //
 
-import SwiftUI
 import SwiftData
 
-@main
-struct FSDDemoAppApp: App {
-    var sharedModelContainer: ModelContainer = {
+enum AppModelContainerFactory {
+    static func makePersistentContainer() -> ModelContainer {
         let schema = Schema([
             Item.self,
         ])
@@ -21,12 +19,5 @@ struct FSDDemoAppApp: App {
         } catch {
             fatalError("Could not create ModelContainer: \(error)")
         }
-    }()
-
-    var body: some Scene {
-        WindowGroup {
-            ContentView()
-        }
-        .modelContainer(sharedModelContainer)
     }
 }
