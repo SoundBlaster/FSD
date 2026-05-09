@@ -10,12 +10,12 @@
 
 ```text
 src/
-components/
-hooks/
-services/
-store/
-utils/
-types/
+  components/
+  hooks/
+  services/
+  store/
+  utils/
+  types/
 ```
 
 На старте это удобно. Но когда проект растёт, логика одной пользовательской истории оказывается размазанной по всему проекту: компонент в `components`, запрос в `services`, типы в `types`, состояние в `store`, хелпер в `utils`. В итоге, чтобы изменить одну фичу, приходится прыгать по десяткам папок.
@@ -24,12 +24,12 @@ types/
 
 ```text
 src/
-app/
-pages/
-widgets/
-features/
-entities/
-shared/
+  app/
+  pages/
+  widgets/
+  features/
+  entities/
+  shared/
 ```
 
 То есть проект организуется вокруг страниц, крупных блоков, пользовательских действий, бизнес-сущностей и общей инфраструктуры.
@@ -41,18 +41,18 @@ shared/
 В `FSD` есть три уровня организации:
 
 ```text
-Layer -> Slice -> Segment
+Layer → Slice → Segment
 ```
 
 Например:
 
 ```text
 features/
-add-to-cart/
-ui/
-model/
-api/
-index.ts
+  add-to-cart/
+    ui/
+    model/
+    api/
+    index.ts
 ```
 
 Здесь:
@@ -71,12 +71,12 @@ index.ts
 
 ```text
 src/
-app/
-pages/
-widgets/
-features/
-entities/
-shared/
+  app/
+  pages/
+  widgets/
+  features/
+  entities/
+  shared/
 ```
 
 В документации также упоминается слой `processes`, но он считается `deprecated`, то есть его лучше не использовать в новых проектах. Текущая рекомендация — переносить его ответственность в `features` и `app`.
@@ -87,22 +87,22 @@ shared/
 
 ```text
 app/
-providers/
-router/
-store/
-styles/
-entrypoint/
+  providers/
+  router/
+  store/
+  styles/
+  entrypoint/
 ```
 
 Сюда обычно кладут:
 
 ```text
 app/
-providers/        # ThemeProvider, QueryClientProvider, Redux Provider
-router/           # настройка роутинга
-store/            # конфигурация глобального стора
-styles/           # глобальные стили
-analytics/        # глобальная аналитика
+  providers/        # ThemeProvider, QueryClientProvider, Redux Provider
+  router/           # настройка роутинга
+  store/            # конфигурация глобального стора
+  styles/           # глобальные стили
+  analytics/        # глобальная аналитика
 ```
 
 `app` — верхний слой. Он может импортировать всё, что ниже: `pages`, `widgets`, `features`, `entities`, `shared`.
@@ -115,24 +115,24 @@ analytics/        # глобальная аналитика
 
 ```text
 pages/
-home/
-product-details/
-cart/
-checkout/
-profile/
+  home/
+  product-details/
+  cart/
+  checkout/
+  profile/
 ```
 
 Один слайс в `pages` обычно соответствует одной странице, экрану или `route`. Например:
 
 ```text
 pages/product-details/
-ui/
-product-details-page.tsx
-api/
-get-product-details.ts
-model/
-use-product-details.ts
-index.ts
+  ui/
+    product-details-page.tsx
+  api/
+    get-product-details.ts
+  model/
+    use-product-details.ts
+  index.ts
 ```
 
 В `FSD v2.1` важная идея — `pages first`. Это значит: сначала держи большую часть `UI` и логики внутри страницы, а в `features`, `entities` и `widgets` выноси только тогда, когда появилась реальная причина: переиспользование, самостоятельный бизнес-смысл или необходимость отделить крупный блок.
@@ -147,22 +147,22 @@ index.ts
 
 ```text
 widgets/
-header/
-sidebar/
-product-card/
-cart-summary/
-user-profile-card/
+  header/
+  sidebar/
+  product-card/
+  cart-summary/
+  user-profile-card/
 ```
 
 Примеры:
 
 ```text
 widgets/product-card/
-ui/
-product-card.tsx
-model/
-use-product-card.ts
-index.ts
+  ui/
+    product-card.tsx
+  model/
+    use-product-card.ts
+  index.ts
 ```
 
 Виджет может собирать внутри себя:
@@ -183,13 +183,13 @@ import { Card } from '@/shared/ui/card';
 
 ```text
 features/
-add-to-cart/
-remove-from-cart/
-login/
-logout/
-like-post/
-change-email/
-apply-promo-code/
+  add-to-cart/
+  remove-from-cart/
+  login/
+  logout/
+  like-post/
+  change-email/
+  apply-promo-code/
 ```
 
 Хороший способ отличить `feature`: её название часто можно выразить глаголом.
@@ -206,13 +206,13 @@ apply-promo-code/
 
 ```text
 features/add-to-cart/
-ui/
-add-to-cart-button.tsx
-model/
-use-add-to-cart.ts
-api/
-add-to-cart.ts
-index.ts
+  ui/
+    add-to-cart-button.tsx
+  model/
+    use-add-to-cart.ts
+  api/
+    add-to-cart.ts
+  index.ts
 ```
 
 `Feature` может импортировать `entities` и `shared`, потому что они ниже:
@@ -239,12 +239,12 @@ import { ApplyPromoCode } from '@/features/apply-promo-code';
 
 ```text
 entities/
-user/
-product/
-cart/
-order/
-article/
-comment/
+  user/
+  product/
+  cart/
+  order/
+  article/
+  comment/
 ```
 
 Если `feature` — это действие, то `entity` — это существительное.
@@ -262,18 +262,18 @@ comment/
 
 ```text
 entities/product/
-model/
-types.ts
-selectors.ts
-product-store.ts
-api/
-get-product.ts
-ui/
-product-price.tsx
-product-image.tsx
-lib/
-format-product-title.ts
-index.ts
+  model/
+    types.ts
+    selectors.ts
+    product-store.ts
+  api/
+    get-product.ts
+  ui/
+    product-price.tsx
+    product-image.tsx
+  lib/
+    format-product-title.ts
+  index.ts
 ```
 
 `Entity` может содержать `UI`-представление сущности, но не должна знать о более высокоуровневых действиях.
@@ -283,7 +283,7 @@ index.ts
 ```tsx
 // entities/product/ui/product-price.tsx
 export function ProductPrice({ price }: Props) {
-    return <span>{formatPrice(price)}</span>;
+  return <span>{formatPrice(price)}</span>;
 }
 ```
 
@@ -301,14 +301,13 @@ import { AddToCartButton } from '@/features/add-to-cart';
 // widgets/product-card/ui/product-card.tsx
 import { ProductPrice } from '@/entities/product';
 import { AddToCartButton } from '@/features/add-to-cart';
-
 export function ProductCard({ product }) {
-    return (
-        <article>
-            <ProductPrice price={product.price} />
-            <AddToCartButton productId={product.id} />
-        </article>
-    );
+  return (
+    <article>
+      <ProductPrice price={product.price} />
+      <AddToCartButton productId={product.id} />
+    </article>
+  );
 }
 ```
 
@@ -324,35 +323,32 @@ export function ProductCard({ product }) {
 
 ```text
 shared/
-api/
-ui/
-lib/
-config/
-routes/
-i18n/
+  api/
+  ui/
+  lib/
+  config/
+  routes/
+  i18n/
 ```
 
 Примеры:
 
 ```text
 shared/api/
-client.ts
-create-request.ts
-
+  client.ts
+  create-request.ts
 shared/ui/
-button/
-modal/
-input/
-spinner/
-
+  button/
+  modal/
+  input/
+  spinner/
 shared/lib/
-date/
-currency/
-validation/
-
+  date/
+  currency/
+  validation/
 shared/config/
-env.ts
-feature-flags.ts
+  env.ts
+  feature-flags.ts
 ```
 
 `shared/ui/Button` не должен знать, что он используется в корзине. `shared/lib/date` не должен знать, что он форматирует дату заказа. `shared/api/client` не должен знать, что именно ты загружаешь — товар, пользователя или комментарий.
@@ -366,7 +362,7 @@ feature-flags.ts
 Самое важное правило `FSD`:
 
 ```text
-app -> pages -> widgets -> features -> entities -> shared
+app → pages → widgets → features → entities → shared
 ```
 
 Импорты идут только сверху вниз.
@@ -405,11 +401,11 @@ import { ApplyDiscount } from '@/features/apply-discount';
 
 ```text
 entities/product/
-model/
-types.ts
-ui/
-product-price.tsx
-index.ts
+  model/
+    types.ts
+  ui/
+    product-price.tsx
+  index.ts
 ```
 
 ```ts
@@ -495,9 +491,9 @@ config/
 
 ```text
 ui/
-add-to-cart-button.tsx
-product-card.tsx
-product-price.tsx
+  add-to-cart-button.tsx
+  product-card.tsx
+  product-price.tsx
 ```
 
 ### `model`
@@ -506,11 +502,11 @@ product-price.tsx
 
 ```text
 model/
-types.ts
-selectors.ts
-use-add-to-cart.ts
-cart-store.ts
-validation-schema.ts
+  types.ts
+  selectors.ts
+  use-add-to-cart.ts
+  cart-store.ts
+  validation-schema.ts
 ```
 
 ### `api`
@@ -519,9 +515,9 @@ validation-schema.ts
 
 ```text
 api/
-add-to-cart.ts
-get-product.ts
-map-product-dto.ts
+  add-to-cart.ts
+  get-product.ts
+  map-product-dto.ts
 ```
 
 ### `lib`
@@ -530,8 +526,8 @@ map-product-dto.ts
 
 ```text
 lib/
-calculate-discount.ts
-normalize-product.ts
+  calculate-discount.ts
+  normalize-product.ts
 ```
 
 ### `config`
@@ -540,7 +536,7 @@ normalize-product.ts
 
 ```text
 config/
-feature-flags.ts
+  feature-flags.ts
 ```
 
 Важный нюанс: `FSD` рекомендует называть сегменты по назначению, а не по технической природе файла. Поэтому `ui`, `model`, `api`, `lib`, `config` лучше, чем `components`, `hooks`, `types`, `utils`. В документации прямо указано, что `components`, `hooks` и `types` — плохие названия сегментов, потому что они хуже помогают понять, зачем существует код.
@@ -553,85 +549,85 @@ feature-flags.ts
 
 ```text
 src/
-app/
-providers/
-app-providers.tsx
-router/
-router.tsx
-styles/
-globals.css
-pages/
-catalog/
-ui/
-catalog-page.tsx
-api/
-get-catalog.ts
-index.ts
-product-details/
-ui/
-product-details-page.tsx
-api/
-get-product-details.ts
-index.ts
-cart/
-ui/
-cart-page.tsx
-index.ts
-widgets/
-product-card/
-ui/
-product-card.tsx
-index.ts
-cart-summary/
-ui/
-cart-summary.tsx
-index.ts
-features/
-add-to-cart/
-ui/
-add-to-cart-button.tsx
-model/
-use-add-to-cart.ts
-api/
-add-to-cart.ts
-index.ts
-remove-from-cart/
-ui/
-remove-from-cart-button.tsx
-model/
-use-remove-from-cart.ts
-api/
-remove-from-cart.ts
-index.ts
-entities/
-product/
-model/
-types.ts
-ui/
-product-price.tsx
-product-image.tsx
-index.ts
-cart/
-model/
-types.ts
-selectors.ts
-index.ts
-shared/
-api/
-client.ts
-ui/
-button/
-button.tsx
-index.ts
-modal/
-modal.tsx
-index.ts
-lib/
-currency/
-format-price.ts
-index.ts
-config/
-env.ts
+  app/
+    providers/
+      app-providers.tsx
+    router/
+      router.tsx
+    styles/
+      globals.css
+  pages/
+    catalog/
+      ui/
+        catalog-page.tsx
+      api/
+        get-catalog.ts
+      index.ts
+    product-details/
+      ui/
+        product-details-page.tsx
+      api/
+        get-product-details.ts
+      index.ts
+    cart/
+      ui/
+        cart-page.tsx
+      index.ts
+  widgets/
+    product-card/
+      ui/
+        product-card.tsx
+      index.ts
+    cart-summary/
+      ui/
+        cart-summary.tsx
+      index.ts
+  features/
+    add-to-cart/
+      ui/
+        add-to-cart-button.tsx
+      model/
+        use-add-to-cart.ts
+      api/
+        add-to-cart.ts
+      index.ts
+    remove-from-cart/
+      ui/
+        remove-from-cart-button.tsx
+      model/
+        use-remove-from-cart.ts
+      api/
+        remove-from-cart.ts
+      index.ts
+  entities/
+    product/
+      model/
+        types.ts
+      ui/
+        product-price.tsx
+        product-image.tsx
+      index.ts
+    cart/
+      model/
+        types.ts
+        selectors.ts
+      index.ts
+  shared/
+    api/
+      client.ts
+    ui/
+      button/
+        button.tsx
+        index.ts
+      modal/
+        modal.tsx
+        index.ts
+    lib/
+      currency/
+        format-price.ts
+        index.ts
+    config/
+      env.ts
 ```
 
 Теперь посмотрим на композицию:
@@ -641,20 +637,18 @@ env.ts
 import { ProductImage, ProductPrice, type Product } from '@/entities/product';
 import { AddToCartButton } from '@/features/add-to-cart';
 import { Card } from '@/shared/ui/card';
-
 type Props = {
-    product: Product;
+  product: Product;
 };
-
 export function ProductCard({ product }: Props) {
-    return (
-        <Card>
-            <ProductImage src={product.imageUrl} />
-            <h3>{product.title}</h3>
-            <ProductPrice price={product.price} />
-            <AddToCartButton productId={product.id} />
-        </Card>
-    );
+  return (
+    <Card>
+      <ProductImage src={product.imageUrl} />
+      <h3>{product.title}</h3>
+      <ProductPrice price={product.price} />
+      <AddToCartButton productId={product.id} />
+    </Card>
+  );
 }
 ```
 
@@ -705,11 +699,11 @@ import { AddToCartButton } from '@/features/add-to-cart';
 
 ```text
 pages/product-details/
-ui/
-product-details-page.tsx
-add-to-favorites-button.tsx
-api/
-add-to-favorites.ts
+  ui/
+    product-details-page.tsx
+    add-to-favorites-button.tsx
+  api/
+    add-to-favorites.ts
 ```
 
 На этом этапе не обязательно создавать `features/add-to-favorites`.
@@ -720,13 +714,13 @@ add-to-favorites.ts
 
 ```text
 features/add-to-favorites/
-ui/
-add-to-favorites-button.tsx
-model/
-use-add-to-favorites.ts
-api/
-add-to-favorites.ts
-index.ts
+  ui/
+    add-to-favorites-button.tsx
+  model/
+    use-add-to-favorites.ts
+  api/
+    add-to-favorites.ts
+  index.ts
 ```
 
 ### 3. Сущность `favorite` нужна в разных местах — подумай про `entity`
@@ -735,12 +729,12 @@ index.ts
 
 ```text
 entities/favorite/
-model/
-types.ts
-selectors.ts
-api/
-get-favorites.ts
-index.ts
+  model/
+    types.ts
+    selectors.ts
+  api/
+    get-favorites.ts
+  index.ts
 ```
 
 ### 4. Собери всё выше
@@ -804,27 +798,25 @@ import type { User } from '@/entities/user';
 
 ```text
 entities/
-user/
-@x/
-order.ts
-model/
-types.ts
-index.ts
-order/
-model/
-types.ts
+  user/
+    @x/
+      order.ts
+    model/
+      types.ts
+    index.ts
+  order/
+    model/
+      types.ts
 ```
 
 ```ts
 // entities/user/@x/order.ts
 export type { User } from '../model/types';
-
 // entities/order/model/types.ts
 import type { User } from '@/entities/user/@x/order';
-
 export type Order = {
-    id: string;
-    user: User;
+  id: string;
+  user: User;
 };
 ```
 
@@ -872,16 +864,13 @@ export type Order = {
 
 ```text
 shared/api/
-client.ts
-
+  client.ts
 entities/product/api/
-get-product.ts
-
+  get-product.ts
 pages/catalog/api/
-get-catalog.ts
-
+  get-catalog.ts
 features/add-to-cart/api/
-add-to-cart.ts
+  add-to-cart.ts
 ```
 
 А `query hooks` можно держать там, где они имеют смысл:
@@ -898,11 +887,10 @@ features/add-to-cart/model/use-add-to-cart-mutation.ts
 // features/add-to-cart/model/use-add-to-cart.ts
 import { useMutation } from '@tanstack/react-query';
 import { addToCart } from '../api/add-to-cart';
-
 export function useAddToCart() {
-    return useMutation({
-        mutationFn: addToCart,
-    });
+  return useMutation({
+    mutationFn: addToCart,
+  });
 }
 ```
 
@@ -952,19 +940,19 @@ export { useAddToCart } from './model/use-add-to-cart';
 
 ```text
 features/
-open-modal/
-close-modal/
-input-change/
-submit-button-click/
+  open-modal/
+  close-modal/
+  input-change/
+  submit-button-click/
 ```
 
 Лучше:
 
 ```text
 features/
-login/
-add-to-cart/
-apply-promo-code/
+  login/
+  add-to-cart/
+  apply-promo-code/
 ```
 
 `Feature` — это бизнес-действие, а не любой обработчик клика.
@@ -977,11 +965,11 @@ apply-promo-code/
 
 ```text
 shared/
-utils/
-hooks/
-components/
-services/
-types/
+  utils/
+  hooks/
+  components/
+  services/
+  types/
 ```
 
 Так `shared` превращается в свалку.
@@ -990,13 +978,13 @@ types/
 
 ```text
 shared/
-ui/
-api/
-lib/
-date/
-currency/
-validation/
-config/
+  ui/
+  api/
+  lib/
+    date/
+    currency/
+    validation/
+  config/
 ```
 
 И важно: если код содержит бизнес-смысл, ему обычно не место в `shared`.
@@ -1057,9 +1045,9 @@ widgets/product-layout
 
 ```text
 pages/product-details/
-ui/
-api/
-model/
+  ui/
+  api/
+  model/
 ```
 
 А потом выносить по мере появления повторного использования.
