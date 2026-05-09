@@ -25,7 +25,8 @@ struct ToggleItemCompletionButton: View {
                 Label(title, systemImage: systemImage)
             } else {
                 Image(systemName: systemImage)
-                    .font(.title3)
+                    .font(.system(size: 21))
+                    .frame(width: 24, height: 24)
             }
         }
         .foregroundStyle(item.isCompleted ? .green : .secondary)

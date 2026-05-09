@@ -21,16 +21,19 @@ struct ItemListWidget<Destination: View>: View {
                     NavigationLink {
                         destination(item)
                     } label: {
-                        HStack(spacing: 12) {
+                        HStack(spacing: 10) {
                             ToggleItemCompletionButton(item: item)
 
                             ItemRow(item: item)
                         }
-                        .padding(.vertical, 4)
+                        .frame(height: 52)
+                        .contentShape(Rectangle())
                     }
+                    .listRowInsets(EdgeInsets(top: 2, leading: 16, bottom: 2, trailing: 12))
                 }
                 .onDelete(perform: deleteItems)
             }
+            .environment(\.defaultMinListRowHeight, 56)
             .opacity(items.isEmpty ? 0 : 1)
 
             if items.isEmpty {
