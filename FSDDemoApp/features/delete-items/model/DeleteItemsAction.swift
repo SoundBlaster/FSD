@@ -16,4 +16,10 @@ struct DeleteItemsAction {
             modelContext.delete(items[index])
         }
     }
+
+    func delete(_ items: [Item]) {
+        for item in items {
+            modelContext.delete(item)
+        }
+    }
 }
