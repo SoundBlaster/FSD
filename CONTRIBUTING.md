@@ -35,6 +35,13 @@ For code, tooling, or CI changes:
 make ci
 ```
 
+When changing the unified CLI or documented developer workflow, run:
+
+```bash
+make cli-smoke
+make cli-doctor
+```
+
 When changing the linter, also run a negative fixture or another targeted check
 that proves the rule fails when it should.
 

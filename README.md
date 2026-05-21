@@ -21,6 +21,7 @@ Feature-Sliced Design как набор понятных правил, пров�
 - [ARCHITECTURE.md](ARCHITECTURE.md) - основной архитектурный контракт.
 - [CONTRIBUTING.md](CONTRIBUTING.md) - workflow для изменений и review.
 - [docs/checklist.md](docs/checklist.md) - practical checklist для новых PR.
+- [docs/cli.md](docs/cli.md) - unified CLI, doctor и template generation workflow.
 - [docs/rules/fsd-layers.md](docs/rules/fsd-layers.md) - назначение FSD layers.
 - [docs/rules/fsd-imports.md](docs/rules/fsd-imports.md) - dependency direction и slice isolation.
 - [docs/rules/fsd-slices.md](docs/rules/fsd-slices.md) - правила выделения slices.
@@ -52,8 +53,8 @@ PR template и checklist для нового проекта.
 
 ```bash
 make template-demo
-swift tools/fsd-template-create.swift --app-name MyApp --output ../MyApp --dry-run
-swift tools/fsd-template-create.swift --app-name MyApp --output ../MyApp
+swift tools/fsd-ios.swift create app --name MyApp --output ../MyApp --dry-run
+swift tools/fsd-ios.swift create app --name MyApp --output ../MyApp
 ```
 
 ## Legacy / Modular Adoption
@@ -63,9 +64,8 @@ swift tools/fsd-template-create.swift --app-name MyApp --output ../MyApp
 [templates/fsd-ios-spm](templates/fsd-ios-spm).
 
 ```bash
-swift tools/fsd-template-create.swift \
-  --template templates/fsd-ios-spm \
-  --app-name LegacyFSD \
+swift tools/fsd-ios.swift create spm \
+  --name LegacyFSD \
   --output ../LegacyFSDModules
 ```
 
@@ -76,6 +76,25 @@ package dependency и импортировать новый screen/feature modul
 make spm-template-test
 make spm-template-create-fixture
 ```
+
+## Unified CLI
+
+Для ежедневной работы есть единый Swift CLI поверх локальных tools:
+
+```bash
+swift tools/fsd-ios.swift --help
+swift tools/fsd-ios.swift doctor
+swift tools/fsd-ios.swift lint --root FSDDemoApp --strict --architecture
+```
+
+Make targets для проверки CLI:
+
+```bash
+make cli-smoke
+make cli-doctor
+```
+
+Подробности: [docs/cli.md](docs/cli.md).
 
 ## Запуск
 
