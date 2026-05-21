@@ -60,6 +60,13 @@ make lint
 make lint-strict
 ```
 
+Архитектурный режим дополнительно строит graph локальных Swift symbols и проверяет
+направление FSD-зависимостей между слоями и слайсами:
+
+```bash
+make lint-architecture
+```
+
 Для проверки из терминала:
 
 ```bash

@@ -31,8 +31,9 @@ jobs:
 
       - name: Run FSD lint
         run: |
-          tools/fsd-lint.swift FSDDemoApp
-          tools/fsd-lint.swift --root FSDDemoApp --strict
+          make lint
+          make lint-strict
+          make lint-architecture
 
       - name: Select iOS simulator
         id: simulator
