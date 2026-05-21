@@ -34,6 +34,7 @@
 | Reusable feature actions | `FSDDemoApp/features/add-item`, `edit-item`, `delete-items`, `toggle-item-completion`, `change-item-priority`, `filter-items` | `demo/fsd-showcase` |
 | Domain entity reuse | `FSDDemoApp/entities/item` | `demo/fsd-showcase` |
 | Shared generic UI | `FSDDemoApp/shared/ui` | `demo/fsd-showcase` |
+| Reference template rules | `ARCHITECTURE.md`, `CONTRIBUTING.md`, `docs/rules`, `docs/checklist.md` | `main` |
 | Strict FSD structure lint | `tools/fsd-lint.swift` | `make lint-strict` |
 | Swift symbol dependency lint | `tools/fsd-lint.swift --architecture` | `make lint-architecture` |
 | Local developer UX | `Makefile` | `demo/makefile` |
