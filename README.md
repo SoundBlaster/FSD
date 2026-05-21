@@ -15,6 +15,9 @@ FSDDemoApp/
 
 Подробные рекомендации по архитектуре: [specs/fsd.md](specs/fsd.md).
 
+Дополнительная заметка про перенос FSD-границ на Swift Package Manager:
+[specs/fsd-with-spm.md](specs/fsd-with-spm.md).
+
 ## Запуск
 
 Открой `FSDDemoApp.xcodeproj` в Xcode и запусти scheme `FSDDemoApp`.
