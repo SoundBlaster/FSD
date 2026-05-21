@@ -22,6 +22,7 @@ Feature-Sliced Design как набор понятных правил, пров�
 - [CONTRIBUTING.md](CONTRIBUTING.md) - workflow для изменений и review.
 - [docs/checklist.md](docs/checklist.md) - practical checklist для новых PR.
 - [docs/cli.md](docs/cli.md) - unified CLI, doctor и template generation workflow.
+- [docs/adoption/external-project.md](docs/adoption/external-project.md) - подключение FSD tooling к внешнему iOS проекту.
 - [docs/rules/fsd-layers.md](docs/rules/fsd-layers.md) - назначение FSD layers.
 - [docs/rules/fsd-imports.md](docs/rules/fsd-imports.md) - dependency direction и slice isolation.
 - [docs/rules/fsd-slices.md](docs/rules/fsd-slices.md) - правила выделения slices.
@@ -76,6 +77,23 @@ package dependency и импортировать новый screen/feature modul
 make spm-template-test
 make spm-template-create-fixture
 ```
+
+## External Project Adoption
+
+Если существующий проект пока нельзя переложить в template, можно подключить
+этот репозиторий как внешний FSD toolset и запускать lint по выбранному source
+root:
+
+```bash
+git clone git@github.com:SoundBlaster/FSD.git .fsd-ios-tooling
+swift .fsd-ios-tooling/tools/fsd-ios.swift lint \
+  --root Sources/App \
+  --strict \
+  --architecture
+```
+
+CI baseline: [examples/github-actions/external-project-fsd-ios.yml](examples/github-actions/external-project-fsd-ios.yml).
+Подробности: [docs/adoption/external-project.md](docs/adoption/external-project.md).
 
 ## Unified CLI
 

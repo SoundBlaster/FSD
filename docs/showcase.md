@@ -39,6 +39,7 @@
 | Template generator | `tools/fsd-template-create.swift`, `make template-create-fixture` | `main` |
 | Legacy modular adoption | `templates/fsd-ios-spm`, `make spm-template-test` | `main` |
 | Unified DX CLI | `tools/fsd-ios.swift`, `docs/cli.md`, `make cli-smoke` | `main` |
+| External project adoption | `docs/adoption/external-project.md`, `examples/github-actions/external-project-fsd-ios.yml` | `main` |
 | Template package validation | `tools/fsd-template-validate.swift`, `make template-validate` | `main` |
 | Harmonize advisor | `tools/fsd-harmonize.swift`, `make harmonize` | `main` |
 | Strict FSD structure lint | `tools/fsd-lint.swift` | `make lint-strict` |

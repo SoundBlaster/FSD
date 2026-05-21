@@ -1,0 +1,45 @@
+name: FSD iOS Architecture
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  fsd-ios:
+    name: Run FSD iOS lint
+    runs-on: macos-26
+
+    env:
+      FSD_ROOT: Sources/App
+
+    steps:
+      - name: Checkout app
+        uses: actions/checkout@v5
+
+      - name: Checkout FSD iOS tooling
+        uses: actions/checkout@v5
+        with:
+          repository: SoundBlaster/FSD
+          # Pin this to a tag or commit in production projects.
+          ref: main
+          path: .fsd-ios-tooling
+
+      - name: Show toolchain
+        run: |
+          swift --version
+          xcodebuild -version
+
+      - name: Show FSD iOS CLI version
+        run: swift .fsd-ios-tooling/tools/fsd-ios.swift version
+
+      - name: Check FSD tooling checkout
+        run: swift .fsd-ios-tooling/tools/fsd-ios.swift doctor --json
+
+      - name: Run FSD architecture lint
+        run: |
+          swift .fsd-ios-tooling/tools/fsd-ios.swift lint \
+            --root "$FSD_ROOT" \
+            --strict \
+            --architecture
