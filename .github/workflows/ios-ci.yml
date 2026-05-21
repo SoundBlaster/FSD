@@ -34,6 +34,8 @@ jobs:
           make lint
           make lint-strict
           make lint-architecture
+          make template-validate
+          make template-validate-negative
 
       - name: Select iOS simulator
         id: simulator

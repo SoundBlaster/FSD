@@ -38,6 +38,13 @@ make ci
 When changing the linter, also run a negative fixture or another targeted check
 that proves the rule fails when it should.
 
+When changing the template package or its validator, run:
+
+```bash
+make template-validate
+make template-validate-negative
+```
+
 ## Review Expectations
 
 Review should focus on:

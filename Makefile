@@ -9,7 +9,7 @@ DESTINATION := platform=iOS Simulator,name=$(SIMULATOR)
 XCODEBUILD ?= xcodebuild
 SWIFT ?= swift
 
-.PHONY: help open lint lint-strict lint-architecture build test demo template-demo ci clean
+.PHONY: help open lint lint-strict lint-architecture template-validate template-validate-negative build test demo template-demo ci clean
 
 help:
 	@printf '%s\n' \
@@ -18,6 +18,8 @@ help:
 		'  make lint         Run the baseline FSD lint' \
 		'  make lint-strict  Run the strict FSD lint' \
 		'  make lint-architecture  Run the Swift symbol dependency lint' \
+		'  make template-validate  Validate the copyable template bundle' \
+		'  make template-validate-negative  Run the negative template fixture' \
 		'  make build        Build the app for an iOS simulator' \
 		'  make test         Run the xcodebuild test command from README' \
 		'  make demo         Print the FSD map and run architecture lint' \
@@ -39,6 +41,18 @@ lint-strict:
 
 lint-architecture:
 	$(SWIFT) tools/fsd-lint.swift --root $(APP_ROOT) --strict --architecture
+
+template-validate:
+	$(SWIFT) tools/fsd-template-validate.swift --template templates/fsd-ios
+	$(SWIFT) tools/fsd-lint.swift --root templates/fsd-ios/AppName --strict --architecture
+
+template-validate-negative:
+	@if $(SWIFT) tools/fsd-template-validate.swift --template tests/fixtures/template-invalid-missing-entrypoint; then \
+		printf '%s\n' 'Expected invalid template fixture to fail'; \
+		exit 1; \
+	else \
+		printf '%s\n' 'Invalid template fixture failed as expected'; \
+	fi
 
 demo:
 	@printf 'FSD layers:\n'
@@ -86,7 +100,7 @@ test:
 		test \
 		CODE_SIGNING_ALLOWED=NO
 
-ci: lint lint-strict lint-architecture test
+ci: lint lint-strict lint-architecture template-validate template-validate-negative test
 
 clean:
 	rm -rf $(DERIVED_DATA_PATH)
