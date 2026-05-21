@@ -89,6 +89,13 @@ make lint-strict
 make lint-architecture
 ```
 
+Template bundle проверяется отдельным контрактным валидатором:
+
+```bash
+make template-validate
+make template-validate-negative
+```
+
 Для проверки из терминала:
 
 ```bash

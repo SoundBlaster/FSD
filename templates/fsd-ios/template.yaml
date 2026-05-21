@@ -46,4 +46,4 @@ checks:
     - make ci
 notes:
   - This package is a copyable skeleton, not a generated Xcode project.
-  - Template validation tooling is intentionally tracked as a follow-up.
+  - Validate this package with make template-validate from the repository root.

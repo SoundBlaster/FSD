@@ -9,4 +9,5 @@ The template Makefile expects:
 tools/fsd-lint.swift
 ```
 
-Template validation and packaging commands are tracked as follow-up tooling.
+The repository-level `make template-validate` target checks that this template
+package still contains the expected files, workflow, and FSD source shape.
