@@ -32,13 +32,16 @@ Tests/
 ## Dependency Direction
 
 ```text
-AppNameProductListScreen
-  -> AppNameCreateSampleFeature
-  -> AppNameProductDomain
-  -> AppNameCoreUI
+AppNameProductListScreen -> AppNameCreateSampleFeature
+AppNameProductListScreen -> AppNameProductDomain
+AppNameProductListScreen -> AppNameCoreUI
+AppNameCreateSampleFeature -> AppNameProductDomain
 ```
 
 `Package.swift` enforces that lower modules cannot import higher modules.
+Only `AppNameProductListScreen` is exposed as a package product, so the legacy
+app links the screen-level entrypoint instead of lower-layer implementation
+modules.
 
 ## Legacy Adoption Flow
 

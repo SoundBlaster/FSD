@@ -9,9 +9,6 @@ let package = Package(
         .macOS(.v14),
     ],
     products: [
-        .library(name: "AppNameCoreUI", targets: ["AppNameCoreUI"]),
-        .library(name: "AppNameProductDomain", targets: ["AppNameProductDomain"]),
-        .library(name: "AppNameCreateSampleFeature", targets: ["AppNameCreateSampleFeature"]),
         .library(name: "AppNameProductListScreen", targets: ["AppNameProductListScreen"]),
     ],
     targets: [
@@ -24,7 +21,6 @@ let package = Package(
             name: "AppNameCreateSampleFeature",
             dependencies: [
                 "AppNameProductDomain",
-                "AppNameCoreUI",
             ]
         ),
         .target(

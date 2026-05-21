@@ -6,6 +6,7 @@ language: Swift
 ui: SwiftUI
 platforms:
   - iOS
+  - macOS
 placeholders:
   appName:
     token: AppName
