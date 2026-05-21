@@ -35,6 +35,7 @@
 | Domain entity reuse | `FSDDemoApp/entities/item` | `demo/fsd-showcase` |
 | Shared generic UI | `FSDDemoApp/shared/ui` | `demo/fsd-showcase` |
 | Reference template rules | `ARCHITECTURE.md`, `CONTRIBUTING.md`, `docs/rules`, `docs/checklist.md` | `main` |
+| Copyable template package | `templates/fsd-ios` | `main` |
 | Strict FSD structure lint | `tools/fsd-lint.swift` | `make lint-strict` |
 | Swift symbol dependency lint | `tools/fsd-lint.swift --architecture` | `make lint-architecture` |
 | Local developer UX | `Makefile` | `demo/makefile` |
@@ -73,5 +74,8 @@ The implementation history is still useful for reviewers:
 | Swift Package Manager architecture notes | [#2](https://github.com/SoundBlaster/FSD/pull/2) |
 | Node 24 GitHub Actions migration | [#3](https://github.com/SoundBlaster/FSD/pull/3) |
 | Makefile command shortcuts | [#4](https://github.com/SoundBlaster/FSD/pull/4) |
+| Repository showcase docs and tags | [#5](https://github.com/SoundBlaster/FSD/pull/5) |
+| Advanced FSD architecture lint | [#6](https://github.com/SoundBlaster/FSD/pull/6) |
+| Reference template foundation docs | [#7](https://github.com/SoundBlaster/FSD/pull/7) |
 
 For presentations and docs, prefer tags and `main`. For archaeology, use the PRs.

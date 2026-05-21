@@ -12,6 +12,7 @@ Feature-Sliced Design как набор понятных правил, пров�
 - Переиспользуемые feature actions: add, edit, delete, toggle completion, change priority.
 - Архитектурный lint на Swift CLI и GitHub Actions validation.
 - Локальный developer workflow через `make`.
+- Copyable template bundle для старта нового FSD iOS проекта.
 
 Подробная карта возможностей: [docs/showcase.md](docs/showcase.md).
 
@@ -42,6 +43,16 @@ FSDDemoApp/
 
 Дополнительная заметка про перенос FSD-границ на Swift Package Manager:
 [specs/fsd-with-spm.md](specs/fsd-with-spm.md).
+
+## Template Bundle
+
+Копируемый starter package лежит в [templates/fsd-ios](templates/fsd-ios).
+Он содержит минимальный SwiftUI/FSD skeleton, `Makefile`, CI workflow,
+PR template и checklist для нового проекта.
+
+```bash
+make template-demo
+```
 
 ## Запуск
 
