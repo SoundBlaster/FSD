@@ -1,0 +1,49 @@
+name: fsd-ios
+version: 0.1.0
+kind: reference-template
+status: foundation
+language: Swift
+ui: SwiftUI
+platforms:
+  - iOS
+placeholders:
+  appName:
+    token: AppName
+    description: Product module and Xcode scheme name.
+layers:
+  - app
+  - pages
+  - widgets
+  - features
+  - entities
+  - shared
+segments:
+  app:
+    - entrypoint
+    - providers
+  slice:
+    - ui
+    - model
+    - api
+    - lib
+    - config
+    - testing
+entrypoints:
+  docs:
+    - README.md
+    - docs/checklist.md
+  workflow:
+    - Makefile
+    - .github/PULL_REQUEST_TEMPLATE.md
+    - .github/workflows/ios-ci.yml
+  source:
+    - AppName/app/entrypoint/AppNameApp.swift
+    - AppName/pages/home/ui/HomePage.swift
+checks:
+  quick:
+    - make demo
+  full:
+    - make ci
+notes:
+  - This package is a copyable skeleton, not a generated Xcode project.
+  - Template validation tooling is intentionally tracked as a follow-up.

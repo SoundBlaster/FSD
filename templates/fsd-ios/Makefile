@@ -1,15 +1,16 @@
 .DEFAULT_GOAL := help
 
-PROJECT := FSDDemoApp.xcodeproj
-SCHEME := FSDDemoApp
-APP_ROOT := FSDDemoApp
+PROJECT := AppName.xcodeproj
+SCHEME := AppName
+APP_ROOT := AppName
 DERIVED_DATA_PATH := DerivedData
 SIMULATOR ?= iPhone 17 Pro
 DESTINATION := platform=iOS Simulator,name=$(SIMULATOR)
 XCODEBUILD ?= xcodebuild
 SWIFT ?= swift
+FSD_LINT ?= $(SWIFT) tools/fsd-lint.swift
 
-.PHONY: help open lint lint-strict lint-architecture build test demo template-demo ci clean
+.PHONY: help open lint lint-strict lint-architecture build test demo ci clean
 
 help:
 	@printf '%s\n' \
@@ -19,9 +20,8 @@ help:
 		'  make lint-strict  Run the strict FSD lint' \
 		'  make lint-architecture  Run the Swift symbol dependency lint' \
 		'  make build        Build the app for an iOS simulator' \
-		'  make test         Run the xcodebuild test command from README' \
+		'  make test         Run xcodebuild tests' \
 		'  make demo         Print the FSD map and run architecture lint' \
-		'  make template-demo  Print the copyable template package map' \
 		'  make ci           Run all lint targets and tests' \
 		'  make clean        Remove local DerivedData' \
 		'' \
@@ -32,13 +32,13 @@ open:
 	open "$(PROJECT)"
 
 lint:
-	$(SWIFT) tools/fsd-lint.swift $(APP_ROOT)
+	$(FSD_LINT) $(APP_ROOT)
 
 lint-strict:
-	$(SWIFT) tools/fsd-lint.swift --root $(APP_ROOT) --strict
+	$(FSD_LINT) --root $(APP_ROOT) --strict
 
 lint-architecture:
-	$(SWIFT) tools/fsd-lint.swift --root $(APP_ROOT) --strict --architecture
+	$(FSD_LINT) --root $(APP_ROOT) --strict --architecture
 
 demo:
 	@printf 'FSD layers:\n'
@@ -49,24 +49,8 @@ demo:
 		'$(APP_ROOT)/features' \
 		'$(APP_ROOT)/entities' \
 		'$(APP_ROOT)/shared'
-	@printf '\nPage slices:\n'
-	@find $(APP_ROOT)/pages -type d \( -path '$(APP_ROOT)/pages/*/*/*' -prune -o -print \) | sort
-	@printf '\nFeature slices:\n'
-	@find $(APP_ROOT)/features -type d \( -path '$(APP_ROOT)/features/*/*/*' -prune -o -print \) | sort
-	@printf '\nWidget slices:\n'
-	@find $(APP_ROOT)/widgets -type d \( -path '$(APP_ROOT)/widgets/*/*/*' -prune -o -print \) | sort
-	@printf '\nEntity slices:\n'
-	@find $(APP_ROOT)/entities -type d \( -path '$(APP_ROOT)/entities/*/*/*' -prune -o -print \) | sort
-	@printf '\nShared slices:\n'
-	@find $(APP_ROOT)/shared -type d \( -path '$(APP_ROOT)/shared/*/*/*' -prune -o -print \) | sort
 	@printf '\nArchitecture lint:\n'
-	$(SWIFT) tools/fsd-lint.swift --root $(APP_ROOT) --strict --architecture
-
-template-demo:
-	@printf 'Template package:\n'
-	@find templates/fsd-ios -maxdepth 7 -type f | sort
-	@printf '\nTemplate manifest:\n'
-	@sed -n '1,120p' templates/fsd-ios/template.yaml
+	$(FSD_LINT) --root $(APP_ROOT) --strict --architecture
 
 build:
 	$(XCODEBUILD) \
