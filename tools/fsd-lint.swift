@@ -545,7 +545,7 @@ struct FSDLinter {
     private func stripCommentsAndStringLiterals(from source: String) -> String {
         var result = ""
         var index = source.startIndex
-        var isInBlockComment = false
+        var blockCommentDepth = 0
         var isInLineComment = false
         var isInString = false
         var isEscaped = false
@@ -556,6 +556,93 @@ struct FSDLinter {
                 return nil
             }
             return source[nextIndex]
+        }
+
+        func interpolationEnd(openingParen: String.Index) -> String.Index? {
+            var cursor = source.index(after: openingParen)
+            var parenthesisDepth = 1
+            var nestedBlockCommentDepth = 0
+            var isInNestedLineComment = false
+            var isInNestedString = false
+            var isNestedEscaped = false
+
+            while cursor < source.endIndex {
+                let character = source[cursor]
+                let nextCharacter = nextCharacter(after: cursor)
+
+                if isInNestedLineComment {
+                    if character == "\n" {
+                        isInNestedLineComment = false
+                    }
+                    cursor = source.index(after: cursor)
+                    continue
+                }
+
+                if nestedBlockCommentDepth > 0 {
+                    if character == "/", nextCharacter == "*" {
+                        nestedBlockCommentDepth += 1
+                        cursor = source.index(cursor, offsetBy: 2)
+                    } else if character == "*", nextCharacter == "/" {
+                        nestedBlockCommentDepth -= 1
+                        cursor = source.index(cursor, offsetBy: 2)
+                    } else {
+                        cursor = source.index(after: cursor)
+                    }
+                    continue
+                }
+
+                if isInNestedString {
+                    if isNestedEscaped {
+                        isNestedEscaped = false
+                    } else if character == "\\", nextCharacter == "(" {
+                        let nestedOpeningParen = source.index(after: cursor)
+                        if let nestedEnd = interpolationEnd(openingParen: nestedOpeningParen) {
+                            cursor = source.index(after: nestedEnd)
+                            continue
+                        }
+                        isNestedEscaped = true
+                    } else if character == "\\" {
+                        isNestedEscaped = true
+                    } else if character == "\"" {
+                        isInNestedString = false
+                    }
+
+                    cursor = source.index(after: cursor)
+                    continue
+                }
+
+                if character == "/", nextCharacter == "/" {
+                    isInNestedLineComment = true
+                    cursor = source.index(cursor, offsetBy: 2)
+                    continue
+                }
+
+                if character == "/", nextCharacter == "*" {
+                    nestedBlockCommentDepth = 1
+                    cursor = source.index(cursor, offsetBy: 2)
+                    continue
+                }
+
+                if character == "\"" {
+                    isInNestedString = true
+                    cursor = source.index(after: cursor)
+                    continue
+                }
+
+                if character == "(" {
+                    parenthesisDepth += 1
+                } else if character == ")" {
+                    parenthesisDepth -= 1
+
+                    if parenthesisDepth == 0 {
+                        return cursor
+                    }
+                }
+
+                cursor = source.index(after: cursor)
+            }
+
+            return nil
         }
 
         while index < source.endIndex {
@@ -573,12 +660,17 @@ struct FSDLinter {
                 continue
             }
 
-            if isInBlockComment {
-                if character == "*", nextCharacter == "/" {
+            if blockCommentDepth > 0 {
+                if character == "/", nextCharacter == "*" {
+                    blockCommentDepth += 1
                     result.append(" ")
                     result.append(" ")
                     index = source.index(index, offsetBy: 2)
-                    isInBlockComment = false
+                } else if character == "*", nextCharacter == "/" {
+                    blockCommentDepth -= 1
+                    result.append(" ")
+                    result.append(" ")
+                    index = source.index(index, offsetBy: 2)
                 } else {
                     result.append(character == "\n" ? "\n" : " ")
                     index = source.index(after: index)
@@ -589,6 +681,26 @@ struct FSDLinter {
             if isInString {
                 if isEscaped {
                     isEscaped = false
+                    result.append(" ")
+                } else if character == "\\", nextCharacter == "(" {
+                    let openingParen = source.index(after: index)
+
+                    if let end = interpolationEnd(openingParen: openingParen) {
+                        result.append(" ")
+                        result.append(" ")
+
+                        let expressionStart = source.index(after: openingParen)
+                        if expressionStart < end {
+                            let expression = String(source[expressionStart..<end])
+                            result.append(stripCommentsAndStringLiterals(from: expression))
+                        }
+
+                        result.append(" ")
+                        index = source.index(after: end)
+                        continue
+                    }
+
+                    isEscaped = true
                     result.append(" ")
                 } else if character == "\\" {
                     isEscaped = true
@@ -612,7 +724,7 @@ struct FSDLinter {
             }
 
             if character == "/", nextCharacter == "*" {
-                isInBlockComment = true
+                blockCommentDepth = 1
                 result.append(" ")
                 result.append(" ")
                 index = source.index(index, offsetBy: 2)
