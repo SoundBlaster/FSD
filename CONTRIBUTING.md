@@ -43,6 +43,8 @@ When changing the template package or its validator, run:
 ```bash
 make template-create-dry-run
 make template-create-fixture
+make spm-template-test
+make spm-template-create-fixture
 make template-validate
 make template-validate-negative
 ```

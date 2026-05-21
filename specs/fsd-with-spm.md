@@ -4,6 +4,11 @@
 
 Главная идея: в iOS роль архитектурных границ лучше всего играют не папки, а **Swift-модули**. SPM target даёт compile-time изоляцию, а `public`/`internal`/`package` access control задаёт публичный API модуля.
 
+В этом репозитории есть практический starter для такого подхода:
+[templates/fsd-ios-spm](../templates/fsd-ios-spm). Его можно материализовать
+через `tools/fsd-template-create.swift` и подключить к legacy Xcode project как
+local Swift Package.
+
 ```txt
 SPM target              = архитектурный модуль / slice
 Swift module boundary   = граница видимости

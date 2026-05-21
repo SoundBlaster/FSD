@@ -1,0 +1,36 @@
+name: fsd-ios-spm
+version: 0.1.0
+kind: module-template
+status: foundation
+language: Swift
+ui: SwiftUI
+platforms:
+  - iOS
+  - macOS
+placeholders:
+  appName:
+    token: AppName
+    description: Prefix for generated SwiftPM package, products, and targets.
+layers:
+  - screen
+  - feature
+  - domain
+  - core
+entrypoints:
+  docs:
+    - README.md
+  package:
+    - Package.swift
+  source:
+    - Sources/AppNameProductListScreen/ProductListScreen.swift
+    - Sources/AppNameCreateSampleFeature/CreateSampleProductAction.swift
+    - Sources/AppNameProductDomain/Product.swift
+    - Sources/AppNameCoreUI/EmptyStateView.swift
+checks:
+  quick:
+    - swift package describe
+  full:
+    - swift test
+notes:
+  - This package is intended for legacy adoption through a local SwiftPM dependency.
+  - FSD boundaries are compile-time Swift module boundaries.
