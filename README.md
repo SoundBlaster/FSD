@@ -1,9 +1,9 @@
-# FSD Demo App
+# FSD iOS Reference Template
 
 [![iOS CI](https://github.com/SoundBlaster/FSD/actions/workflows/ios-ci.yml/badge.svg)](https://github.com/SoundBlaster/FSD/actions/workflows/ios-ci.yml)
 
-Минимальное SwiftUI + SwiftData demo-приложение, разложенное по принципам
-Feature-Sliced Design.
+Reference template для SwiftUI + SwiftData проектов, которые хотят применять
+Feature-Sliced Design как набор понятных правил, проверок и good practices.
 
 ## Что демонстрирует
 
@@ -14,6 +14,17 @@ Feature-Sliced Design.
 - Локальный developer workflow через `make`.
 
 Подробная карта возможностей: [docs/showcase.md](docs/showcase.md).
+
+## Правила шаблона
+
+- [ARCHITECTURE.md](ARCHITECTURE.md) - основной архитектурный контракт.
+- [CONTRIBUTING.md](CONTRIBUTING.md) - workflow для изменений и review.
+- [docs/checklist.md](docs/checklist.md) - practical checklist для новых PR.
+- [docs/rules/fsd-layers.md](docs/rules/fsd-layers.md) - назначение FSD layers.
+- [docs/rules/fsd-imports.md](docs/rules/fsd-imports.md) - dependency direction и slice isolation.
+- [docs/rules/fsd-slices.md](docs/rules/fsd-slices.md) - правила выделения slices.
+- [docs/rules/fsd-swiftui.md](docs/rules/fsd-swiftui.md) - SwiftUI-specific conventions.
+- [docs/rules/fsd-testing.md](docs/rules/fsd-testing.md) - testing expectations.
 
 ## Структура
 
