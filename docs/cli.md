@@ -16,6 +16,13 @@ swift tools/fsd-ios.swift create spm --name LegacyFSD --output ../LegacyFSDModul
 Use `make cli-smoke` to verify the CLI contract and `make cli-doctor` to check
 the local toolchain.
 
+For daily use inside this checkout, install the local wrapper:
+
+```bash
+make install
+fsd-ios doctor
+```
+
 ## Why This Exists
 
 The repository has several focused tools:
@@ -46,6 +53,51 @@ Default repository paths are resolved from the CLI script location, so the
 command can be invoked from another working directory with an absolute script
 path. Explicit user paths such as `--root`, `--template`, and `--output` are
 resolved relative to the caller's current directory.
+
+## Local Install
+
+Use local installation when you want `fsd-ios` on `PATH` without typing
+`swift tools/fsd-ios.swift` every time:
+
+```bash
+make install
+```
+
+By default, this writes a small wrapper to:
+
+```text
+~/.local/bin/fsd-ios
+```
+
+Make sure `~/.local/bin` is on `PATH`:
+
+```bash
+export PATH="$HOME/.local/bin:$PATH"
+```
+
+Then run:
+
+```bash
+fsd-ios --help
+fsd-ios doctor
+fsd-ios lint --root FSDDemoApp --strict --architecture
+```
+
+To install somewhere else:
+
+```bash
+make install INSTALL_PREFIX=/usr/local
+```
+
+To remove the wrapper:
+
+```bash
+make uninstall
+```
+
+The wrapper points back to this checkout's `tools/fsd-ios.swift`, so update the
+repository to update the local command. Run `make install-smoke` to verify the
+wrapper behavior without touching your real `~/.local/bin`.
 
 ## App Template Flow
 
@@ -130,12 +182,16 @@ The Makefile exposes the CLI through stable targets:
 make cli-help
 make cli-smoke
 make cli-doctor
+make install-smoke
 make ci
 ```
 
 `make cli-smoke` verifies command dispatch, subcommand help, and both template
 creation dry-runs without repeating the heavier lint/template checks that
 already run elsewhere in `make ci`.
+
+`make install-smoke` installs the wrapper into `DerivedData/LocalInstall`, checks
+that it can run, and uninstalls it again.
 
 ## CI
 

@@ -8,13 +8,19 @@ SIMULATOR ?= iPhone 17 Pro
 DESTINATION := platform=iOS Simulator,name=$(SIMULATOR)
 XCODEBUILD ?= xcodebuild
 SWIFT ?= swift
+INSTALL_PREFIX ?= $(HOME)/.local
+INSTALL_BIN_DIR := $(INSTALL_PREFIX)/bin
+INSTALL_SMOKE_PREFIX := $(DERIVED_DATA_PATH)/LocalInstall
 
-.PHONY: help open cli-help cli-smoke cli-doctor lint lint-strict lint-architecture harmonize harmonize-fixture template-create-dry-run template-create-fixture template-validate template-validate-negative spm-template-test spm-template-create-fixture build test demo template-demo ci clean
+.PHONY: help open install uninstall install-smoke cli-help cli-smoke cli-doctor lint lint-strict lint-architecture harmonize harmonize-fixture template-create-dry-run template-create-fixture template-validate template-validate-negative spm-template-test spm-template-create-fixture build test demo template-demo ci clean
 
 help:
 	@printf '%s\n' \
 		'Targets:' \
 		'  make open         Open the Xcode project' \
+		'  make install      Install fsd-ios into INSTALL_PREFIX/bin' \
+		'  make uninstall    Remove fsd-ios from INSTALL_PREFIX/bin' \
+		'  make install-smoke  Verify local fsd-ios installation wrapper' \
 		'  make cli-help     Print the unified fsd-ios CLI help' \
 		'  make cli-smoke    Smoke-test the unified fsd-ios CLI' \
 		'  make cli-doctor   Check local FSD iOS tooling prerequisites' \
@@ -37,10 +43,31 @@ help:
 		'  make clean        Remove local DerivedData' \
 		'' \
 		'Variables:' \
-		'  SIMULATOR="iPhone 17 Pro"'
+		'  SIMULATOR="iPhone 17 Pro"' \
+		'  INSTALL_PREFIX="$(HOME)/.local"'
 
 open:
 	open "$(PROJECT)"
+
+install:
+	@mkdir -p "$(INSTALL_BIN_DIR)"
+	@{ \
+		printf '%s\n' '#!/bin/sh'; \
+		printf '%s\n' 'exec swift "$(abspath tools/fsd-ios.swift)" "$$@"'; \
+	} > "$(INSTALL_BIN_DIR)/fsd-ios"
+	@chmod +x "$(INSTALL_BIN_DIR)/fsd-ios"
+	@printf '%s\n' "Installed $(INSTALL_BIN_DIR)/fsd-ios"
+
+uninstall:
+	rm -f "$(INSTALL_BIN_DIR)/fsd-ios"
+
+install-smoke:
+	rm -rf "$(INSTALL_SMOKE_PREFIX)"
+	$(MAKE) install INSTALL_PREFIX="$(INSTALL_SMOKE_PREFIX)"
+	"$(INSTALL_SMOKE_PREFIX)/bin/fsd-ios" --help
+	"$(INSTALL_SMOKE_PREFIX)/bin/fsd-ios" doctor --help
+	$(MAKE) uninstall INSTALL_PREFIX="$(INSTALL_SMOKE_PREFIX)"
+	@test ! -e "$(INSTALL_SMOKE_PREFIX)/bin/fsd-ios"
 
 cli-help:
 	$(SWIFT) tools/fsd-ios.swift --help
@@ -229,7 +256,7 @@ test:
 		test \
 		CODE_SIGNING_ALLOWED=NO
 
-ci: lint lint-strict lint-architecture harmonize-fixture template-create-dry-run template-create-fixture template-validate template-validate-negative spm-template-test spm-template-create-fixture cli-smoke cli-doctor test
+ci: lint lint-strict lint-architecture harmonize-fixture template-create-dry-run template-create-fixture template-validate template-validate-negative spm-template-test spm-template-create-fixture cli-smoke cli-doctor install-smoke test
 
 clean:
 	rm -rf $(DERIVED_DATA_PATH)

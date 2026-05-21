@@ -38,6 +38,7 @@ make ci
 When changing the unified CLI or documented developer workflow, run:
 
 ```bash
+make install-smoke
 make cli-smoke
 make cli-doctor
 ```
