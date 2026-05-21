@@ -56,15 +56,32 @@ harmonize-fixture:
 
 template-create-dry-run:
 	rm -rf $(DERIVED_DATA_PATH)/TemplateCreateDryRun
+	rm -f $(DERIVED_DATA_PATH)/TemplateCreateFileOutput
 	$(SWIFT) tools/fsd-template-create.swift \
 		--template templates/fsd-ios \
 		--app-name SmokeApp \
 		--output $(DERIVED_DATA_PATH)/TemplateCreateDryRun \
 		--dry-run
 	@test ! -e $(DERIVED_DATA_PATH)/TemplateCreateDryRun
+	@mkdir -p $(DERIVED_DATA_PATH)
+	@printf '%s\n' 'not a directory' > $(DERIVED_DATA_PATH)/TemplateCreateFileOutput
+	@if $(SWIFT) tools/fsd-template-create.swift \
+		--template templates/fsd-ios \
+		--app-name SmokeApp \
+		--output $(DERIVED_DATA_PATH)/TemplateCreateFileOutput \
+		--dry-run; then \
+		printf '%s\n' 'Expected file output dry-run to fail'; \
+		exit 1; \
+	else \
+		printf '%s\n' 'File output dry-run failed as expected'; \
+	fi
+	@rm -f $(DERIVED_DATA_PATH)/TemplateCreateFileOutput
 
 template-create-fixture:
 	rm -rf $(DERIVED_DATA_PATH)/TemplateCreateSmoke
+	rm -rf $(DERIVED_DATA_PATH)/TemplateCreateNameSmoke
+	rm -rf $(DERIVED_DATA_PATH)/TemplateCreateSymlinkTemplate
+	rm -rf $(DERIVED_DATA_PATH)/TemplateCreateSymlinkSmoke
 	$(SWIFT) tools/fsd-template-create.swift \
 		--template templates/fsd-ios \
 		--app-name SmokeApp \
@@ -75,6 +92,23 @@ template-create-fixture:
 		exit 1; \
 	fi
 	$(SWIFT) tools/fsd-lint.swift --root $(DERIVED_DATA_PATH)/TemplateCreateSmoke/SmokeApp --strict --architecture
+	$(SWIFT) tools/fsd-template-create.swift \
+		--template templates/fsd-ios \
+		--app-name MyAppName \
+		--output $(DERIVED_DATA_PATH)/TemplateCreateNameSmoke
+	@test -f $(DERIVED_DATA_PATH)/TemplateCreateNameSmoke/MyAppName/app/entrypoint/MyAppNameApp.swift
+	$(SWIFT) tools/fsd-lint.swift --root $(DERIVED_DATA_PATH)/TemplateCreateNameSmoke/MyAppName --strict --architecture
+	@cp -R templates/fsd-ios $(DERIVED_DATA_PATH)/TemplateCreateSymlinkTemplate
+	@ln -s /etc/passwd $(DERIVED_DATA_PATH)/TemplateCreateSymlinkTemplate/external-link
+	@if $(SWIFT) tools/fsd-template-create.swift \
+		--template $(DERIVED_DATA_PATH)/TemplateCreateSymlinkTemplate \
+		--app-name SmokeApp \
+		--output $(DERIVED_DATA_PATH)/TemplateCreateSymlinkSmoke; then \
+		printf '%s\n' 'Expected symlink template to fail'; \
+		exit 1; \
+	else \
+		printf '%s\n' 'Symlink template failed as expected'; \
+	fi
 	@if $(SWIFT) tools/fsd-template-create.swift \
 		--template templates/fsd-ios \
 		--app-name SmokeApp \

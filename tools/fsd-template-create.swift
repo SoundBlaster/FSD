@@ -17,6 +17,7 @@ struct TemplateCreateConfiguration {
 
 struct MaterializedFile {
     let source: URL
+    let relativeSourcePath: String
     let destination: URL
     let relativeDestinationPath: String
     let isText: Bool
@@ -46,7 +47,9 @@ struct TemplateCreator {
             throw TemplateCreateError.invalidInput("Template root does not exist: \(templateURL.path)")
         }
 
-        guard let files = fileURLs(under: templateURL), !files.isEmpty else {
+        let files = try fileURLs(under: templateURL)
+
+        guard !files.isEmpty else {
             throw TemplateCreateError.invalidInput("Template root has no files: \(templateURL.path)")
         }
 
@@ -57,6 +60,7 @@ struct TemplateCreator {
 
             return MaterializedFile(
                 source: sourceURL,
+                relativeSourcePath: relativePath,
                 destination: destinationURL,
                 relativeDestinationPath: materializedPath,
                 isText: isTextFile(sourceURL)
@@ -91,11 +95,46 @@ struct TemplateCreator {
             }
         }
 
-        try validateNoPlaceholderLeftovers(plan)
+        try validateMaterializedOutput(plan)
     }
 
     func validate(_ plan: TemplateCreatePlan) throws {
+        try validateOutputRoot(plan.outputURL)
         try validateNoDestinationConflicts(plan)
+    }
+
+    private func validateOutputRoot(_ outputURL: URL) throws {
+        var isDirectory: ObjCBool = false
+
+        if fileManager.fileExists(atPath: outputURL.path, isDirectory: &isDirectory) {
+            guard isDirectory.boolValue else {
+                throw TemplateCreateError.conflict("Output path exists and is not a directory: \(outputURL.path)")
+            }
+
+            return
+        }
+
+        var ancestor = outputURL.deletingLastPathComponent()
+
+        while ancestor.path != ancestor.deletingLastPathComponent().path {
+            var ancestorIsDirectory: ObjCBool = false
+
+            if fileManager.fileExists(atPath: ancestor.path, isDirectory: &ancestorIsDirectory) {
+                guard ancestorIsDirectory.boolValue else {
+                    throw TemplateCreateError.conflict("Output parent exists and is not a directory: \(ancestor.path)")
+                }
+
+                guard fileManager.isWritableFile(atPath: ancestor.path) else {
+                    throw TemplateCreateError.conflict("Output parent is not writable: \(ancestor.path)")
+                }
+
+                return
+            }
+
+            ancestor = ancestor.deletingLastPathComponent()
+        }
+
+        throw TemplateCreateError.conflict("No existing parent directory for output path: \(outputURL.path)")
     }
 
     private func validateNoDestinationConflicts(_ plan: TemplateCreatePlan) throws {
@@ -104,55 +143,82 @@ struct TemplateCreator {
         }
     }
 
-    private func validateNoPlaceholderLeftovers(_ plan: TemplateCreatePlan) throws {
-        var leftovers: [String] = []
-
+    private func validateMaterializedOutput(_ plan: TemplateCreatePlan) throws {
         for file in plan.files {
-            if file.relativeDestinationPath.contains(placeholder) {
-                leftovers.append(file.relativeDestinationPath)
+            let expectedRelativePath = file.relativeSourcePath
+                .replacingOccurrences(of: placeholder, with: appName)
+
+            guard file.relativeDestinationPath == expectedRelativePath else {
+                throw TemplateCreateError.conflict(
+                    "Generated path does not match expected placeholder replacement: \(file.relativeDestinationPath)"
+                )
+            }
+
+            guard file.isText else {
                 continue
             }
 
-            guard file.isText,
-                  let contents = try? String(contentsOf: file.destination, encoding: .utf8),
-                  contents.contains(placeholder)
-            else {
-                continue
+            let source = try String(contentsOf: file.source, encoding: .utf8)
+            let expectedContents = source.replacingOccurrences(of: placeholder, with: appName)
+            let generatedContents = try String(contentsOf: file.destination, encoding: .utf8)
+
+            guard generatedContents == expectedContents else {
+                throw TemplateCreateError.conflict(
+                    "Generated file does not match expected placeholder replacement: \(file.relativeDestinationPath)"
+                )
             }
-
-            leftovers.append(file.relativeDestinationPath)
-        }
-
-        guard leftovers.isEmpty else {
-            throw TemplateCreateError.conflict(
-                "Placeholder `\(placeholder)` remains in generated output: \(leftovers.joined(separator: ", "))"
-            )
         }
     }
 
-    private func fileURLs(under url: URL) -> [URL]? {
+    private func fileURLs(under url: URL) throws -> [URL] {
+        var enumerationErrors: [String] = []
         guard let enumerator = fileManager.enumerator(
             at: url,
-            includingPropertiesForKeys: [.isRegularFileKey],
-            options: []
+            includingPropertiesForKeys: [.isDirectoryKey, .isRegularFileKey, .isSymbolicLinkKey],
+            options: [],
+            errorHandler: { url, error in
+                enumerationErrors.append("\(url.path): \(error.localizedDescription)")
+                return false
+            }
         ) else {
-            return nil
+            throw TemplateCreateError.invalidInput("Could not enumerate template root: \(url.path)")
         }
 
-        return enumerator.compactMap { item -> URL? in
+        var files: [URL] = []
+
+        for item in enumerator {
             guard let fileURL = item as? URL else {
-                return nil
+                continue
             }
 
-            var isDirectory: ObjCBool = false
-            guard fileManager.fileExists(atPath: fileURL.path, isDirectory: &isDirectory),
-                  !isDirectory.boolValue
-            else {
-                return nil
+            let values = try fileURL.resourceValues(forKeys: [
+                .isDirectoryKey,
+                .isRegularFileKey,
+                .isSymbolicLinkKey,
+            ])
+
+            if values.isSymbolicLink == true {
+                throw TemplateCreateError.invalidInput(
+                    "Template contains symbolic link, which is not supported: \(relativePath(for: fileURL, under: url))"
+                )
             }
 
-            return fileURL
+            if values.isDirectory == true {
+                continue
+            }
+
+            guard values.isRegularFile == true else {
+                continue
+            }
+
+            files.append(fileURL)
         }
+
+        if let firstError = enumerationErrors.first {
+            throw TemplateCreateError.invalidInput("Could not enumerate template root: \(firstError)")
+        }
+
+        return files
     }
 
     private func relativePath(for url: URL, under rootURL: URL) -> String {
