@@ -9,12 +9,15 @@ DESTINATION := platform=iOS Simulator,name=$(SIMULATOR)
 XCODEBUILD ?= xcodebuild
 SWIFT ?= swift
 
-.PHONY: help open lint lint-strict lint-architecture harmonize harmonize-fixture template-create-dry-run template-create-fixture template-validate template-validate-negative spm-template-test spm-template-create-fixture build test demo template-demo ci clean
+.PHONY: help open cli-help cli-smoke cli-doctor lint lint-strict lint-architecture harmonize harmonize-fixture template-create-dry-run template-create-fixture template-validate template-validate-negative spm-template-test spm-template-create-fixture build test demo template-demo ci clean
 
 help:
 	@printf '%s\n' \
 		'Targets:' \
 		'  make open         Open the Xcode project' \
+		'  make cli-help     Print the unified fsd-ios CLI help' \
+		'  make cli-smoke    Smoke-test the unified fsd-ios CLI' \
+		'  make cli-doctor   Check local FSD iOS tooling prerequisites' \
 		'  make lint         Run the baseline FSD lint' \
 		'  make lint-strict  Run the strict FSD lint' \
 		'  make lint-architecture  Run the Swift symbol dependency lint' \
@@ -38,6 +41,31 @@ help:
 
 open:
 	open "$(PROJECT)"
+
+cli-help:
+	$(SWIFT) tools/fsd-ios.swift --help
+
+cli-smoke:
+	rm -rf $(DERIVED_DATA_PATH)/CLICreateAppDryRun
+	rm -rf $(DERIVED_DATA_PATH)/CLICreateSPMDryRun
+	$(SWIFT) tools/fsd-ios.swift --help
+	$(SWIFT) tools/fsd-ios.swift lint --help
+	$(SWIFT) tools/fsd-ios.swift harmonize --help
+	$(SWIFT) tools/fsd-ios.swift validate template --help
+	$(SWIFT) tools/fsd-ios.swift doctor --help
+	$(SWIFT) tools/fsd-ios.swift create app \
+		--name CLICreateApp \
+		--output $(DERIVED_DATA_PATH)/CLICreateAppDryRun \
+		--dry-run
+	@test ! -e $(DERIVED_DATA_PATH)/CLICreateAppDryRun
+	$(SWIFT) tools/fsd-ios.swift create spm \
+		--name CLICreateSPM \
+		--output $(DERIVED_DATA_PATH)/CLICreateSPMDryRun \
+		--dry-run
+	@test ! -e $(DERIVED_DATA_PATH)/CLICreateSPMDryRun
+
+cli-doctor:
+	$(SWIFT) tools/fsd-ios.swift doctor
 
 lint:
 	$(SWIFT) tools/fsd-lint.swift $(APP_ROOT)
@@ -201,7 +229,7 @@ test:
 		test \
 		CODE_SIGNING_ALLOWED=NO
 
-ci: lint lint-strict lint-architecture harmonize-fixture template-create-dry-run template-create-fixture template-validate template-validate-negative spm-template-test spm-template-create-fixture test
+ci: lint lint-strict lint-architecture harmonize-fixture template-create-dry-run template-create-fixture template-validate template-validate-negative spm-template-test spm-template-create-fixture cli-smoke cli-doctor test
 
 clean:
 	rm -rf $(DERIVED_DATA_PATH)

@@ -41,6 +41,8 @@ jobs:
           make template-validate-negative
           make spm-template-test
           make spm-template-create-fixture
+          make cli-smoke
+          make cli-doctor
 
       - name: Select iOS simulator
         id: simulator
