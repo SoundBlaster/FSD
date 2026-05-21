@@ -28,6 +28,13 @@ It is intentionally small:
    make ci
    ```
 
+From this repository, the same skeleton can be materialized with:
+
+```bash
+swift tools/fsd-template-create.swift --app-name MyApp --output ../MyApp --dry-run
+swift tools/fsd-template-create.swift --app-name MyApp --output ../MyApp
+```
+
 ## Layout
 
 ```text

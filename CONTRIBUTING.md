@@ -41,6 +41,8 @@ that proves the rule fails when it should.
 When changing the template package or its validator, run:
 
 ```bash
+make template-create-dry-run
+make template-create-fixture
 make template-validate
 make template-validate-negative
 ```

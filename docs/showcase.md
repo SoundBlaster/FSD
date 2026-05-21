@@ -36,6 +36,7 @@
 | Shared generic UI | `FSDDemoApp/shared/ui` | `demo/fsd-showcase` |
 | Reference template rules | `ARCHITECTURE.md`, `CONTRIBUTING.md`, `docs/rules`, `docs/checklist.md` | `main` |
 | Copyable template package | `templates/fsd-ios` | `main` |
+| Template generator | `tools/fsd-template-create.swift`, `make template-create-fixture` | `main` |
 | Template package validation | `tools/fsd-template-validate.swift`, `make template-validate` | `main` |
 | Harmonize advisor | `tools/fsd-harmonize.swift`, `make harmonize` | `main` |
 | Strict FSD structure lint | `tools/fsd-lint.swift` | `make lint-strict` |
