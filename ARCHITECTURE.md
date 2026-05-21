@@ -80,17 +80,17 @@ become explicit module exports. See [specs/fsd-with-spm.md](specs/fsd-with-spm.m
 
 ## Enforcement
 
-Use these commands before opening a PR:
+Use `make demo` as a quick local documentation/demo check and `make ci` as the
+full pre-PR gate:
 
 ```bash
-make lint
-make lint-strict
-make lint-architecture
+make demo
 make ci
 ```
 
-`lint` checks folder shape. `lint-architecture` additionally checks local Swift
-symbol references for invalid layer direction and sibling-slice dependencies.
+`make ci` runs the lint targets, architecture checks, build, and tests. `lint`
+checks folder shape. `lint-architecture` additionally checks local Swift symbol
+references for invalid layer direction and sibling-slice dependencies.
 
 ## Harmonize
 
