@@ -1,24 +1,25 @@
 //
-//  AddItemButton.swift
+//  EditItemButton.swift
 //  FSDDemoApp
 //
 //  Created by Egor Merkushev on 5/9/26.
 //
 
-import SwiftData
 import SwiftUI
 
-struct AddItemButton: View {
-    @Environment(\.modelContext) private var modelContext
+struct EditItemButton: View {
+    let item: Item
     private let title: String
     private let systemImage: String
 
     @State private var isPresentingForm = false
 
     init(
-        title: String = "Add Item",
-        systemImage: String = "plus"
+        item: Item,
+        title: String = "Edit",
+        systemImage: String = "pencil"
     ) {
+        self.item = item
         self.title = title
         self.systemImage = systemImage
     }
@@ -28,7 +29,9 @@ struct AddItemButton: View {
             Label(title, systemImage: systemImage)
         }
         .sheet(isPresented: $isPresentingForm) {
-            AddItemForm(modelContext: modelContext)
+            NavigationStack {
+                EditItemForm(item: item)
+            }
         }
     }
 
