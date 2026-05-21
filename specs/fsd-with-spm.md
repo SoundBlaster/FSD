@@ -118,6 +118,8 @@ Packages/
 
 Пример `Package.swift`:
 
+> Версии в примере (`swift-tools-version` и минимальная iOS) условные. В реальном проекте их нужно выбрать под текущий Xcode, Swift toolchain и deployment target приложения.
+
 ```swift
 // swift-tools-version: 6.1
 
@@ -206,7 +208,8 @@ export { useAddToCart } from './model/use-add-to-cart';
 public / open     — видно другим модулям
 package           — видно target'ам внутри одного package
 internal          — видно только внутри target/module
-private           — видно локально
+fileprivate       — видно в пределах одного Swift-файла
+private           — видно только в ближайшей lexical scope
 ```
 
 То есть внешний код делает:
@@ -223,7 +226,8 @@ import AddToCartFeature
 public — только facade и необходимые контракты
 internal — реализация по умолчанию
 package — внутренний API между target'ами одного package
-private — детали конкретного файла/типа
+fileprivate — детали, общие для нескольких типов в одном файле
+private — детали конкретной lexical scope
 ```
 
 Пример структуры target:
@@ -607,7 +611,8 @@ let checkout = CheckoutFlow.make(
 public   — внешний API package/module
 package  — видно только внутри одного Swift package
 internal — видно только внутри target/module
-private  — локальная деталь
+fileprivate — видно в пределах одного Swift-файла
+private  — локальная деталь ближайшей lexical scope
 ```
 
 Пример:
@@ -707,6 +712,8 @@ ProductDetailsScreen
 ## 13. Пример traits в Package.swift
 
 Синтаксис может немного отличаться в зависимости от версии SwiftPM, но концептуально выглядит так:
+
+> Значения `swift-tools-version` и `.iOS(...)` ниже приведены только для иллюстрации. Для конкретного репозитория их нужно синхронизировать с настройками проекта и CI.
 
 ```swift
 // swift-tools-version: 6.1
