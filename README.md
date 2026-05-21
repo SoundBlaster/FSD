@@ -22,26 +22,32 @@ FSDDemoApp/
 
 Открой `FSDDemoApp.xcodeproj` в Xcode и запусти scheme `FSDDemoApp`.
 
+```bash
+make open
+```
+
 ## Архитектурный lint
 
 Baseline-проверка FSD-структуры реализована как Swift CLI:
 
 ```bash
-tools/fsd-lint.swift FSDDemoApp
+make lint
 ```
 
 Строгий режим превращает предупреждения в ошибки:
 
 ```bash
-tools/fsd-lint.swift --root FSDDemoApp --strict
+make lint-strict
 ```
 
 Для проверки из терминала:
 
 ```bash
-xcodebuild \
-  -project FSDDemoApp.xcodeproj \
-  -scheme FSDDemoApp \
-  -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
-  test
+make test
+```
+
+Полная локальная проверка:
+
+```bash
+make ci
 ```
