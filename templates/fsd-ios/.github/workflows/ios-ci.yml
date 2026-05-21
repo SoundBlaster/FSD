@@ -76,20 +76,8 @@ jobs:
 
       - name: Build app
         run: |
-          xcodebuild \
-            -project AppName.xcodeproj \
-            -scheme AppName \
-            -destination "platform=iOS Simulator,name=${{ steps.simulator.outputs.name }},OS=latest" \
-            -derivedDataPath DerivedData \
-            build \
-            CODE_SIGNING_ALLOWED=NO
+          make build SIMULATOR="${{ steps.simulator.outputs.name }}"
 
       - name: Run unit tests
         run: |
-          xcodebuild \
-            -project AppName.xcodeproj \
-            -scheme AppName \
-            -destination "platform=iOS Simulator,name=${{ steps.simulator.outputs.name }},OS=latest" \
-            -derivedDataPath DerivedData \
-            test \
-            CODE_SIGNING_ALLOWED=NO
+          make test SIMULATOR="${{ steps.simulator.outputs.name }}"
