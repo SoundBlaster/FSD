@@ -52,6 +52,8 @@ PR template и checklist для нового проекта.
 
 ```bash
 make template-demo
+swift tools/fsd-template-create.swift --app-name MyApp --output ../MyApp --dry-run
+swift tools/fsd-template-create.swift --app-name MyApp --output ../MyApp
 ```
 
 ## Запуск
@@ -101,6 +103,13 @@ Read-only advisor для refactoring suggestions:
 ```bash
 make harmonize
 make harmonize-fixture
+```
+
+Generator smoke checks:
+
+```bash
+make template-create-dry-run
+make template-create-fixture
 ```
 
 Для проверки из терминала:

@@ -9,7 +9,7 @@ DESTINATION := platform=iOS Simulator,name=$(SIMULATOR)
 XCODEBUILD ?= xcodebuild
 SWIFT ?= swift
 
-.PHONY: help open lint lint-strict lint-architecture harmonize harmonize-fixture template-validate template-validate-negative build test demo template-demo ci clean
+.PHONY: help open lint lint-strict lint-architecture harmonize harmonize-fixture template-create-dry-run template-create-fixture template-validate template-validate-negative build test demo template-demo ci clean
 
 help:
 	@printf '%s\n' \
@@ -20,6 +20,8 @@ help:
 		'  make lint-architecture  Run the Swift symbol dependency lint' \
 		'  make harmonize    Print read-only FSD refactoring suggestions' \
 		'  make harmonize-fixture  Verify harmonize suggestions on a fixture' \
+		'  make template-create-dry-run  Preview template materialization' \
+		'  make template-create-fixture  Materialize and verify a generated template smoke app' \
 		'  make template-validate  Validate the copyable template bundle' \
 		'  make template-validate-negative  Run the negative template fixture' \
 		'  make build        Build the app for an iOS simulator' \
@@ -51,6 +53,71 @@ harmonize-fixture:
 	$(SWIFT) tools/fsd-harmonize.swift \
 		--root tests/fixtures/harmonize-advice/FSDApp \
 		--expect-suggestions 2
+
+template-create-dry-run:
+	rm -rf $(DERIVED_DATA_PATH)/TemplateCreateDryRun
+	rm -f $(DERIVED_DATA_PATH)/TemplateCreateFileOutput
+	$(SWIFT) tools/fsd-template-create.swift \
+		--template templates/fsd-ios \
+		--app-name SmokeApp \
+		--output $(DERIVED_DATA_PATH)/TemplateCreateDryRun \
+		--dry-run
+	@test ! -e $(DERIVED_DATA_PATH)/TemplateCreateDryRun
+	@mkdir -p $(DERIVED_DATA_PATH)
+	@printf '%s\n' 'not a directory' > $(DERIVED_DATA_PATH)/TemplateCreateFileOutput
+	@if $(SWIFT) tools/fsd-template-create.swift \
+		--template templates/fsd-ios \
+		--app-name SmokeApp \
+		--output $(DERIVED_DATA_PATH)/TemplateCreateFileOutput \
+		--dry-run; then \
+		printf '%s\n' 'Expected file output dry-run to fail'; \
+		exit 1; \
+	else \
+		printf '%s\n' 'File output dry-run failed as expected'; \
+	fi
+	@rm -f $(DERIVED_DATA_PATH)/TemplateCreateFileOutput
+
+template-create-fixture:
+	rm -rf $(DERIVED_DATA_PATH)/TemplateCreateSmoke
+	rm -rf $(DERIVED_DATA_PATH)/TemplateCreateNameSmoke
+	rm -rf $(DERIVED_DATA_PATH)/TemplateCreateSymlinkTemplate
+	rm -rf $(DERIVED_DATA_PATH)/TemplateCreateSymlinkSmoke
+	$(SWIFT) tools/fsd-template-create.swift \
+		--template templates/fsd-ios \
+		--app-name SmokeApp \
+		--output $(DERIVED_DATA_PATH)/TemplateCreateSmoke
+	@test -f $(DERIVED_DATA_PATH)/TemplateCreateSmoke/SmokeApp/app/entrypoint/SmokeAppApp.swift
+	@if grep -R 'AppName' $(DERIVED_DATA_PATH)/TemplateCreateSmoke > /dev/null; then \
+		printf '%s\n' 'Generated template still contains AppName placeholder'; \
+		exit 1; \
+	fi
+	$(SWIFT) tools/fsd-lint.swift --root $(DERIVED_DATA_PATH)/TemplateCreateSmoke/SmokeApp --strict --architecture
+	$(SWIFT) tools/fsd-template-create.swift \
+		--template templates/fsd-ios \
+		--app-name MyAppName \
+		--output $(DERIVED_DATA_PATH)/TemplateCreateNameSmoke
+	@test -f $(DERIVED_DATA_PATH)/TemplateCreateNameSmoke/MyAppName/app/entrypoint/MyAppNameApp.swift
+	$(SWIFT) tools/fsd-lint.swift --root $(DERIVED_DATA_PATH)/TemplateCreateNameSmoke/MyAppName --strict --architecture
+	@cp -R templates/fsd-ios $(DERIVED_DATA_PATH)/TemplateCreateSymlinkTemplate
+	@ln -s /etc/passwd $(DERIVED_DATA_PATH)/TemplateCreateSymlinkTemplate/external-link
+	@if $(SWIFT) tools/fsd-template-create.swift \
+		--template $(DERIVED_DATA_PATH)/TemplateCreateSymlinkTemplate \
+		--app-name SmokeApp \
+		--output $(DERIVED_DATA_PATH)/TemplateCreateSymlinkSmoke; then \
+		printf '%s\n' 'Expected symlink template to fail'; \
+		exit 1; \
+	else \
+		printf '%s\n' 'Symlink template failed as expected'; \
+	fi
+	@if $(SWIFT) tools/fsd-template-create.swift \
+		--template templates/fsd-ios \
+		--app-name SmokeApp \
+		--output $(DERIVED_DATA_PATH)/TemplateCreateSmoke; then \
+		printf '%s\n' 'Expected existing destination conflict to fail'; \
+		exit 1; \
+	else \
+		printf '%s\n' 'Existing destination conflict failed as expected'; \
+	fi
 
 template-validate:
 	$(SWIFT) tools/fsd-template-validate.swift --template templates/fsd-ios
@@ -110,7 +177,7 @@ test:
 		test \
 		CODE_SIGNING_ALLOWED=NO
 
-ci: lint lint-strict lint-architecture harmonize-fixture template-validate template-validate-negative test
+ci: lint lint-strict lint-architecture harmonize-fixture template-create-dry-run template-create-fixture template-validate template-validate-negative test
 
 clean:
 	rm -rf $(DERIVED_DATA_PATH)
