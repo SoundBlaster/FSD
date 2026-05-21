@@ -7,6 +7,7 @@ DERIVED_DATA_PATH := DerivedData
 SIMULATOR ?= iPhone 17 Pro
 DESTINATION := platform=iOS Simulator,name=$(SIMULATOR)
 XCODEBUILD ?= xcodebuild
+SWIFT ?= swift
 
 .PHONY: help open lint lint-strict build test ci clean
 
@@ -28,10 +29,10 @@ open:
 	open "$(PROJECT)"
 
 lint:
-	tools/fsd-lint.swift $(APP_ROOT)
+	$(SWIFT) tools/fsd-lint.swift $(APP_ROOT)
 
 lint-strict:
-	tools/fsd-lint.swift --root $(APP_ROOT) --strict
+	$(SWIFT) tools/fsd-lint.swift --root $(APP_ROOT) --strict
 
 build:
 	$(XCODEBUILD) \
