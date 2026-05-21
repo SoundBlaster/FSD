@@ -51,6 +51,26 @@ struct FSDDemoAppTests {
         #expect(items.map(\.timestamp) == [second.timestamp])
     }
 
+    @Test func deleteItemsActionIgnoresOutOfBoundsOffsets() throws {
+        let modelContainer = try makeModelContainer()
+        let modelContext = modelContainer.mainContext
+        let first = makeItem(
+            modelContext: modelContext,
+            title: "First",
+            timestamp: Date(timeIntervalSince1970: 1)
+        )
+        let second = makeItem(
+            modelContext: modelContext,
+            title: "Second",
+            timestamp: Date(timeIntervalSince1970: 2)
+        )
+
+        DeleteItemsAction(modelContext: modelContext).delete([first, second], at: IndexSet([1, 3]))
+
+        let items = try fetchItems(from: modelContext)
+        #expect(items.map(\.timestamp) == [first.timestamp])
+    }
+
     @Test func toggleItemCompletionActionUpdatesItem() throws {
         let modelContainer = try makeModelContainer()
         let modelContext = modelContainer.mainContext

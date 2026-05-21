@@ -12,9 +12,11 @@ struct DeleteItemsAction {
     let modelContext: ModelContext
 
     func delete(_ items: [Item], at offsets: IndexSet) {
-        for index in offsets {
-            modelContext.delete(items[index])
+        let selectedItems = offsets.compactMap { index in
+            items.indices.contains(index) ? items[index] : nil
         }
+
+        delete(selectedItems)
     }
 
     func delete(_ items: [Item]) {
