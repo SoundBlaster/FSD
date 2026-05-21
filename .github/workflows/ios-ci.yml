@@ -39,6 +39,8 @@ jobs:
           make template-create-fixture
           make template-validate
           make template-validate-negative
+          make spm-template-test
+          make spm-template-create-fixture
 
       - name: Select iOS simulator
         id: simulator

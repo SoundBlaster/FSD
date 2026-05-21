@@ -56,6 +56,27 @@ swift tools/fsd-template-create.swift --app-name MyApp --output ../MyApp --dry-r
 swift tools/fsd-template-create.swift --app-name MyApp --output ../MyApp
 ```
 
+## Legacy / Modular Adoption
+
+Для legacy-проектов приоритетнее не новый app skeleton, а локальный Swift Package
+с compile-time границами модулей. Такой template лежит в
+[templates/fsd-ios-spm](templates/fsd-ios-spm).
+
+```bash
+swift tools/fsd-template-create.swift \
+  --template templates/fsd-ios-spm \
+  --app-name LegacyFSD \
+  --output ../LegacyFSDModules
+```
+
+После генерации package можно добавить в существующий Xcode project как local
+package dependency и импортировать новый screen/feature module из legacy code.
+
+```bash
+make spm-template-test
+make spm-template-create-fixture
+```
+
 ## Запуск
 
 Открой `FSDDemoApp.xcodeproj` в Xcode и запусти scheme `FSDDemoApp`.
@@ -110,6 +131,7 @@ Generator smoke checks:
 ```bash
 make template-create-dry-run
 make template-create-fixture
+make spm-template-create-fixture
 ```
 
 Для проверки из терминала:

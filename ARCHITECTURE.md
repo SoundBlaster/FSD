@@ -78,6 +78,26 @@ Swift `public` access control. Keep cross-slice usage narrow:
 If the project moves to Swift Package Manager boundaries, public API should
 become explicit module exports. See [specs/fsd-with-spm.md](specs/fsd-with-spm.md).
 
+## Legacy Adoption With Modules
+
+For legacy applications, prefer adding new FSD code as a local Swift Package
+instead of moving existing legacy files first. This creates a module island where
+new code has compile-time dependency direction, while the old app can adopt it
+screen by screen.
+
+The starter package lives in [templates/fsd-ios-spm](templates/fsd-ios-spm):
+
+```bash
+swift tools/fsd-template-create.swift \
+  --template templates/fsd-ios-spm \
+  --app-name LegacyFSD \
+  --output ../LegacyFSDModules
+```
+
+The legacy app should import only the public product it composes, usually a
+screen or flow target. Lower targets such as domain/core stay hidden behind
+SwiftPM dependency direction and Swift access control.
+
 ## Enforcement
 
 Use `make demo` as a quick local documentation/demo check and `make ci` as the

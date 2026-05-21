@@ -9,7 +9,7 @@ DESTINATION := platform=iOS Simulator,name=$(SIMULATOR)
 XCODEBUILD ?= xcodebuild
 SWIFT ?= swift
 
-.PHONY: help open lint lint-strict lint-architecture harmonize harmonize-fixture template-create-dry-run template-create-fixture template-validate template-validate-negative build test demo template-demo ci clean
+.PHONY: help open lint lint-strict lint-architecture harmonize harmonize-fixture template-create-dry-run template-create-fixture template-validate template-validate-negative spm-template-test spm-template-create-fixture build test demo template-demo ci clean
 
 help:
 	@printf '%s\n' \
@@ -24,6 +24,8 @@ help:
 		'  make template-create-fixture  Materialize and verify a generated template smoke app' \
 		'  make template-validate  Validate the copyable template bundle' \
 		'  make template-validate-negative  Run the negative template fixture' \
+		'  make spm-template-test  Build and test the SPM module-island template' \
+		'  make spm-template-create-fixture  Materialize and test the SPM template' \
 		'  make build        Build the app for an iOS simulator' \
 		'  make test         Run the xcodebuild test command from README' \
 		'  make demo         Print the FSD map and run architecture lint' \
@@ -131,6 +133,24 @@ template-validate-negative:
 		printf '%s\n' 'Invalid template fixture failed as expected'; \
 	fi
 
+spm-template-test:
+	$(SWIFT) package --package-path templates/fsd-ios-spm describe
+	$(SWIFT) test --package-path templates/fsd-ios-spm
+
+spm-template-create-fixture:
+	rm -rf $(DERIVED_DATA_PATH)/SPMTemplateSmoke
+	$(SWIFT) tools/fsd-template-create.swift \
+		--template templates/fsd-ios-spm \
+		--app-name LegacyFSD \
+		--output $(DERIVED_DATA_PATH)/SPMTemplateSmoke
+	@test -f $(DERIVED_DATA_PATH)/SPMTemplateSmoke/Package.swift
+	@test -f $(DERIVED_DATA_PATH)/SPMTemplateSmoke/Sources/LegacyFSDProductListScreen/ProductListScreen.swift
+	@if grep -R 'AppName' $(DERIVED_DATA_PATH)/SPMTemplateSmoke > /dev/null; then \
+		printf '%s\n' 'Generated SPM template still contains AppName placeholder'; \
+		exit 1; \
+	fi
+	$(SWIFT) test --package-path $(DERIVED_DATA_PATH)/SPMTemplateSmoke
+
 demo:
 	@printf 'FSD layers:\n'
 	@printf '%s\n' \
@@ -154,10 +174,14 @@ demo:
 	$(SWIFT) tools/fsd-lint.swift --root $(APP_ROOT) --strict --architecture
 
 template-demo:
-	@printf 'Template package:\n'
+	@printf 'Application template package:\n'
 	@find templates/fsd-ios -maxdepth 7 -type f | sort
 	@printf '\nTemplate manifest:\n'
 	@sed -n '1,120p' templates/fsd-ios/template.yaml
+	@printf '\nSPM module-island template package:\n'
+	@find templates/fsd-ios-spm -maxdepth 7 -type f | sort
+	@printf '\nSPM template manifest:\n'
+	@sed -n '1,120p' templates/fsd-ios-spm/template.yaml
 
 build:
 	$(XCODEBUILD) \
@@ -177,7 +201,7 @@ test:
 		test \
 		CODE_SIGNING_ALLOWED=NO
 
-ci: lint lint-strict lint-architecture harmonize-fixture template-create-dry-run template-create-fixture template-validate template-validate-negative test
+ci: lint lint-strict lint-architecture harmonize-fixture template-create-dry-run template-create-fixture template-validate template-validate-negative spm-template-test spm-template-create-fixture test
 
 clean:
 	rm -rf $(DERIVED_DATA_PATH)

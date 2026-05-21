@@ -34,6 +34,12 @@ struct TemplateCreator {
     private let outputURL: URL
     private let placeholder: String
     private let appName: String
+    private let ignoredTemplateDirectories: Set<String> = [
+        ".build",
+        ".git",
+        ".swiftpm",
+        "DerivedData",
+    ]
 
     init(templateURL: URL, outputURL: URL, placeholder: String, appName: String) {
         self.templateURL = templateURL
@@ -196,6 +202,11 @@ struct TemplateCreator {
                 .isRegularFileKey,
                 .isSymbolicLinkKey,
             ])
+
+            if values.isDirectory == true, ignoredTemplateDirectories.contains(fileURL.lastPathComponent) {
+                enumerator.skipDescendants()
+                continue
+            }
 
             if values.isSymbolicLink == true {
                 throw TemplateCreateError.invalidInput(
