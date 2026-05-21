@@ -45,6 +45,13 @@ make template-validate
 make template-validate-negative
 ```
 
+When changing `harmonize`, run:
+
+```bash
+make harmonize
+make harmonize-fixture
+```
+
 ## Review Expectations
 
 Review should focus on:

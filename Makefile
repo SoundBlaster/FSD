@@ -9,7 +9,7 @@ DESTINATION := platform=iOS Simulator,name=$(SIMULATOR)
 XCODEBUILD ?= xcodebuild
 SWIFT ?= swift
 
-.PHONY: help open lint lint-strict lint-architecture template-validate template-validate-negative build test demo template-demo ci clean
+.PHONY: help open lint lint-strict lint-architecture harmonize harmonize-fixture template-validate template-validate-negative build test demo template-demo ci clean
 
 help:
 	@printf '%s\n' \
@@ -18,6 +18,8 @@ help:
 		'  make lint         Run the baseline FSD lint' \
 		'  make lint-strict  Run the strict FSD lint' \
 		'  make lint-architecture  Run the Swift symbol dependency lint' \
+		'  make harmonize    Print read-only FSD refactoring suggestions' \
+		'  make harmonize-fixture  Verify harmonize suggestions on a fixture' \
 		'  make template-validate  Validate the copyable template bundle' \
 		'  make template-validate-negative  Run the negative template fixture' \
 		'  make build        Build the app for an iOS simulator' \
@@ -41,6 +43,14 @@ lint-strict:
 
 lint-architecture:
 	$(SWIFT) tools/fsd-lint.swift --root $(APP_ROOT) --strict --architecture
+
+harmonize:
+	$(SWIFT) tools/fsd-harmonize.swift --root $(APP_ROOT)
+
+harmonize-fixture:
+	$(SWIFT) tools/fsd-harmonize.swift \
+		--root tests/fixtures/harmonize-advice/FSDApp \
+		--expect-suggestions 2
 
 template-validate:
 	$(SWIFT) tools/fsd-template-validate.swift --template templates/fsd-ios
@@ -100,7 +110,7 @@ test:
 		test \
 		CODE_SIGNING_ALLOWED=NO
 
-ci: lint lint-strict lint-architecture template-validate template-validate-negative test
+ci: lint lint-strict lint-architecture harmonize-fixture template-validate template-validate-negative test
 
 clean:
 	rm -rf $(DERIVED_DATA_PATH)

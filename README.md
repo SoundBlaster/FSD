@@ -96,6 +96,13 @@ make template-validate
 make template-validate-negative
 ```
 
+Read-only advisor для refactoring suggestions:
+
+```bash
+make harmonize
+make harmonize-fixture
+```
+
 Для проверки из терминала:
 
 ```bash

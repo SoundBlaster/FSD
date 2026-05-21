@@ -94,8 +94,8 @@ references for invalid layer direction and sibling-slice dependencies.
 
 ## Harmonize
 
-`lint` is a gate: it should pass or fail. `harmonize` is planned as an advisor:
-it should explain likely refactoring moves without changing files by default.
+`lint` is a gate: it should pass or fail. `harmonize` is an advisor: it explains
+likely refactoring moves without changing files.
 
 The intended split:
 
@@ -103,3 +103,13 @@ The intended split:
 lint       -> detect and block objective violations
 harmonize  -> suggest coherent FSD refactoring plans
 ```
+
+Run it locally:
+
+```bash
+make harmonize
+```
+
+Harmonize suggestions are intentionally not CI blockers for the app. CI only
+checks a fixture with known architecture smells so the advisor itself does not
+silently regress.

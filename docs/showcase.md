@@ -37,6 +37,7 @@
 | Reference template rules | `ARCHITECTURE.md`, `CONTRIBUTING.md`, `docs/rules`, `docs/checklist.md` | `main` |
 | Copyable template package | `templates/fsd-ios` | `main` |
 | Template package validation | `tools/fsd-template-validate.swift`, `make template-validate` | `main` |
+| Harmonize advisor | `tools/fsd-harmonize.swift`, `make harmonize` | `main` |
 | Strict FSD structure lint | `tools/fsd-lint.swift` | `make lint-strict` |
 | Swift symbol dependency lint | `tools/fsd-lint.swift --architecture` | `make lint-architecture` |
 | Local developer UX | `Makefile` | `demo/makefile` |
