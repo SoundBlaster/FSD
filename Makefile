@@ -50,7 +50,7 @@ harmonize:
 harmonize-fixture:
 	$(SWIFT) tools/fsd-harmonize.swift \
 		--root tests/fixtures/harmonize-advice/FSDApp \
-		--expect-suggestions-at-least 2
+		--expect-suggestions 2
 
 template-validate:
 	$(SWIFT) tools/fsd-template-validate.swift --template templates/fsd-ios

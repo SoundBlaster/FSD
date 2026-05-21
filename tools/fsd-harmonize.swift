@@ -10,6 +10,7 @@ import Foundation
 
 struct HarmonizeConfiguration {
     let rootPath: String
+    let exactSuggestionCount: Int?
     let expectedSuggestionCount: Int?
 }
 
@@ -94,9 +95,9 @@ struct HarmonizeAdvisor {
 
         for url in recursiveChildren(of: sharedURL) {
             let relative = relativePath(for: url)
-            let lowercasePath = relative.lowercased()
+            let pathTokens = Set(tokenize(relative))
 
-            guard let token = entityTokens.first(where: { lowercasePath.contains($0) }) else {
+            guard let token = entityTokens.first(where: { pathTokens.contains($0) }) else {
                 continue
             }
 
@@ -190,13 +191,42 @@ struct HarmonizeAdvisor {
     }
 
     private func tokenize(_ value: String) -> [String] {
-        value
-            .lowercased()
+        var normalized = ""
+        var previousWasLowercaseOrDigit = false
+
+        for character in value {
+            if isTokenSeparator(character) {
+                normalized.append(" ")
+                previousWasLowercaseOrDigit = false
+                continue
+            }
+
+            let text = String(character)
+            let isUppercase = text.rangeOfCharacter(from: .uppercaseLetters) != nil
+
+            if isUppercase, previousWasLowercaseOrDigit {
+                normalized.append(" ")
+            }
+
+            normalized.append(contentsOf: text.lowercased())
+            previousWasLowercaseOrDigit = text.rangeOfCharacter(from: .lowercaseLetters) != nil ||
+                text.rangeOfCharacter(from: .decimalDigits) != nil
+        }
+
+        return normalized
             .split { character in
-                character == "-" || character == "_" || character == " "
+                character == " "
             }
             .map(String.init)
             .filter { $0.count >= 3 }
+    }
+
+    private func isTokenSeparator(_ character: Character) -> Bool {
+        character == "/" ||
+            character == "-" ||
+            character == "_" ||
+            character == " " ||
+            character == "."
     }
 
     private func childDirectories(of url: URL) -> [URL] {
@@ -253,6 +283,7 @@ struct HarmonizeAdvisor {
 
 func parseHarmonizeArguments(_ arguments: [String]) -> HarmonizeConfiguration? {
     var rootPath = "FSDDemoApp"
+    var exactSuggestionCount: Int?
     var expectedSuggestionCount: Int?
     var index = 0
 
@@ -270,6 +301,13 @@ func parseHarmonizeArguments(_ arguments: [String]) -> HarmonizeConfiguration? {
                 exit(2)
             }
             rootPath = arguments[index]
+        case "--expect-suggestions":
+            index += 1
+            guard index < arguments.count, let count = Int(arguments[index]) else {
+                print("error: --expect-suggestions requires an integer")
+                exit(2)
+            }
+            exactSuggestionCount = count
         case "--expect-suggestions-at-least":
             index += 1
             guard index < arguments.count, let count = Int(arguments[index]) else {
@@ -290,6 +328,7 @@ func parseHarmonizeArguments(_ arguments: [String]) -> HarmonizeConfiguration? {
 
     return HarmonizeConfiguration(
         rootPath: rootPath,
+        exactSuggestionCount: exactSuggestionCount,
         expectedSuggestionCount: expectedSuggestionCount
     )
 }
@@ -310,6 +349,7 @@ func printHarmonizeUsage() {
 
         Options:
           --root <path>                         Source root to inspect. Defaults to `FSDDemoApp`.
+          --expect-suggestions <count>          Test helper. Fails unless exactly this many suggestions are found.
           --expect-suggestions-at-least <count> Test helper. Fails if fewer suggestions are found.
         """
     )
@@ -367,6 +407,17 @@ if let expectedSuggestionCount = configuration.expectedSuggestionCount {
     }
 
     print("Expectation satisfied: found at least \(expectedSuggestionCount) suggestions")
+}
+
+if let exactSuggestionCount = configuration.exactSuggestionCount {
+    guard suggestions.count == exactSuggestionCount else {
+        print(
+            "error: expected exactly \(exactSuggestionCount) suggestions, found \(suggestions.count)"
+        )
+        exit(1)
+    }
+
+    print("Expectation satisfied: found exactly \(exactSuggestionCount) suggestions")
 }
 
 exit(0)
