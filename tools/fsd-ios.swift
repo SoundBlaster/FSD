@@ -27,7 +27,17 @@ enum CLIError: Error, CustomStringConvertible {
 }
 
 let fileManager = FileManager.default
-let currentDirectory = URL(fileURLWithPath: fileManager.currentDirectoryPath)
+let originalWorkingDirectoryURL = URL(fileURLWithPath: fileManager.currentDirectoryPath)
+    .standardizedFileURL
+let invokedScriptURL = URL(
+    fileURLWithPath: CommandLine.arguments[0],
+    relativeTo: originalWorkingDirectoryURL
+)
+.standardizedFileURL
+let toolsDirectoryURL = invokedScriptURL.deletingLastPathComponent()
+let repoRootURL = toolsDirectoryURL.lastPathComponent == "tools"
+    ? toolsDirectoryURL.deletingLastPathComponent()
+    : originalWorkingDirectoryURL
 
 func printUsage() {
     print(
@@ -77,14 +87,40 @@ func printCreateUsage() {
     )
 }
 
+func printValidateUsage() {
+    print(
+        """
+        Usage:
+          swift tools/fsd-ios.swift validate template [--template <path>]
+
+        Validates a copyable template bundle. If --template is omitted, the
+        repository app template is used.
+        """
+    )
+}
+
+func printDoctorUsage() {
+    print(
+        """
+        Usage:
+          swift tools/fsd-ios.swift doctor
+
+        Checks local toolchain, required repository files, strict FSD lint,
+        template validation, and SwiftPM template metadata.
+        """
+    )
+}
+
 func runProcess(
     _ command: String,
     _ arguments: [String],
-    inheritIO: Bool = true
+    inheritIO: Bool = true,
+    workingDirectoryURL: URL? = nil
 ) throws -> CommandResult {
     let process = Process()
     process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
     process.arguments = [command] + arguments
+    process.currentDirectoryURL = workingDirectoryURL
 
     if inheritIO {
         process.standardInput = FileHandle.standardInput
@@ -92,12 +128,45 @@ func runProcess(
         process.standardError = FileHandle.standardError
     }
 
-    let outputPipe = Pipe()
-    let errorPipe = Pipe()
+    var outputURL: URL?
+    var errorURL: URL?
+    var outputHandle: FileHandle?
+    var errorHandle: FileHandle?
+
+    defer {
+        try? outputHandle?.close()
+        try? errorHandle?.close()
+
+        if let outputURL {
+            try? fileManager.removeItem(at: outputURL)
+        }
+
+        if let errorURL {
+            try? fileManager.removeItem(at: errorURL)
+        }
+    }
 
     if !inheritIO {
-        process.standardOutput = outputPipe
-        process.standardError = errorPipe
+        let temporaryDirectory = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+        let outputFileURL = temporaryDirectory.appendingPathComponent("fsd-ios-\(UUID().uuidString).stdout")
+        let errorFileURL = temporaryDirectory.appendingPathComponent("fsd-ios-\(UUID().uuidString).stderr")
+
+        fileManager.createFile(atPath: outputFileURL.path, contents: nil)
+        fileManager.createFile(atPath: errorFileURL.path, contents: nil)
+
+        guard let writableOutput = FileHandle(forWritingAtPath: outputFileURL.path),
+              let writableError = FileHandle(forWritingAtPath: errorFileURL.path)
+        else {
+            throw CLIError.launchFailed("Could not create temporary output files")
+        }
+
+        outputURL = outputFileURL
+        errorURL = errorFileURL
+        outputHandle = writableOutput
+        errorHandle = writableError
+
+        process.standardOutput = writableOutput
+        process.standardError = writableError
     }
 
     do {
@@ -112,8 +181,15 @@ func runProcess(
         return CommandResult(exitCode: process.terminationStatus, standardOutput: "", standardError: "")
     }
 
-    let output = String(data: outputPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
-    let error = String(data: errorPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+    try? outputHandle?.close()
+    try? errorHandle?.close()
+    outputHandle = nil
+    errorHandle = nil
+
+    let outputData = outputURL.flatMap { try? Data(contentsOf: $0) } ?? Data()
+    let errorData = errorURL.flatMap { try? Data(contentsOf: $0) } ?? Data()
+    let output = String(data: outputData, encoding: .utf8) ?? ""
+    let error = String(data: errorData, encoding: .utf8) ?? ""
 
     return CommandResult(
         exitCode: process.terminationStatus,
@@ -123,30 +199,82 @@ func runProcess(
 }
 
 func resolveToolScript(_ name: String) -> String {
-    let cwdCandidate = currentDirectory
-        .appendingPathComponent("tools")
+    let siblingCandidate = toolsDirectoryURL
         .appendingPathComponent(name)
-
-    if fileManager.fileExists(atPath: cwdCandidate.path) {
-        return cwdCandidate.path
-    }
-
-    let scriptPath = CommandLine.arguments[0]
-    let scriptURL = URL(fileURLWithPath: scriptPath, relativeTo: currentDirectory)
         .standardizedFileURL
-    let siblingCandidate = scriptURL
-        .deletingLastPathComponent()
-        .appendingPathComponent(name)
 
     if fileManager.fileExists(atPath: siblingCandidate.path) {
         return siblingCandidate.path
     }
 
-    return "tools/\(name)"
+    return repoRootURL
+        .appendingPathComponent("tools")
+        .appendingPathComponent(name)
+        .standardizedFileURL
+        .path
+}
+
+func repoPath(_ relativePath: String) -> String {
+    repoRootURL
+        .appendingPathComponent(relativePath)
+        .standardizedFileURL
+        .path
+}
+
+func absolutePath(_ path: String, relativeTo baseURL: URL = originalWorkingDirectoryURL) -> String {
+    if path.hasPrefix("/") {
+        return URL(fileURLWithPath: path).standardizedFileURL.path
+    }
+
+    return baseURL
+        .appendingPathComponent(path)
+        .standardizedFileURL
+        .path
+}
+
+func containsHelp(_ arguments: [String]) -> Bool {
+    arguments.contains("--help") || arguments.contains("-h")
+}
+
+func normalizePathOptions(
+    in arguments: [String],
+    options: Set<String>,
+    defaultOption: (name: String, value: String)? = nil
+) -> [String] {
+    var normalized: [String] = []
+    var index = 0
+    var sawDefaultOption = false
+
+    while index < arguments.count {
+        let argument = arguments[index]
+        normalized.append(argument)
+
+        if options.contains(argument) {
+            sawDefaultOption = true
+            index += 1
+
+            if index < arguments.count {
+                normalized.append(absolutePath(arguments[index]))
+            }
+        }
+
+        index += 1
+    }
+
+    if let defaultOption, !sawDefaultOption {
+        normalized.append(defaultOption.name)
+        normalized.append(defaultOption.value)
+    }
+
+    return normalized
 }
 
 func runSwiftScript(_ scriptName: String, arguments: [String]) throws -> Int32 {
-    let result = try runProcess("swift", [resolveToolScript(scriptName)] + arguments)
+    let result = try runProcess(
+        "swift",
+        [resolveToolScript(scriptName)] + arguments,
+        workingDirectoryURL: repoRootURL
+    )
     return result.exitCode
 }
 
@@ -164,9 +292,9 @@ func parseCreateArguments(_ arguments: [String]) throws -> [String] {
 
     switch kind {
     case "app":
-        templatePath = "templates/fsd-ios"
+        templatePath = repoPath("templates/fsd-ios")
     case "spm":
-        templatePath = "templates/fsd-ios-spm"
+        templatePath = repoPath("templates/fsd-ios-spm")
     default:
         throw CLIError.invalidUsage("unknown template kind `\(kind)`. Use `app` or `spm`.")
     }
@@ -218,7 +346,7 @@ func parseCreateArguments(_ arguments: [String]) throws -> [String] {
         "--app-name",
         name,
         "--output",
-        output,
+        absolutePath(output),
     ]
 
     if dryRun {
@@ -255,7 +383,9 @@ func printDoctorCheck(_ title: String, result: CommandResult) -> Bool {
 }
 
 func checkRequiredPath(_ path: String) -> Bool {
-    if fileManager.fileExists(atPath: path) {
+    let resolvedPath = repoPath(path)
+
+    if fileManager.fileExists(atPath: resolvedPath) {
         print("[ok] required path exists - \(path)")
         return true
     }
@@ -274,10 +404,10 @@ func runDoctor() throws -> Int32 {
         "Makefile",
         "templates/fsd-ios/template.yaml",
         "templates/fsd-ios-spm/template.yaml",
-        resolveToolScript("fsd-lint.swift"),
-        resolveToolScript("fsd-harmonize.swift"),
-        resolveToolScript("fsd-template-create.swift"),
-        resolveToolScript("fsd-template-validate.swift"),
+        "tools/fsd-lint.swift",
+        "tools/fsd-harmonize.swift",
+        "tools/fsd-template-create.swift",
+        "tools/fsd-template-validate.swift",
     ]
 
     for path in requiredPaths where !checkRequiredPath(path) {
@@ -291,22 +421,27 @@ func runDoctor() throws -> Int32 {
         (
             "FSD architecture lint",
             "swift",
-            [resolveToolScript("fsd-lint.swift"), "--root", "FSDDemoApp", "--strict", "--architecture"]
+            [resolveToolScript("fsd-lint.swift"), "--root", repoPath("FSDDemoApp"), "--strict", "--architecture"]
         ),
         (
             "Template validator",
             "swift",
-            [resolveToolScript("fsd-template-validate.swift"), "--template", "templates/fsd-ios"]
+            [resolveToolScript("fsd-template-validate.swift"), "--template", repoPath("templates/fsd-ios")]
         ),
         (
             "SPM template describe",
             "swift",
-            ["package", "--package-path", "templates/fsd-ios-spm", "describe"]
+            ["package", "--package-path", repoPath("templates/fsd-ios-spm"), "describe"]
         ),
     ]
 
     for check in commandChecks {
-        let result = try runProcess(check.1, check.2, inheritIO: false)
+        let result = try runProcess(
+            check.1,
+            check.2,
+            inheritIO: false,
+            workingDirectoryURL: repoRootURL
+        )
 
         if !printDoctorCheck(check.0, result: result) {
             failedChecks += 1
@@ -335,9 +470,23 @@ func runCLI(_ arguments: [String]) throws -> Int32 {
         printUsage()
         return 0
     case "lint":
-        return try runSwiftScript("fsd-lint.swift", arguments: commandArguments)
+        let lintArguments = containsHelp(commandArguments)
+            ? commandArguments
+            : normalizePathOptions(
+                in: commandArguments,
+                options: ["--root"],
+                defaultOption: ("--root", repoPath("FSDDemoApp"))
+            )
+        return try runSwiftScript("fsd-lint.swift", arguments: lintArguments)
     case "harmonize":
-        return try runSwiftScript("fsd-harmonize.swift", arguments: commandArguments)
+        let harmonizeArguments = containsHelp(commandArguments)
+            ? commandArguments
+            : normalizePathOptions(
+                in: commandArguments,
+                options: ["--root"],
+                defaultOption: ("--root", repoPath("FSDDemoApp"))
+            )
+        return try runSwiftScript("fsd-harmonize.swift", arguments: harmonizeArguments)
     case "create":
         let mappedArguments = try parseCreateArguments(commandArguments)
         guard !mappedArguments.isEmpty else {
@@ -345,15 +494,32 @@ func runCLI(_ arguments: [String]) throws -> Int32 {
         }
         return try runSwiftScript("fsd-template-create.swift", arguments: mappedArguments)
     case "validate":
+        if commandArguments.isEmpty || containsHelp(commandArguments) && commandArguments.first != "template" {
+            printValidateUsage()
+            return 0
+        }
+
         guard commandArguments.isEmpty || commandArguments.first == "template" else {
             throw CLIError.invalidUsage("validate currently supports only `template`")
         }
 
-        let templateArguments = commandArguments.first == "template"
+        let rawTemplateArguments = commandArguments.first == "template"
             ? Array(commandArguments.dropFirst())
             : commandArguments
+        let templateArguments = containsHelp(rawTemplateArguments)
+            ? rawTemplateArguments
+            : normalizePathOptions(
+                in: rawTemplateArguments,
+                options: ["--template"],
+                defaultOption: ("--template", repoPath("templates/fsd-ios"))
+            )
         return try runSwiftScript("fsd-template-validate.swift", arguments: templateArguments)
     case "doctor":
+        if containsHelp(commandArguments) {
+            printDoctorUsage()
+            return 0
+        }
+
         guard commandArguments.isEmpty else {
             throw CLIError.invalidUsage("doctor does not accept options")
         }

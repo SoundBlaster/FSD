@@ -42,6 +42,11 @@ internal tools as the source of truth.
 | `validate template` | Validates a copyable template bundle |
 | `doctor` | Checks local prerequisites and quick repository health |
 
+Default repository paths are resolved from the CLI script location, so the
+command can be invoked from another working directory with an absolute script
+path. Explicit user paths such as `--root`, `--template`, and `--output` are
+resolved relative to the caller's current directory.
+
 ## App Template Flow
 
 Use this when starting a new project from the full SwiftUI template:
@@ -128,8 +133,9 @@ make cli-doctor
 make ci
 ```
 
-`make cli-smoke` verifies that the unified CLI can call lint, harmonize,
-template validation, and both template creation flows.
+`make cli-smoke` verifies command dispatch, subcommand help, and both template
+creation dry-runs without repeating the heavier lint/template checks that
+already run elsewhere in `make ci`.
 
 ## CI
 

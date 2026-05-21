@@ -49,11 +49,10 @@ cli-smoke:
 	rm -rf $(DERIVED_DATA_PATH)/CLICreateAppDryRun
 	rm -rf $(DERIVED_DATA_PATH)/CLICreateSPMDryRun
 	$(SWIFT) tools/fsd-ios.swift --help
-	$(SWIFT) tools/fsd-ios.swift lint --root $(APP_ROOT) --strict --architecture
-	$(SWIFT) tools/fsd-ios.swift harmonize \
-		--root tests/fixtures/harmonize-advice/FSDApp \
-		--expect-suggestions 2
-	$(SWIFT) tools/fsd-ios.swift validate template --template templates/fsd-ios
+	$(SWIFT) tools/fsd-ios.swift lint --help
+	$(SWIFT) tools/fsd-ios.swift harmonize --help
+	$(SWIFT) tools/fsd-ios.swift validate template --help
+	$(SWIFT) tools/fsd-ios.swift doctor --help
 	$(SWIFT) tools/fsd-ios.swift create app \
 		--name CLICreateApp \
 		--output $(DERIVED_DATA_PATH)/CLICreateAppDryRun \
