@@ -14,6 +14,13 @@ struct CommandResult {
     let standardError: String
 }
 
+struct DoctorCheckResult {
+    let name: String
+    let passed: Bool
+    let message: String
+    let exitCode: Int32?
+}
+
 enum CLIError: Error, CustomStringConvertible {
     case invalidUsage(String)
     case launchFailed(String)
@@ -38,6 +45,7 @@ let toolsDirectoryURL = invokedScriptURL.deletingLastPathComponent()
 let repoRootURL = toolsDirectoryURL.lastPathComponent == "tools"
     ? toolsDirectoryURL.deletingLastPathComponent()
     : originalWorkingDirectoryURL
+let cliVersion = "0.2.0"
 
 func printUsage() {
     print(
@@ -46,6 +54,9 @@ func printUsage() {
           swift tools/fsd-ios.swift <command> [options]
 
         Commands:
+          version
+              Print the fsd-ios CLI version.
+
           lint [--root <path>] [--strict] [--architecture]
               Run the FSD structure and optional architecture lint.
 
@@ -61,13 +72,14 @@ func printUsage() {
           validate template [--template <path>]
               Validate a copyable template bundle.
 
-          doctor
+          doctor [--json]
               Check local toolchain, required files, and quick FSD commands.
 
         Examples:
           swift tools/fsd-ios.swift lint --root FSDDemoApp --strict --architecture
           swift tools/fsd-ios.swift create app --name MyApp --output ../MyApp
           swift tools/fsd-ios.swift create spm --name LegacyFSD --output ../LegacyFSDModules
+          swift tools/fsd-ios.swift version
           swift tools/fsd-ios.swift doctor
         """
     )
@@ -103,12 +115,19 @@ func printDoctorUsage() {
     print(
         """
         Usage:
-          swift tools/fsd-ios.swift doctor
+          swift tools/fsd-ios.swift doctor [--json]
 
         Checks local toolchain, required repository files, strict FSD lint,
         template validation, and SwiftPM template metadata.
+
+        Options:
+          --json  Print machine-readable check results.
         """
     )
+}
+
+func printVersion() {
+    print("fsd-ios \(cliVersion)")
 }
 
 func runProcess(
@@ -356,49 +375,92 @@ func parseCreateArguments(_ arguments: [String]) throws -> [String] {
     return mappedArguments
 }
 
-func printDoctorCheck(_ title: String, result: CommandResult) -> Bool {
-    if result.exitCode == 0 {
-        let summary = result.standardOutput
-            .split(separator: "\n", omittingEmptySubsequences: true)
-            .first
-            .map(String.init)
-        print("[ok] \(title)\(summary.map { " - \($0)" } ?? "")")
-        return true
-    }
-
-    print("[fail] \(title)")
-
-    let output = result.standardOutput.trimmingCharacters(in: .whitespacesAndNewlines)
-    let error = result.standardError.trimmingCharacters(in: .whitespacesAndNewlines)
-
-    if !output.isEmpty {
-        print(output)
-    }
-
-    if !error.isEmpty {
-        print(error)
-    }
-
-    return false
+func firstOutputLine(stdout: String, stderr: String) -> String {
+    let output = stdout.trimmingCharacters(in: .whitespacesAndNewlines)
+    let error = stderr.trimmingCharacters(in: .whitespacesAndNewlines)
+    let preferredText = output.isEmpty ? error : output
+    return preferredText
+        .split(separator: "\n", omittingEmptySubsequences: true)
+        .first
+        .map(String.init) ?? ""
 }
 
-func checkRequiredPath(_ path: String) -> Bool {
+func requiredPathCheck(_ path: String) -> DoctorCheckResult {
     let resolvedPath = repoPath(path)
 
     if fileManager.fileExists(atPath: resolvedPath) {
-        print("[ok] required path exists - \(path)")
-        return true
+        return DoctorCheckResult(
+            name: "required path: \(path)",
+            passed: true,
+            message: path,
+            exitCode: nil
+        )
     }
 
-    print("[fail] required path missing - \(path)")
-    return false
+    return DoctorCheckResult(
+        name: "required path: \(path)",
+        passed: false,
+        message: "missing: \(path)",
+        exitCode: nil
+    )
 }
 
-func runDoctor() throws -> Int32 {
+func commandCheck(_ title: String, command: String, arguments: [String]) throws -> DoctorCheckResult {
+    let result = try runProcess(
+        command,
+        arguments,
+        inheritIO: false,
+        workingDirectoryURL: repoRootURL
+    )
+
+    return DoctorCheckResult(
+        name: title,
+        passed: result.exitCode == 0,
+        message: firstOutputLine(stdout: result.standardOutput, stderr: result.standardError),
+        exitCode: result.exitCode
+    )
+}
+
+func printDoctorText(checks: [DoctorCheckResult]) {
     print("FSD iOS doctor")
 
-    var failedChecks = 0
+    for check in checks {
+        if check.passed {
+            print("[ok] \(check.name)\(check.message.isEmpty ? "" : " - \(check.message)")")
+        } else {
+            print("[fail] \(check.name)\(check.message.isEmpty ? "" : " - \(check.message)")")
+        }
+    }
+}
 
+func printDoctorJSON(checks: [DoctorCheckResult]) throws {
+    let checkPayloads = checks.map { check -> [String: Any] in
+        var payload: [String: Any] = [
+            "name": check.name,
+            "passed": check.passed,
+            "message": check.message,
+        ]
+
+        if let exitCode = check.exitCode {
+            payload["exitCode"] = exitCode
+        }
+
+        return payload
+    }
+
+    let payload: [String: Any] = [
+        "tool": "fsd-ios",
+        "version": cliVersion,
+        "repoRoot": repoRootURL.path,
+        "passed": checks.allSatisfy(\.passed),
+        "checks": checkPayloads,
+    ]
+
+    let data = try JSONSerialization.data(withJSONObject: payload, options: [.prettyPrinted, .sortedKeys])
+    print(String(data: data, encoding: .utf8) ?? "{}")
+}
+
+func runDoctor(jsonOutput: Bool) throws -> Int32 {
     let requiredPaths = [
         "FSDDemoApp",
         "Makefile",
@@ -410,9 +472,7 @@ func runDoctor() throws -> Int32 {
         "tools/fsd-template-validate.swift",
     ]
 
-    for path in requiredPaths where !checkRequiredPath(path) {
-        failedChecks += 1
-    }
+    var checks = requiredPaths.map(requiredPathCheck)
 
     let commandChecks: [(String, String, [String])] = [
         ("Swift toolchain", "swift", ["--version"]),
@@ -436,23 +496,22 @@ func runDoctor() throws -> Int32 {
     ]
 
     for check in commandChecks {
-        let result = try runProcess(
-            check.1,
-            check.2,
-            inheritIO: false,
-            workingDirectoryURL: repoRootURL
-        )
-
-        if !printDoctorCheck(check.0, result: result) {
-            failedChecks += 1
-        }
+        checks.append(try commandCheck(check.0, command: check.1, arguments: check.2))
     }
 
-    if failedChecks == 0 {
+    if jsonOutput {
+        try printDoctorJSON(checks: checks)
+        return checks.allSatisfy(\.passed) ? 0 : 1
+    }
+
+    printDoctorText(checks: checks)
+
+    if checks.allSatisfy(\.passed) {
         print("Doctor finished: all checks passed")
         return 0
     }
 
+    let failedChecks = checks.filter { !$0.passed }.count
     print("Doctor finished: \(failedChecks) check(s) failed")
     return 1
 }
@@ -468,6 +527,9 @@ func runCLI(_ arguments: [String]) throws -> Int32 {
     switch command {
     case "--help", "-h", "help":
         printUsage()
+        return 0
+    case "--version", "version":
+        printVersion()
         return 0
     case "lint":
         let lintArguments = containsHelp(commandArguments)
@@ -520,10 +582,13 @@ func runCLI(_ arguments: [String]) throws -> Int32 {
             return 0
         }
 
-        guard commandArguments.isEmpty else {
-            throw CLIError.invalidUsage("doctor does not accept options")
+        let jsonOutput = commandArguments.contains("--json")
+        let allowedDoctorOptions: Set<String> = ["--json"]
+
+        guard commandArguments.allSatisfy({ allowedDoctorOptions.contains($0) }) else {
+            throw CLIError.invalidUsage("doctor accepts only --json")
         }
-        return try runDoctor()
+        return try runDoctor(jsonOutput: jsonOutput)
     default:
         throw CLIError.invalidUsage("unknown command `\(command)`")
     }
