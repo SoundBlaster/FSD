@@ -21,8 +21,10 @@ Feature-Sliced Design.
 FSDDemoApp/
   app/        # entrypoint и providers
   pages/      # экраны приложения
+  widgets/    # крупные reusable UI blocks
   features/   # пользовательские действия
   entities/   # бизнес-сущности
+  shared/     # generic reusable UI
 ```
 
 Подробные рекомендации по архитектуре: [specs/fsd.md](specs/fsd.md).

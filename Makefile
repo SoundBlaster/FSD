@@ -45,15 +45,15 @@ demo:
 		'$(APP_ROOT)/entities' \
 		'$(APP_ROOT)/shared'
 	@printf '\nPage slices:\n'
-	@find $(APP_ROOT)/pages -maxdepth 2 -type d | sort
+	@find $(APP_ROOT)/pages -type d \( -path '$(APP_ROOT)/pages/*/*/*' -prune -o -print \) | sort
 	@printf '\nFeature slices:\n'
-	@find $(APP_ROOT)/features -maxdepth 2 -type d | sort
+	@find $(APP_ROOT)/features -type d \( -path '$(APP_ROOT)/features/*/*/*' -prune -o -print \) | sort
 	@printf '\nWidget slices:\n'
-	@find $(APP_ROOT)/widgets -maxdepth 2 -type d | sort
+	@find $(APP_ROOT)/widgets -type d \( -path '$(APP_ROOT)/widgets/*/*/*' -prune -o -print \) | sort
 	@printf '\nEntity slices:\n'
-	@find $(APP_ROOT)/entities -maxdepth 2 -type d | sort
+	@find $(APP_ROOT)/entities -type d \( -path '$(APP_ROOT)/entities/*/*/*' -prune -o -print \) | sort
 	@printf '\nShared slices:\n'
-	@find $(APP_ROOT)/shared -maxdepth 2 -type d | sort
+	@find $(APP_ROOT)/shared -type d \( -path '$(APP_ROOT)/shared/*/*/*' -prune -o -print \) | sort
 	@printf '\nArchitecture lint:\n'
 	$(SWIFT) tools/fsd-lint.swift --root $(APP_ROOT) --strict
 
