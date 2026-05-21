@@ -34,6 +34,7 @@ jobs:
           make lint
           make lint-strict
           make lint-architecture
+          make harmonize-fixture
           make template-validate
           make template-validate-negative
 
