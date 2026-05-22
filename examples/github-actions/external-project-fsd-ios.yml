@@ -22,8 +22,7 @@ jobs:
         uses: actions/checkout@v5
         with:
           repository: SoundBlaster/FSD
-          # Pin this to a tag or commit in production projects.
-          ref: main
+          ref: <pinned-tag-or-commit>
           path: .fsd-ios-tooling
 
       - name: Show toolchain

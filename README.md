@@ -85,7 +85,7 @@ make spm-template-create-fixture
 root:
 
 ```bash
-git clone git@github.com:SoundBlaster/FSD.git .fsd-ios-tooling
+git clone https://github.com/SoundBlaster/FSD.git .fsd-ios-tooling
 swift .fsd-ios-tooling/tools/fsd-ios.swift lint \
   --root Sources/App \
   --strict \

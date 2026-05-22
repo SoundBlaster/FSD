@@ -6,7 +6,7 @@ Use this repository as an external FSD iOS toolset when a project is not ready t
 copy the full template yet:
 
 ```bash
-git clone git@github.com:SoundBlaster/FSD.git .fsd-ios-tooling
+git clone https://github.com/SoundBlaster/FSD.git .fsd-ios-tooling
 swift .fsd-ios-tooling/tools/fsd-ios.swift version
 swift .fsd-ios-tooling/tools/fsd-ios.swift lint --root Sources/App --strict --architecture
 ```
@@ -67,9 +67,16 @@ swift .fsd-ios-tooling/tools/fsd-ios.swift lint \
 Clone or update the tooling checkout:
 
 ```bash
-git clone git@github.com:SoundBlaster/FSD.git .fsd-ios-tooling
+git clone https://github.com/SoundBlaster/FSD.git .fsd-ios-tooling
 git -C .fsd-ios-tooling fetch --tags
 git -C .fsd-ios-tooling checkout <pinned-tag-or-commit>
+```
+
+Unless the tooling checkout is intentionally tracked as a Git submodule, add it
+to the host app repository's `.gitignore`:
+
+```gitignore
+.fsd-ios-tooling/
 ```
 
 Check the tool version and local environment:
