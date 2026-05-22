@@ -26,6 +26,16 @@ make install
 fsd-ios doctor
 ```
 
+For an existing app repository, keep this repository as an external tooling
+checkout and pass the app source root explicitly:
+
+```bash
+swift .fsd-ios-tooling/tools/fsd-ios.swift lint --root Sources/App --strict --architecture
+```
+
+See [External Project Adoption](adoption/external-project.md) for the full CI
+baseline.
+
 ## Why This Exists
 
 The repository has several focused tools:
