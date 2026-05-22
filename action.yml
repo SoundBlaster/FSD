@@ -1,0 +1,74 @@
+name: FSD iOS Lint
+description: Run FSD iOS architecture lint for Swift and iOS projects.
+
+inputs:
+  root:
+    description: Source root containing app, pages, widgets, features, entities, and shared.
+    required: false
+    default: FSDDemoApp
+  strict:
+    description: Treat FSD lint warnings as errors.
+    required: false
+    default: "true"
+  architecture:
+    description: Enable Swift symbol dependency checks.
+    required: false
+    default: "true"
+  doctor:
+    description: Run fsd-ios doctor before linting.
+    required: false
+    default: "false"
+  working-directory:
+    description: Directory where root should be resolved.
+    required: false
+    default: "."
+
+runs:
+  using: composite
+  steps:
+    - name: Show fsd-ios version
+      shell: bash
+      run: swift "$GITHUB_ACTION_PATH/tools/fsd-ios.swift" version
+
+    - name: Run fsd-ios doctor
+      if: ${{ inputs.doctor == 'true' }}
+      shell: bash
+      run: swift "$GITHUB_ACTION_PATH/tools/fsd-ios.swift" doctor --json
+
+    - name: Run FSD architecture lint
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        INPUT_ROOT: ${{ inputs.root }}
+        INPUT_STRICT: ${{ inputs.strict }}
+        INPUT_ARCHITECTURE: ${{ inputs.architecture }}
+      run: |
+        set -euo pipefail
+
+        args=(lint --root "$INPUT_ROOT")
+
+        case "$INPUT_STRICT" in
+          true)
+            args+=(--strict)
+            ;;
+          false)
+            ;;
+          *)
+            echo "::error::strict must be true or false"
+            exit 2
+            ;;
+        esac
+
+        case "$INPUT_ARCHITECTURE" in
+          true)
+            args+=(--architecture)
+            ;;
+          false)
+            ;;
+          *)
+            echo "::error::architecture must be true or false"
+            exit 2
+            ;;
+        esac
+
+        swift "$GITHUB_ACTION_PATH/tools/fsd-ios.swift" "${args[@]}"

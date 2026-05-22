@@ -93,6 +93,8 @@ swift .fsd-ios-tooling/tools/fsd-ios.swift lint \
 ```
 
 CI baseline: [examples/github-actions/external-project-fsd-ios.yml](examples/github-actions/external-project-fsd-ios.yml).
+Reusable Action baseline:
+[examples/github-actions/external-project-fsd-ios-action.yml](examples/github-actions/external-project-fsd-ios-action.yml).
 Подробности: [docs/adoption/external-project.md](docs/adoption/external-project.md).
 
 ## Unified CLI
@@ -114,6 +116,7 @@ Make targets для проверки CLI:
 make install-smoke
 make cli-smoke
 make cli-doctor
+make action-smoke
 ```
 
 Локальная установка wrapper в `~/.local/bin`:

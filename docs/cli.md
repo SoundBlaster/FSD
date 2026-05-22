@@ -205,6 +205,7 @@ make cli-help
 make cli-smoke
 make cli-doctor
 make install-smoke
+make action-smoke
 make ci
 ```
 
@@ -214,6 +215,9 @@ already run elsewhere in `make ci`.
 
 `make install-smoke` installs the wrapper into `DerivedData/LocalInstall`, checks
 that it can run, and uninstalls it again.
+
+`make action-smoke` verifies the reusable GitHub Action metadata and runs the
+same strict architecture lint path that the Action dispatches.
 
 ## CI
 

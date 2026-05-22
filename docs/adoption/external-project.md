@@ -115,6 +115,25 @@ The baseline workflow intentionally uses the Swift script directly. The reusable
 GitHub Action can be added later as a thinner wrapper once the CLI contract is
 accepted by reviewers.
 
+## Reusable GitHub Action
+
+After the direct-script baseline is accepted, the external project can switch to
+the reusable Action wrapper:
+
+```yaml
+- name: Run FSD architecture lint
+  uses: SoundBlaster/FSD@main
+  with:
+    root: Sources/App
+    strict: "true"
+    architecture: "true"
+    doctor: "true"
+```
+
+Copy [examples/github-actions/external-project-fsd-ios-action.yml](../../examples/github-actions/external-project-fsd-ios-action.yml)
+for a complete workflow. In production, replace `@main` with a pinned tag or
+commit.
+
 ## SwiftPM Module-Island Option
 
 When a legacy app needs stronger boundaries, generate a local Swift Package and

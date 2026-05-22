@@ -12,7 +12,7 @@ INSTALL_PREFIX ?= $(HOME)/.local
 INSTALL_BIN_DIR := $(INSTALL_PREFIX)/bin
 INSTALL_SMOKE_PREFIX := $(DERIVED_DATA_PATH)/LocalInstall
 
-.PHONY: help open install uninstall install-smoke cli-help cli-smoke cli-doctor lint lint-strict lint-architecture harmonize harmonize-fixture template-create-dry-run template-create-fixture template-validate template-validate-negative spm-template-test spm-template-create-fixture build test demo template-demo ci clean
+.PHONY: help open install uninstall install-smoke cli-help cli-smoke cli-doctor action-smoke lint lint-strict lint-architecture harmonize harmonize-fixture template-create-dry-run template-create-fixture template-validate template-validate-negative spm-template-test spm-template-create-fixture build test demo template-demo ci clean
 
 help:
 	@printf '%s\n' \
@@ -24,6 +24,7 @@ help:
 		'  make cli-help     Print the unified fsd-ios CLI help' \
 		'  make cli-smoke    Smoke-test the unified fsd-ios CLI' \
 		'  make cli-doctor   Check local FSD iOS tooling prerequisites' \
+		'  make action-smoke  Smoke-test the reusable GitHub Action contract' \
 		'  make lint         Run the baseline FSD lint' \
 		'  make lint-strict  Run the strict FSD lint' \
 		'  make lint-architecture  Run the Swift symbol dependency lint' \
@@ -99,6 +100,14 @@ cli-doctor:
 	@mkdir -p $(DERIVED_DATA_PATH)
 	$(SWIFT) tools/fsd-ios.swift doctor --json > $(DERIVED_DATA_PATH)/DoctorSmoke.json
 	$(SWIFT) -e 'import Foundation; _ = try JSONSerialization.jsonObject(with: Data(contentsOf: URL(fileURLWithPath: CommandLine.arguments[1])))' $(DERIVED_DATA_PATH)/DoctorSmoke.json
+
+action-smoke:
+	@test -f action.yml
+	@grep -q '^runs:' action.yml
+	@grep -q 'using: composite' action.yml
+	@grep -q 'tools/fsd-ios.swift' action.yml
+	@grep -q 'INPUT_ROOT' action.yml
+	$(SWIFT) tools/fsd-ios.swift lint --root $(APP_ROOT) --strict --architecture
 
 lint:
 	$(SWIFT) tools/fsd-lint.swift $(APP_ROOT)
@@ -262,7 +271,7 @@ test:
 		test \
 		CODE_SIGNING_ALLOWED=NO
 
-ci: lint lint-strict lint-architecture harmonize-fixture template-create-dry-run template-create-fixture template-validate template-validate-negative spm-template-test spm-template-create-fixture cli-smoke cli-doctor install-smoke test
+ci: lint lint-strict lint-architecture harmonize-fixture template-create-dry-run template-create-fixture template-validate template-validate-negative spm-template-test spm-template-create-fixture cli-smoke cli-doctor install-smoke action-smoke test
 
 clean:
 	rm -rf $(DERIVED_DATA_PATH)
