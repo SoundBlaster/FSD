@@ -1,29 +1,29 @@
 # FSD Demo Showcase
 
-Эта страница фиксирует, как стабильно демонстрировать возможности репозитория без
-привязки к рабочим `codex/*` веткам.
+This page defines a stable way to demonstrate repository capabilities without
+depending on active `codex/*` work branches.
 
 ## Main Demo Path
 
-1. Открой README и покажи CI badge как сигнал, что demo проверяется автоматически.
-2. Запусти быстрый локальный сценарий:
+1. Open the README and show the CI badge as a signal that the demo is validated automatically.
+2. Run the quick local scenario:
 
    ```bash
    make demo
    ```
 
-3. Покажи полный локальный gate:
+3. Show the full local gate:
 
    ```bash
    make ci
    ```
 
-4. Перейди от структуры к коду:
-   - `FSDDemoApp/pages` показывает screen-level composition;
-   - `FSDDemoApp/widgets` показывает крупные reusable UI blocks;
-   - `FSDDemoApp/features` показывает user actions with business value;
-   - `FSDDemoApp/entities` показывает domain model and entity UI;
-   - `FSDDemoApp/shared` показывает generic reusable UI.
+4. Move from structure to code:
+   - `FSDDemoApp/pages` demonstrates screen-level composition;
+   - `FSDDemoApp/widgets` demonstrates large reusable UI blocks;
+   - `FSDDemoApp/features` demonstrates user actions with business value;
+   - `FSDDemoApp/entities` demonstrates domain model and entity UI;
+   - `FSDDemoApp/shared` demonstrates generic reusable UI.
 
 ## Capability Map
 
@@ -52,8 +52,8 @@
 
 ## Stable Snapshots
 
-Use tags for stable demonstration points. Branches keep the working history, while
-tags are the intended public anchors.
+Use tags for stable demonstration points. Branches keep the working history,
+while tags are the intended public anchors.
 
 ```bash
 git checkout demo/fsd-showcase

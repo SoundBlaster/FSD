@@ -1,29 +1,28 @@
-# SPM как основа FSD-like архитектуры в iOS
+# SPM As The Foundation For FSD-Like Architecture In iOS
 
-Эта заметка фиксирует концепты использования Swift Package Manager для архитектуры в стиле Feature-Sliced Design, адаптированной под iOS/Swift.
+Feature-Sliced Design was created in the frontend ecosystem, but the same core
+ideas map well to iOS:
 
-Главная идея: в iOS роль архитектурных границ лучше всего играют не папки, а **Swift-модули**. SPM target даёт compile-time изоляцию, а `public`/`internal`/`package` access control задаёт публичный API модуля.
+- organize code by product meaning, not technical file type;
+- keep dependency direction explicit;
+- expose small public APIs;
+- compose higher-level flows from lower-level domain and infrastructure modules;
+- avoid direct coupling between sibling features.
 
-В этом репозитории есть практический starter для такого подхода:
-[templates/fsd-ios-spm](../templates/fsd-ios-spm). Его можно материализовать
-через `tools/fsd-template-create.swift` и подключить к legacy Xcode project как
-local Swift Package.
+In iOS, Swift Package Manager can make these rules stronger than folder
+conventions alone. A folder can suggest a boundary. An `SPM target` can enforce
+one at compile time.
 
-```txt
-SPM target              = архитектурный модуль / slice
-Swift module boundary   = граница видимости
-public API              = аналог index.ts
-Package.swift deps      = правила направленных зависимостей
-traits                  = compile-time опции, но не основа архитектуры
-```
+This document describes how to map FSD concepts to Swift, SwiftUI, and Swift
+Package Manager.
 
 ---
 
-## 1. Как FSD переносится на iOS
+## 1. How FSD Maps To iOS
 
-В web FSD часто используется структура:
+Classic web FSD layers:
 
-```txt
+```text
 app
 pages
 widgets
@@ -32,101 +31,96 @@ entities
 shared
 ```
 
-Для iOS удобнее адаптировать названия под платформу:
+One practical iOS mapping:
 
-```txt
-App target
+```text
+App
 Screens / Flows
-Components / Compositions
+Compositions / Components
 Features
 Domain / Entities
 Core / Shared
 ```
 
-Пример направленности зависимостей:
+Dependency direction:
 
-```txt
+```text
 App
-  ↓
-Screens / Flows
-  ↓
-Components / Compositions
-  ↓
-Features
-  ↓
-Domain / Entities
-  ↓
-Core / Shared
+  -> Screens / Flows
+      -> Features
+      -> Domain / Entities
+      -> Core / Shared
 ```
 
-Пример конкретных модулей:
+Example modules:
 
-```txt
+```text
 App
-  ↓
+ProductListScreen
 ProductDetailsScreen
-CatalogScreen
-CheckoutFlow
-  ↓
-ProductCardComponent
-CartSummaryComponent
-  ↓
 AddToCartFeature
 ApplyPromoCodeFeature
-LoginFeature
-  ↓
 ProductDomain
 CartDomain
-UserDomain
-OrderDomain
-  ↓
-CoreNetworking
 CoreUI
-CoreDesignSystem
-CoreStorage
-CoreAnalytics
+CoreNetworking
+CorePersistence
 ```
 
-В iOS слово `widgets` лучше использовать осторожно, потому что оно может путаться с WidgetKit. Часто понятнее: `Components`, `Compositions`, `Blocks`, `FeatureUI`, `Screens`, `Flows`.
+The exact names can differ. The important part is the direction:
+
+```text
+screen -> feature -> domain -> core
+```
+
+Lower layers must not know about higher layers.
+
+In iOS, the word `widgets` should be used carefully because it can be confused
+with WidgetKit. Often clearer names are `Components`, `Compositions`, `Blocks`,
+`FeatureUI`, `Screens`, or `Flows`.
 
 ---
 
-## 2. SPM target как архитектурная граница
+## 2. SPM Target As An Architecture Boundary
 
-Папка сама по себе не запрещает неправильные импорты. SPM target — запрещает.
+A folder does not prevent wrong imports. An SPM target does.
 
-Если `ProductDomain` не зависит от `AddToCartFeature` в `Package.swift`, то код внутри `ProductDomain` не сможет сделать:
+If `ProductDomain` does not depend on `AddToCartFeature` in `Package.swift`, code
+inside `ProductDomain` cannot do this:
 
 ```swift
 import AddToCartFeature
 ```
 
-Это превращает правило FSD “зависимости идут только сверху вниз” в compile-time ограничение.
+This turns the FSD rule "dependencies go only downward" into a compile-time
+constraint.
 
-Пример структуры:
+Example structure:
 
-```txt
-Packages/
-  AppModules/
-    Package.swift
-    Sources/
-      CoreUI/
-      CoreNetworking/
-      CoreAnalytics/
-      ProductDomain/
-      CartDomain/
-      AddToCartFeature/
-      ProductCardComponent/
-      ProductDetailsScreen/
-      CatalogScreen/
+```text
+AppModules/
+  Package.swift
+  Sources/
+    ProductListScreen/
+    ProductDetailsScreen/
+    AddToCartFeature/
+    ProductDomain/
+    CartDomain/
+    CoreUI/
+    CoreNetworking/
+  Tests/
+    AddToCartFeatureTests/
+    ProductDomainTests/
 ```
 
-Пример `Package.swift`:
+Example `Package.swift`:
 
-> Версии в примере (`swift-tools-version` и минимальная iOS) условные. В реальном проекте их нужно выбрать под текущий Xcode, Swift toolchain и deployment target приложения.
+> The example versions (`swift-tools-version` and minimum iOS version) are
+> illustrative. Real projects should align them with the current Xcode, Swift
+> toolchain, and app deployment target.
 
 ```swift
-// swift-tools-version: 6.1
+// swift-tools-version: 6.0
 
 import PackageDescription
 
@@ -136,592 +130,594 @@ let package = Package(
         .iOS(.v17)
     ],
     products: [
+        .library(name: "ProductListScreen", targets: ["ProductListScreen"]),
         .library(name: "ProductDetailsScreen", targets: ["ProductDetailsScreen"]),
-        .library(name: "CatalogScreen", targets: ["CatalogScreen"]),
-        .library(name: "CartScreen", targets: ["CartScreen"])
+        .library(name: "AddToCartFeature", targets: ["AddToCartFeature"]),
+        .library(name: "ProductDomain", targets: ["ProductDomain"]),
+        .library(name: "CartDomain", targets: ["CartDomain"]),
+        .library(name: "CoreUI", targets: ["CoreUI"]),
+        .library(name: "CoreNetworking", targets: ["CoreNetworking"])
     ],
     targets: [
-        // Core / Shared
-        .target(name: "CoreUI"),
-        .target(name: "CoreNetworking"),
-        .target(name: "CoreAnalytics"),
-
-        // Domain / Entities
         .target(
-            name: "ProductDomain",
-            dependencies: [
-                "CoreNetworking"
-            ]
-        ),
-        .target(
-            name: "CartDomain",
+            name: "ProductListScreen",
             dependencies: [
                 "ProductDomain",
-                "CoreNetworking"
+                "AddToCartFeature",
+                "CoreUI"
             ]
         ),
-
-        // Features
+        .target(
+            name: "ProductDetailsScreen",
+            dependencies: [
+                "ProductDomain",
+                "AddToCartFeature",
+                "CoreUI"
+            ]
+        ),
         .target(
             name: "AddToCartFeature",
             dependencies: [
                 "ProductDomain",
                 "CartDomain",
-                "CoreUI",
-                "CoreAnalytics"
-            ]
-        ),
-
-        // Components / Compositions
-        .target(
-            name: "ProductCardComponent",
-            dependencies: [
-                "ProductDomain",
-                "AddToCartFeature",
+                "CoreNetworking",
                 "CoreUI"
             ]
         ),
-
-        // Screens / Flows
         .target(
-            name: "ProductDetailsScreen",
-            dependencies: [
-                "ProductDomain",
-                "ProductCardComponent",
-                "AddToCartFeature",
-                "CoreUI"
-            ]
+            name: "ProductDomain",
+            dependencies: []
+        ),
+        .target(
+            name: "CartDomain",
+            dependencies: []
+        ),
+        .target(
+            name: "CoreUI",
+            dependencies: []
+        ),
+        .target(
+            name: "CoreNetworking",
+            dependencies: []
+        ),
+        .testTarget(
+            name: "AddToCartFeatureTests",
+            dependencies: ["AddToCartFeature"]
+        ),
+        .testTarget(
+            name: "ProductDomainTests",
+            dependencies: ["ProductDomain"]
         )
     ]
 )
 ```
 
+With this setup:
+
+- `ProductListScreen` can import `AddToCartFeature` and `ProductDomain`;
+- `AddToCartFeature` can import `ProductDomain`, `CartDomain`, `CoreNetworking`, and `CoreUI`;
+- `ProductDomain` cannot import `AddToCartFeature`;
+- `CoreUI` cannot import product features or domains.
+
 ---
 
-## 3. Аналог `index.ts` в Swift
+## 3. Swift Equivalent Of `index.ts`
 
-В TypeScript public API слайса часто задаётся через `index.ts`:
+In TypeScript, a slice public API is often defined through `index.ts`:
 
 ```ts
 export { AddToCartButton } from './ui/add-to-cart-button';
 export { useAddToCart } from './model/use-add-to-cart';
 ```
 
-В Swift прямого аналога `index.ts` нет. Его роль выполняет **публичный API Swift-модуля**:
+Swift has no direct `index.ts` equivalent. The equivalent is the **public API of
+a Swift module**:
 
-```txt
-public / open     — видно другим модулям
-package           — видно target'ам внутри одного package
-internal          — видно только внутри target/module
-fileprivate       — видно в пределах одного Swift-файла
-private           — видно только в ближайшей lexical scope
+```text
+public / open     visible to other modules
+package           visible to targets inside the same package
+internal          visible only inside the current target/module
+fileprivate       visible inside one Swift file
+private           visible only in the nearest lexical scope
 ```
 
-То есть внешний код делает:
+External code imports a module:
 
 ```swift
 import AddToCartFeature
 ```
 
-И видит только то, что в target `AddToCartFeature` объявлено как `public` или `open`.
+It can see only the declarations that `AddToCartFeature` marks as `public` or
+`open`.
 
-Практическое правило:
+Practical rule:
 
-```txt
-public — только facade и необходимые контракты
-internal — реализация по умолчанию
-package — внутренний API между target'ами одного package
-fileprivate — детали, общие для нескольких типов в одном файле
-private — детали конкретной lexical scope
+```text
+public      only facade and required contracts
+internal    default implementation
+package     internal API between targets in the same package
+fileprivate details shared by several types in one file
+private     details of one lexical scope
 ```
 
-Пример структуры target:
+Example target structure:
 
-```txt
+```text
 Sources/
   AddToCartFeature/
-    AddToCartFeature.swift               # public facade
-    AddToCartFeature+Dependencies.swift  # public dependencies contract
-    Internal/
-      AddToCartButton.swift              # internal
-      AddToCartViewModel.swift           # internal
-      AddToCartRepository.swift          # internal
-      AddToCartMapper.swift              # internal
+    AddToCartFeature.swift       # public facade
+    AddToCartButton.swift        # public or internal UI
+    AddToCartAction.swift        # internal implementation
+    AddToCartRequest.swift       # internal API adapter
 ```
 
-Пример facade:
+Example facade:
 
 ```swift
 import SwiftUI
 import ProductDomain
 
 public enum AddToCartFeature {
-    public struct Dependencies: Sendable {
-        public let addToCart: @Sendable (Product.ID) async throws -> Void
-
-        public init(
-            addToCart: @escaping @Sendable (Product.ID) async throws -> Void
-        ) {
-            self.addToCart = addToCart
-        }
-    }
-
-    @MainActor
-    public static func makeButton(
-        productID: Product.ID,
-        dependencies: Dependencies
-    ) -> some View {
-        AddToCartButton(
-            productID: productID,
-            viewModel: AddToCartViewModel(dependencies: dependencies)
-        )
+    public static func makeButton(product: Product) -> some View {
+        AddToCartButton(product: product)
     }
 }
 ```
 
-Внутренние типы остаются `internal`:
+Internal types remain `internal`:
 
 ```swift
-@MainActor
-final class AddToCartViewModel: ObservableObject {
-    private let dependencies: AddToCartFeature.Dependencies
+struct AddToCartButton: View {
+    let product: Product
 
-    init(dependencies: AddToCartFeature.Dependencies) {
-        self.dependencies = dependencies
+    var body: some View {
+        Button("Add to cart") {
+            AddToCartAction(product: product).run()
+        }
     }
+}
 
-    func add(_ productID: Product.ID) async {
-        try? await dependencies.addToCart(productID)
+struct AddToCartAction {
+    let product: Product
+
+    func run() {
+        // implementation detail
     }
 }
 ```
 
-Такой facade и есть Swift-аналог `index.ts`: наружу выходит только то, что явно нужно потребителям.
+This facade is the Swift analogue of `index.ts`: only the intentionally public
+surface is exposed.
 
 ---
 
-## 4. App target как composition root
+## 4. App Target As Composition Root
 
-Основной app target должен быть тонким. Его задача — собрать приложение:
+The main app target should be thin. Its job is to assemble the application:
 
-```txt
-App target
-  App.swift / SceneDelegate / AppDelegate
-  RootCoordinator
-  DI container
-  navigation setup
-  app-level configuration
-```
+- dependency injection;
+- navigation graph;
+- app lifecycle;
+- global providers;
+- concrete implementations of protocols.
 
-`App` может импортировать верхнеуровневые screens/flows:
+`App` may import high-level screens and flows:
 
 ```swift
+import SwiftUI
+import ProductListScreen
 import ProductDetailsScreen
-import CatalogScreen
-import CartScreen
-import CheckoutFlow
+
+@main
+struct ShopApp: App {
+    var body: some Scene {
+        WindowGroup {
+            ProductListScreen()
+        }
+    }
+}
 ```
 
-И связывать зависимости:
+It may also connect dependencies:
 
 ```swift
-let productDetails = ProductDetailsScreenFactory(
-    dependencies: .init(
-        loadProduct: productService.loadProduct,
-        addToCart: cartService.addToCart
-    )
-)
+let client = LiveNetworkingClient()
+let repository = LiveProductRepository(client: client)
+
+ProductListScreen(repository: repository)
 ```
 
-`App` — верхний слой. Ему нормально знать обо многих модулях. Нижним слоям знать про `App` нельзя.
+`App` is the highest layer. It is fine for it to know about many modules. Lower
+layers must not know about `App`.
 
 ---
 
 ## 5. Screens / Flows
 
-`Screens` и `Flows` — аналог `pages` в web FSD.
+`Screens` and `Flows` are the iOS analogue of FSD `pages`.
 
-Примеры:
+Examples:
 
-```txt
+```text
+ProductListScreen
 ProductDetailsScreen
-CatalogScreen
-ProfileScreen
 CheckoutFlow
-OnboardingFlow
+ProfileScreen
+SettingsScreen
 ```
 
-Screen/Flow может импортировать:
+A screen/flow can import:
 
-```txt
-Components
+```text
 Features
-Domain
-Core
+Domain / Entities
+Core / Shared
 ```
 
-Но не должен импортироваться нижними слоями.
+It must not be imported by lower layers.
 
-Пример public API screen-модуля:
+Example public API for a screen module:
 
 ```swift
-import UIKit
+import SwiftUI
 import ProductDomain
+import AddToCartFeature
+import CoreUI
 
-public enum ProductDetailsScreen {
-    public struct Dependencies: Sendable {
-        public let loadProduct: @Sendable (Product.ID) async throws -> Product
-        public let addToCart: @Sendable (Product.ID) async throws -> Void
+public struct ProductListScreen: View {
+    @State private var products: [Product]
 
-        public init(
-            loadProduct: @escaping @Sendable (Product.ID) async throws -> Product,
-            addToCart: @escaping @Sendable (Product.ID) async throws -> Void
-        ) {
-            self.loadProduct = loadProduct
-            self.addToCart = addToCart
-        }
+    public init(products: [Product] = []) {
+        self.products = products
     }
 
-    @MainActor
-    public static func makeViewController(
-        productID: Product.ID,
-        dependencies: Dependencies
-    ) -> UIViewController {
-        ProductDetailsViewController(
-            productID: productID,
-            viewModel: ProductDetailsViewModel(dependencies: dependencies)
-        )
+    public var body: some View {
+        List(products) { product in
+            ProductRow(product: product) {
+                AddToCartFeature.makeButton(product: product)
+            }
+        }
     }
 }
 ```
+
+For complex navigation, use `Flow` naming:
+
+```text
+CheckoutFlow
+OnboardingFlow
+AuthenticationFlow
+```
+
+A flow can coordinate several screens and features while keeping lower modules
+independent.
 
 ---
 
 ## 6. Features
 
-Feature — это пользовательское действие с бизнес-смыслом.
+A feature is a user action with business meaning.
 
-Хорошие названия:
+Good names:
 
-```txt
+```text
 AddToCartFeature
-RemoveFromCartFeature
 ApplyPromoCodeFeature
-LoginFeature
-LogoutFeature
-UploadAvatarFeature
-SendCommentFeature
+ChangeEmailFeature
+ToggleFavoriteFeature
+SubmitReviewFeature
 ```
 
-Плохие названия:
+Bad names:
 
-```txt
-OpenModalFeature
-CloseModalFeature
-ButtonTapFeature
-TextFieldChangeFeature
+```text
+ButtonFeature
+ModalFeature
+TapHandlerFeature
+HelperFeature
 ```
 
-Feature может зависеть от `Domain` и `Core`:
+A feature may depend on `Domain` and `Core`:
 
-```txt
-AddToCartFeature
-  → CartDomain
-  → ProductDomain
-  → CoreUI
-  → CoreAnalytics
+```swift
+import ProductDomain
+import CartDomain
+import CoreNetworking
+import CoreUI
 ```
 
-Но feature не должна зависеть от screen:
+But a feature should not depend on a screen:
 
-```txt
-AddToCartFeature
-  ✗ ProductDetailsScreen
+```swift
+// Bad
+import ProductDetailsScreen
 ```
 
-Если две feature должны взаимодействовать, лучше связывать их через контракт или через `App`/Coordinator, а не прямым импортом реализации.
+If two features must interact, prefer connecting them through a contract or
+through `App`/Coordinator composition rather than importing one implementation
+directly into the other.
 
 ---
 
 ## 7. Domain / Entities
 
-Domain-модули описывают бизнес-сущности и доменную логику.
+Domain modules describe business entities and domain logic.
 
-Примеры:
+Examples:
 
-```txt
+```text
 ProductDomain
 CartDomain
 UserDomain
 OrderDomain
-PaymentDomain
+InvoiceDomain
 ```
 
-Пример:
+Example:
 
 ```swift
 public struct Product: Identifiable, Equatable, Sendable {
-    public struct ID: RawRepresentable, Hashable, Sendable {
-        public let rawValue: String
-
-        public init(rawValue: String) {
-            self.rawValue = rawValue
-        }
-    }
-
-    public let id: ID
+    public let id: ProductID
     public let title: String
     public let price: Money
 
-    public init(id: ID, title: String, price: Money) {
+    public init(id: ProductID, title: String, price: Money) {
         self.id = id
         self.title = title
         self.price = price
     }
 }
+
+public struct ProductID: Hashable, Sendable {
+    public let rawValue: UUID
+
+    public init(rawValue: UUID) {
+        self.rawValue = rawValue
+    }
+}
 ```
 
-`ProductDomain` не должен знать о:
+`ProductDomain` should not know about:
 
-```txt
-ProductDetailsScreen
+```text
 AddToCartFeature
-ProductCardComponent
+ProductDetailsScreen
+CoreUI.ProductCard
+App
 ```
 
-Domain — нижний слой. Он должен быть максимально стабильным.
+Domain is a lower layer. It should be as stable as possible.
 
 ---
 
 ## 8. Core / Shared
 
-Core-модули — это инфраструктура без продуктовой бизнес-логики.
+Core modules are infrastructure without product business logic.
 
-Примеры:
+Examples:
 
-```txt
+```text
 CoreUI
-CoreDesignSystem
 CoreNetworking
-CoreStorage
+CorePersistence
 CoreAnalytics
-CoreLocalization
 CoreLogging
-CoreConcurrency
+CoreLocalization
+CoreDesignSystem
 ```
 
-`CoreUI` может содержать:
+`CoreUI` may contain:
+
+```text
+PrimaryButton
+TextFieldStyle
+LoadingView
+EmptyStateView
+DesignTokens
+```
+
+`CoreUI` should not contain:
+
+```text
+ProductCard
+CartSummary
+OrderStatusBadge
+```
+
+`ProductCard` knows about the business entity `Product`, so it belongs in
+`ProductUI`, `ProductCardComponent`, a screen module, or another module above
+`Domain`.
+
+---
+
+## 9. Interface Target + Implementation Target
+
+Sometimes a feature needs to depend on another feature's contract, but not on
+its implementation.
+
+Split the target into interface and implementation:
+
+```text
+AuthFeatureInterface
+AuthFeature
+CheckoutFlow
+```
+
+Dependency direction:
+
+```text
+CheckoutFlow -> AuthFeatureInterface
+AuthFeature  -> AuthFeatureInterface
+App          -> AuthFeature + CheckoutFlow
+```
+
+`CheckoutFlow` depends on `AuthFeatureInterface`, not on `AuthFeature`:
 
 ```swift
-public struct PrimaryButton: View {
-    private let title: String
-    private let action: () -> Void
+import AuthFeatureInterface
 
-    public init(_ title: String, action: @escaping () -> Void) {
-        self.title = title
-        self.action = action
+public struct CheckoutFlow: View {
+    private let sessionProvider: AuthSessionProviding
+
+    public init(sessionProvider: AuthSessionProviding) {
+        self.sessionProvider = sessionProvider
     }
 
     public var body: some View {
-        Button(title, action: action)
+        // uses only the contract
     }
 }
 ```
 
-`CoreUI` не должен содержать:
+Contract:
 
 ```swift
-public struct ProductCard: View { ... }
+public protocol AuthSessionProviding {
+    var currentSession: AuthSession? { get }
+}
+
+public struct AuthSession: Sendable {
+    public let userID: String
+}
 ```
 
-Потому что `ProductCard` знает про бизнес-сущность `Product`. Ему место в `ProductCardComponent`, `ProductUI` или другом модуле выше `Domain`.
+`App` connects the concrete implementation:
+
+```swift
+import AuthFeature
+import CheckoutFlow
+
+let authService = LiveAuthService()
+CheckoutFlow(sessionProvider: authService)
+```
+
+This helps preserve the rule: a feature should not directly import a sibling
+feature implementation.
 
 ---
 
-## 9. Interface target + Implementation target
+## 10. `package` Access Modifier
 
-Иногда feature должна зависеть от контракта другой feature, но не от её реализации.
+The `package` access modifier is useful when one Swift package contains many
+targets.
 
-Тогда можно разделить target на interface и implementation:
-
-```txt
-Sources/
-  AuthFeatureInterface/
-    AuthRouting.swift
-    AuthSessionProviding.swift
-
-  AuthFeature/
-    LiveAuthFeature.swift
-    LoginView.swift
-    LoginViewModel.swift
-
-  CheckoutFlow/
-    CheckoutFlow.swift
-    CheckoutViewModel.swift
+```text
+public      external package/module API
+package     visible only inside one Swift package
+internal    visible only inside one target/module
+fileprivate visible inside one Swift file
+private     local detail of the nearest lexical scope
 ```
 
-`CheckoutFlow` зависит от `AuthFeatureInterface`, но не от `AuthFeature`:
+Example:
+
+```swift
+package struct ProductMapper {
+    package func map(_ dto: ProductDTO) -> Product {
+        Product(
+            id: ProductID(rawValue: dto.id),
+            title: dto.title,
+            price: Money(cents: dto.priceCents)
+        )
+    }
+}
+```
+
+Targets inside `AppModules` can use this, but external package consumers cannot
+see it as public API.
+
+Practical meaning:
+
+- keep `public` small and stable;
+- use `package` for internal integration between targets;
+- keep `internal` for implementation inside one target.
+
+---
+
+## 11. Resources Inside SPM Modules
+
+An SPM target can own its resources:
 
 ```swift
 .target(
-    name: "CheckoutFlow",
-    dependencies: [
-        "AuthFeatureInterface",
-        "CartDomain",
-        "CoreUI"
+    name: "ProductDetailsScreen",
+    dependencies: ["ProductDomain", "CoreUI"],
+    resources: [
+        .process("Resources")
     ]
 )
 ```
 
-Контракт:
+Example layout:
 
-```swift
-public protocol AuthRequiredRouting: Sendable {
-    @MainActor
-    func requestLogin() async -> Bool
-}
-```
-
-Checkout использует только контракт:
-
-```swift
-public struct CheckoutDependencies: Sendable {
-    public let authRequiredRouting: AuthRequiredRouting
-
-    public init(authRequiredRouting: AuthRequiredRouting) {
-        self.authRequiredRouting = authRequiredRouting
-    }
-}
-```
-
-`App` связывает конкретную реализацию:
-
-```swift
-let checkout = CheckoutFlow.make(
-    dependencies: .init(
-        authRequiredRouting: appAuthRouter
-    )
-)
-```
-
-Это помогает не нарушать правило “feature не импортирует соседнюю feature напрямую”.
-
----
-
-## 10. `package` access modifier
-
-`package` access modifier полезен, когда один package содержит много targets.
-
-```txt
-public   — внешний API package/module
-package  — видно только внутри одного Swift package
-internal — видно только внутри target/module
-fileprivate — видно в пределах одного Swift-файла
-private  — локальная деталь ближайшей lexical scope
-```
-
-Пример:
-
-```swift
-package enum ProductDetailsAnalytics {
-    package static func trackOpened(productID: Product.ID) {
-        // ...
-    }
-}
-```
-
-Это могут использовать target'ы внутри `AppModules`, но внешний потребитель package не увидит этот API как публичный.
-
-Практический смысл:
-
-```txt
-public делаем маленьким и стабильным
-package используем для внутренней интеграции target'ов
-internal держим для реализации конкретного target
-```
-
----
-
-## 11. Ресурсы внутри SPM-модулей
-
-SPM target может владеть своими ресурсами:
-
-```txt
+```text
 Sources/
-  CoreDesignSystem/
-    Resources/
-      Colors.xcassets
-      Typography.json
-
   ProductDetailsScreen/
+    ProductDetailsScreen.swift
     Resources/
-      Localizable.strings
-      EmptyState.imageset
+      product-placeholder.imageset/
+      Localizable.xcstrings
 ```
 
-Использование:
+Usage:
 
 ```swift
-Image("empty_state", bundle: .module)
+Image("product-placeholder", bundle: .module)
 ```
 
-или:
+or:
 
 ```swift
-String(
-    localized: "product_details.title",
-    bundle: .module
-)
+Text("product.details.title", bundle: .module)
 ```
 
-Это позволяет держать ассеты и локализацию рядом с модулем, которому они принадлежат.
+This keeps assets and localization near the module that owns them.
 
 ---
 
-## 12. Traits в SwiftPM
+## 12. Traits In SwiftPM
 
-Traits — это compile-time опции Swift package.
+Traits are compile-time options for Swift packages.
 
-Их не стоит использовать как основу архитектуры. Основа архитектуры — targets.
+Do not use traits as the foundation of the architecture. The architecture
+foundation is targets.
 
-```txt
-SPM target  = архитектурная граница
-trait       = опциональная capability внутри package
+```text
+SPM target = architecture boundary
+trait      = optional capability inside a package
 ```
 
-Хорошие применения traits:
+Good uses for traits:
 
-```txt
-DebugMenu
+```text
 PreviewFixtures
-AnalyticsIntegration
-ExperimentalCheckout
 StrictLegacyDeprecations
-LottieSupport
-NukeImageLoadingAdapter
+InternalDiagnostics
+ExperimentalSearch
 ```
 
-Плохие применения traits:
+Bad uses:
 
-```txt
-ProductDomain
-CartDomain
-AddToCartFeature
-ProductDetailsScreen
+```text
+ProductFeatureTrait
+CartFeatureTrait
+CheckoutFlowTrait
 ```
 
-Это должны быть targets, а не traits.
+Those should be targets, not traits.
 
 ---
 
-## 13. Пример traits в Package.swift
+## 13. Traits Example In Package.swift
 
-Синтаксис может немного отличаться в зависимости от версии SwiftPM, но концептуально выглядит так:
+The syntax can differ slightly by SwiftPM version, but conceptually it looks
+like this:
 
-> Значения `swift-tools-version` и `.iOS(...)` ниже приведены только для иллюстрации. Для конкретного репозитория их нужно синхронизировать с настройками проекта и CI.
+> The `swift-tools-version` and `.iOS(...)` values below are illustrative. Align
+> them with the repository's project and CI settings.
 
 ```swift
-// swift-tools-version: 6.1
+// swift-tools-version: 6.0
 
 import PackageDescription
 
@@ -731,427 +727,396 @@ let package = Package(
         .iOS(.v17)
     ],
     traits: [
-        .default(enabledTraits: []),
-        .trait(
-            name: "DebugMenu",
-            description: "Enables internal debug menu and diagnostic tools"
-        ),
-        .trait(
-            name: "PreviewFixtures",
-            description: "Exposes mock data for SwiftUI previews"
-        ),
-        .trait(
-            name: "AnalyticsIntegration",
-            description: "Enables analytics SDK adapter"
-        ),
-        .trait(
-            name: "ExperimentalCheckout",
-            description: "Exposes experimental checkout APIs"
-        ),
-        .trait(
-            name: "StrictLegacyDeprecations",
-            description: "Turns selected deprecated APIs into unavailable APIs"
-        )
+        "PreviewFixtures",
+        "StrictLegacyDeprecations",
+        "InternalDiagnostics"
     ],
-    dependencies: [
-        .package(
-            url: "https://github.com/example/analytics-sdk",
-            from: "1.0.0"
-        )
+    products: [
+        .library(name: "ProductDomain", targets: ["ProductDomain"]),
+        .library(name: "ProductListScreen", targets: ["ProductListScreen"])
     ],
     targets: [
         .target(
-            name: "CoreAnalytics",
-            dependencies: [
-                .product(
-                    name: "AnalyticsSDK",
-                    package: "analytics-sdk",
-                    condition: .when(traits: ["AnalyticsIntegration"])
-                )
-            ]
+            name: "ProductDomain",
+            dependencies: []
+        ),
+        .target(
+            name: "ProductListScreen",
+            dependencies: ["ProductDomain", "CoreUI"]
+        ),
+        .target(
+            name: "CoreUI",
+            dependencies: []
         )
     ]
 )
 ```
 
-В коде:
-
-```swift
-#if AnalyticsIntegration
-import AnalyticsSDK
-#endif
-
-public enum AnalyticsClient {
-    public static func track(_ event: AnalyticsEvent) {
-        #if AnalyticsIntegration
-        AnalyticsSDK.track(event.name, parameters: event.parameters)
-        #else
-        // no-op
-        #endif
-    }
-}
-```
-
-Главное правило: не размазывать `#if` по app-коду. Условная компиляция должна быть спрятана внутри facade конкретного модуля.
-
-Хорошо:
-
-```swift
-// App target
-DebugMenuFeature.install(on: window)
-```
-
-```swift
-// DebugTools target
-public enum DebugMenuFeature {
-    public static func install(on window: UIWindow?) {
-        #if DebugMenu
-        DebugOverlay.install(on: window)
-        #else
-        // no-op
-        #endif
-    }
-}
-```
-
-Плохо:
-
-```swift
-// App target
-#if DebugMenu
-import DebugOverlay
-DebugOverlay.install(on: window)
-#endif
-```
-
----
-
-## 14. Traits должны быть additive
-
-Trait должен добавлять возможности, а не менять смысл уже существующего API.
-
-Хорошо:
-
-```txt
-FirebaseAnalyticsAdapter
-AmplitudeAnalyticsAdapter
-PreviewFixtures
-DebugMenu
-```
-
-Плохо:
-
-```txt
-UseFirebaseAnalytics
-UseAmplitudeAnalytics
-```
-
-если эти traits взаимоисключающие.
-
-Почему: traits объединяются по dependency graph. Если один потребитель включает `TraitA`, а другой включает `TraitB`, package может собраться с обоими traits одновременно. Поэтому package должен оставаться валидным при разных комбинациях traits.
-
-Для взаимоисключающих вариантов лучше использовать отдельные targets и DI:
-
-```txt
-CoreDataStorageAdapter
-RealmStorageAdapter
-```
-
-А выбор реализации делать в composition root:
-
-```swift
-let storage: StorageClient = CoreDataStorageClient(...)
-```
-
----
-
-## 15. Traits — не runtime feature flags
-
-Trait — это compile-time switch.
-
-Он подходит для:
-
-```txt
-optional SDK adapters
-preview fixtures
-debug tooling
-experimental APIs
-strict migration modes
-conditional dependencies
-```
-
-Он не подходит для:
-
-```txt
-A/B tests
-remote config
-rollout на 5% пользователей
-персонализация под пользователя
-фичи, которые надо включать без пересборки приложения
-```
-
-Для runtime-флагов нужны отдельные механизмы:
-
-```txt
-Remote Config
-LaunchDarkly
-Firebase Remote Config
-собственная FeatureFlags-система
-server-side flags
-```
-
----
-
-## 16. PreviewFixtures trait
-
-Пример полезного trait для SwiftUI previews:
+In code:
 
 ```swift
 #if PreviewFixtures
 public extension Product {
-    static let previewPhone = Product(
-        id: .init(rawValue: "preview-phone"),
-        title: "iPhone Preview",
-        price: .init(amount: 999, currency: "EUR")
+    static let preview = Product(
+        id: ProductID(rawValue: UUID()),
+        title: "Preview product",
+        price: Money(cents: 1999)
     )
 }
 #endif
 ```
 
-Это позволяет не засорять production API моками, но удобно использовать данные в previews.
+Main rule: do not spread `#if` across app code. Conditional compilation should
+be hidden inside a module facade.
 
-Если test helpers нужны постоянно и много где, иногда лучше отдельный target:
+Good:
 
-```txt
+```swift
+public enum ProductFixtures {
+    public static var preview: Product {
+        #if PreviewFixtures
+        Product.preview
+        #else
+        Product(id: ProductID(rawValue: UUID()), title: "", price: .zero)
+        #endif
+    }
+}
+```
+
+Bad:
+
+```swift
+// Bad: app code knows about trait details
+#if PreviewFixtures
+Product.preview
+#else
+Product(...)
+#endif
+```
+
+---
+
+## 14. Traits Must Be Additive
+
+A trait should add capability, not change the meaning of an existing API.
+
+Good:
+
+```text
+PreviewFixtures adds preview data
+InternalDiagnostics adds diagnostics API
+StrictLegacyDeprecations makes deprecated API unavailable
+```
+
+Bad:
+
+```text
+TraitA changes Product.price from cents to dollars
+TraitB changes Product.price from dollars to cents
+```
+
+This is especially dangerous if traits are mutually exclusive in your mental
+model.
+
+Why: traits are merged through the dependency graph. If one consumer enables
+`TraitA` and another enables `TraitB`, the package may be built with both traits
+at the same time. The package must remain valid under different trait
+combinations.
+
+For mutually exclusive variants, prefer separate targets and dependency
+injection:
+
+```text
+LivePricingService
+MockPricingService
+ExperimentalPricingService
+```
+
+Choose the implementation in the composition root:
+
+```swift
+let pricing: PricingService = LivePricingService()
+```
+
+---
+
+## 15. Traits Are Not Runtime Feature Flags
+
+A trait is a compile-time switch.
+
+It is suitable for:
+
+```text
+preview helpers
+test fixtures
+internal diagnostics
+compile-time strictness
+optional package capabilities
+```
+
+It is not suitable for:
+
+```text
+remote config
+5% rollout
+per-user personalization
+features that must be enabled without rebuilding the app
+```
+
+Runtime flags need separate mechanisms:
+
+```text
+Remote Config
+LaunchDarkly
+Firebase Remote Config
+custom FeatureFlags system
+server-driven configuration
+```
+
+---
+
+## 16. `PreviewFixtures` Trait
+
+Useful trait for SwiftUI previews:
+
+```swift
+#if PreviewFixtures
+public enum ProductPreviewFixtures {
+    public static let sample = Product(
+        id: ProductID(rawValue: UUID()),
+        title: "Sample product",
+        price: Money(cents: 1299)
+    )
+}
+#endif
+```
+
+This avoids polluting production API with mocks while keeping preview data easy
+to use.
+
+If test helpers are permanent and widely used, a separate target can be better:
+
+```text
 ProductDomain
 ProductDomainTestSupport
 ```
 
-Trait хорош, если helpers должны быть опциональным API того же package.
+A trait is good when helpers should be optional API of the same package.
 
 ---
 
-## 17. StrictLegacyDeprecations trait
+## 17. `StrictLegacyDeprecations` Trait
 
-Trait можно использовать для “жёстких” миграций.
+A trait can help with strict migrations.
 
-В обычной сборке API deprecated:
+In normal builds, an API can be deprecated:
 
 ```swift
-@available(*, deprecated, message: "Use NewCheckoutFlow instead.")
-public enum OldCheckoutFlow {}
+@available(*, deprecated, message: "Use ProductID instead.")
+public typealias LegacyProductID = String
 ```
 
-В строгом режиме — unavailable:
+In strict mode, it can become unavailable:
 
 ```swift
 #if StrictLegacyDeprecations
-@available(*, unavailable, message: "Use NewCheckoutFlow instead.")
+@available(*, unavailable, message: "Use ProductID instead.")
 #else
-@available(*, deprecated, message: "Use NewCheckoutFlow instead.")
+@available(*, deprecated, message: "Use ProductID instead.")
 #endif
-public enum OldCheckoutFlow {}
+public typealias LegacyProductID = String
 ```
 
-В CI можно включить strict trait и заранее увидеть места, которые надо мигрировать.
+CI can enable the strict trait and find migration points early.
 
 ---
 
-## 18. CI для traits
+## 18. CI For Traits
 
-Код под `#if SomeTrait` легко забыть протестировать.
+Code under `#if SomeTrait` is easy to forget to test.
 
-Минимальная матрица:
+Minimal matrix:
 
 ```bash
-# обычная конфигурация
-swift test
+# normal configuration
+swift test --package-path AppModules
 
-# проверка, что default traits не обязательны
-swift test --disable-default-traits
+# verify default traits are not required
+swift test --package-path AppModules --disable-default-traits
 
-# проверка всех optional API
-swift test --enable-all-traits
+# verify optional API
+swift test --package-path AppModules --traits PreviewFixtures
 
-# production/internal комбинация
-swift test --traits defaults,DebugMenu,AnalyticsIntegration
+# production/internal combination
+swift test --package-path AppModules --traits StrictLegacyDeprecations
 ```
 
-Если trait добавляет optional dependency, CI должен хотя бы один раз собирать package с этим trait.
+If a trait adds an optional dependency, CI should build the package with that
+trait at least once.
 
 ---
 
-## 19. Когда использовать SPM, а когда достаточно папок
+## 19. When To Use SPM And When Folders Are Enough
 
-SPM хорошо использовать для:
+SPM is useful for:
 
-```txt
-Core / Shared modules
-Domain modules
-крупных features
-крупных screens / flows
-Design System
-Networking
-Storage
-Analytics
-Authorization
-Payment
-Onboarding
+- large features;
+- large screens / flows;
+- domain modules reused by several apps;
+- shared infrastructure;
+- code with independent tests;
+- boundaries that must be impossible to violate at compile time.
+
+Especially when:
+
+- many developers work in the project;
+- the app has many screens;
+- there are several app targets;
+- there is white-labeling;
+- there are reusable modules;
+- isolated testing is important;
+- ownership boundaries must be explicit.
+
+Do not create a separate SPM target for every button.
+
+Bad:
+
+```text
+PrimaryButtonTarget
+ProductTitleTarget
+ProductImageTarget
 ```
 
-Особенно если:
+Better:
 
-```txt
-много разработчиков
-много экранов
-есть несколько app targets
-есть white-label
-есть переиспользуемые модули
-нужно изолированное тестирование
-нужно разграничивать ownership
-```
-
-Не стоит делать отдельный SPM target для каждой кнопки.
-
-Плохо:
-
-```txt
-LikeButtonFeature
-OpenModalFeature
-CloseModalFeature
-ProductTitleComponent
-ProductImageComponent
-```
-
-Лучше:
-
-```txt
-ProductDetailsScreen
-CatalogScreen
-CartFeature
-CheckoutFlow
-ProductDomain
+```text
 CoreUI
-```
-
-Для маленького проекта можно начать с папок:
-
-```txt
-App/
-Screens/
-Features/
-Domain/
-Core/
-```
-
-И постепенно выносить в SPM:
-
-```txt
-CoreUI
-CoreNetworking
 ProductDomain
-CartDomain
-крупные Features
-крупные Flows
+ProductCardComponent
+```
+
+For a small project, start with folders:
+
+```text
+App/
+  app/
+  pages/
+  widgets/
+  features/
+  entities/
+  shared/
+```
+
+Then gradually extract to SPM:
+
+```text
+large Features
+large Flows
+reused Domain modules
+shared Core infrastructure
 ```
 
 ---
 
-## 20. Практические правила
+## 20. Practical Rules
 
-1. **SPM targets — для настоящих архитектурных границ.**
-   Если нарушение зависимости должно быть невозможно на уровне компилятора, делай target.
+1. **Use SPM targets for real architecture boundaries.**
+   If dependency violations should be impossible at compiler level, make a target.
 
-2. **Public API должен быть маленьким.**
-   Не делай `public` всё подряд. В Swift это аналог бездумного `export *`.
+2. **Keep public API small.**
+   Do not make everything `public`. In Swift, that is the equivalent of careless
+   `export *`.
 
-3. **Facade лучше случайных public-типов.**
-   Предпочтительно иметь `FeatureName.make...`, `ScreenName.make...`, `Factory`, `Builder` или явный public view.
+3. **Prefer facades over random public types.**
+   Prefer `FeatureName.make...`, `ScreenName.make...`, `Factory`, `Builder`, or
+   an explicit public view.
 
-4. **App target — composition root.**
-   Он собирает зависимости, навигацию и конкретные реализации.
+4. **Keep the app target as the composition root.**
+   It assembles dependencies, navigation, and concrete implementations.
 
-5. **Domain не знает о UI/features/screens.**
-   `ProductDomain` не должен импортировать `AddToCartFeature` или `ProductDetailsScreen`.
+5. **Domain does not know about UI, features, or screens.**
+   `ProductDomain` must not import `AddToCartFeature` or `ProductDetailsScreen`.
 
-6. **Features не должны импортировать sibling features без необходимости.**
-   Для взаимодействия используй interface targets, протоколы, DI, coordinator или app composition.
+6. **Features should not import sibling features unless there is a deliberate contract.**
+   Use interface targets, protocols, DI, coordinators, or app composition.
 
-7. **Core не должен содержать бизнес.**
-   `CoreUI.PrimaryButton` — хорошо. `CoreUI.ProductCard` — плохо.
+7. **Core must not contain business logic.**
+   `CoreUI.PrimaryButton` is good. `CoreUI.ProductCard` is bad.
 
-8. **Traits — только для compile-time capabilities.**
-   Не используй traits как замену targets, runtime feature flags или DI.
+8. **Traits are only for compile-time capabilities.**
+   Do not use traits as a replacement for targets, runtime feature flags, or DI.
 
-9. **Traits должны быть additive.**
-   Не проектируй traits как взаимоисключающие режимы.
+9. **Traits must be additive.**
+   Do not design traits as mutually exclusive modes.
 
-10. **`#if` держи внутри модуля.**
-    App-код должен работать через стабильный facade.
+10. **Keep `#if` inside modules.**
+    App code should work through a stable facade.
 
 ---
 
-## 21. Рекомендуемая стартовая структура
+## 21. Recommended Starting Structure
 
-Для среднего iOS-приложения хороший старт:
+Good starting point for a medium iOS app:
 
-```txt
+```text
 App/
-  FSDDemoApp.swift
-  AppCoordinator.swift
-  AppContainer.swift
+  ShopApp.swift
 
 Packages/
   AppModules/
     Package.swift
     Sources/
-      CoreUI/
-      CoreDesignSystem/
-      CoreNetworking/
-      CoreStorage/
-      CoreAnalytics/
+      ProductListScreen/
+      ProductDetailsScreen/
+      CheckoutFlow/
+
+      AddToCartFeature/
+      ApplyPromoCodeFeature/
+      ToggleFavoriteFeature/
 
       ProductDomain/
       CartDomain/
       UserDomain/
-      OrderDomain/
 
-      AddToCartFeature/
-      ApplyPromoCodeFeature/
-      LoginFeature/
+      CoreUI/
+      CoreNetworking/
+      CorePersistence/
+      CoreAnalytics/
 
-      ProductCardComponent/
-      CartSummaryComponent/
-
-      CatalogScreen/
-      ProductDetailsScreen/
-      CartScreen/
-      CheckoutFlow/
+    Tests/
+      ProductDomainTests/
+      AddToCartFeatureTests/
 ```
 
-Если проект растёт, можно разделить на несколько packages:
+If the project grows, split it into several packages:
 
-```txt
+```text
 Packages/
-  CorePackage/
-  DomainPackage/
-  FeaturesPackage/
-  ScreensPackage/
+  DomainModules/
+  FeatureModules/
+  ScreenModules/
+  CoreModules/
 ```
 
-Но часто один package с большим количеством targets удобнее: проще управлять `package` access modifier и внутренними зависимостями.
+Often one package with many targets is more convenient: it makes `package`
+access easier to use and internal dependencies easier to manage.
 
 ---
 
-## 22. Короткая формула
+## 22. Short Formula
 
-```txt
-Папки — для локальной организации.
-SPM targets — для compile-time архитектурных границ.
-Swift public API — аналог index.ts.
-package access — внутренний API большого package.
-traits — опциональные compile-time возможности.
-App target — место, где всё собирается вместе.
-```
+Folders are for local organization.
 
-Главная цель — не “сделать много модулей”, а добиться того, чтобы изменение одной feature не расползалось по проекту, а неправильные зависимости ловились компилятором.
+SPM targets are for compile-time architecture boundaries.
+
+Swift public API is the analogue of `index.ts`.
+
+`package` access is internal API for a large package.
+
+Traits are optional compile-time capabilities.
+
+The app target is where everything is assembled.
+
+The main goal is not to "create many modules". The goal is to make sure a change
+to one feature does not spread through the project and incorrect dependencies
+are caught by the compiler.
