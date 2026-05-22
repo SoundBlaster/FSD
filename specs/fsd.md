@@ -254,7 +254,7 @@ But a feature must not import another feature directly:
 
 ```ts
 // Bad
-import { ApplyDiscountButton } from '@/features/apply-discount';
+import { ApplyDiscount } from '@/features/apply-discount';
 ```
 
 If two features must be used together, compose them above, usually in a `widget`
@@ -319,7 +319,7 @@ import { AddToCartButton } from '@/features/add-to-cart';
 
 Compose that higher:
 
-```ts
+```tsx
 import type { Product } from '@/entities/product';
 import { ProductPrice } from '@/entities/product';
 import { AddToCartButton } from '@/features/add-to-cart';
@@ -664,17 +664,18 @@ src/
 
 Composition example:
 
-```ts
+```tsx
+import type { Product } from '@/entities/product';
 import { ProductImage, ProductPrice } from '@/entities/product';
 import { AddToCartButton } from '@/features/add-to-cart';
 import { Card } from '@/shared/ui/card';
 
-export function ProductCard() {
+export function ProductCard({ product }: { product: Product }) {
   return (
     <Card>
-      <ProductImage />
-      <ProductPrice />
-      <AddToCartButton />
+      <ProductImage src={product.imageUrl} alt={product.title} />
+      <ProductPrice price={product.price} />
+      <AddToCartButton productId={product.id} />
     </Card>
   );
 }
