@@ -19,6 +19,8 @@ struct DoctorCheckResult {
     let passed: Bool
     let message: String
     let exitCode: Int32?
+    let standardOutput: String
+    let standardError: String
 }
 
 enum CLIError: Error, CustomStringConvertible {
@@ -54,7 +56,7 @@ func printUsage() {
           swift tools/fsd-ios.swift <command> [options]
 
         Commands:
-          version
+          version, --version
               Print the fsd-ios CLI version.
 
           lint [--root <path>] [--strict] [--architecture]
@@ -80,6 +82,7 @@ func printUsage() {
           swift tools/fsd-ios.swift create app --name MyApp --output ../MyApp
           swift tools/fsd-ios.swift create spm --name LegacyFSD --output ../LegacyFSDModules
           swift tools/fsd-ios.swift version
+          swift tools/fsd-ios.swift --version
           swift tools/fsd-ios.swift doctor
         """
     )
@@ -393,7 +396,9 @@ func requiredPathCheck(_ path: String) -> DoctorCheckResult {
             name: "required path: \(path)",
             passed: true,
             message: path,
-            exitCode: nil
+            exitCode: nil,
+            standardOutput: "",
+            standardError: ""
         )
     }
 
@@ -401,7 +406,9 @@ func requiredPathCheck(_ path: String) -> DoctorCheckResult {
         name: "required path: \(path)",
         passed: false,
         message: "missing: \(path)",
-        exitCode: nil
+        exitCode: nil,
+        standardOutput: "",
+        standardError: ""
     )
 }
 
@@ -417,7 +424,9 @@ func commandCheck(_ title: String, command: String, arguments: [String]) throws 
         name: title,
         passed: result.exitCode == 0,
         message: firstOutputLine(stdout: result.standardOutput, stderr: result.standardError),
-        exitCode: result.exitCode
+        exitCode: result.exitCode,
+        standardOutput: result.standardOutput,
+        standardError: result.standardError
     )
 }
 
@@ -429,6 +438,17 @@ func printDoctorText(checks: [DoctorCheckResult]) {
             print("[ok] \(check.name)\(check.message.isEmpty ? "" : " - \(check.message)")")
         } else {
             print("[fail] \(check.name)\(check.message.isEmpty ? "" : " - \(check.message)")")
+
+            let output = check.standardOutput.trimmingCharacters(in: .whitespacesAndNewlines)
+            let error = check.standardError.trimmingCharacters(in: .whitespacesAndNewlines)
+
+            if !output.isEmpty {
+                print(output)
+            }
+
+            if !error.isEmpty {
+                print(error)
+            }
         }
     }
 }

@@ -9,6 +9,7 @@ keep one stable entry point:
 ```bash
 swift tools/fsd-ios.swift --help
 swift tools/fsd-ios.swift version
+swift tools/fsd-ios.swift --version
 swift tools/fsd-ios.swift doctor
 swift tools/fsd-ios.swift doctor --json
 swift tools/fsd-ios.swift lint --root FSDDemoApp --strict --architecture
@@ -44,7 +45,7 @@ internal tools as the source of truth.
 
 | Command | Purpose |
 |---|---|
-| `version` | Prints the current `fsd-ios` CLI version |
+| `version`, `--version` | Prints the current `fsd-ios` CLI version |
 | `lint` | Runs the FSD structure lint and optional architecture checks |
 | `harmonize` | Prints read-only refactoring suggestions |
 | `create app` | Generates the full SwiftUI app starter template |
@@ -82,6 +83,7 @@ Then run:
 
 ```bash
 fsd-ios --help
+fsd-ios --version
 fsd-ios doctor
 fsd-ios lint --root FSDDemoApp --strict --architecture
 ```
