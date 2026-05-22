@@ -122,6 +122,8 @@ action-smoke:
 	@grep -q 'tools/fsd-ios.swift' action.yml
 	@grep -q 'INPUT_ROOT' action.yml
 	@grep -q 'INPUT_CONFIG' action.yml
+	@grep -q -- '--no-strict' action.yml
+	@grep -q -- '--no-architecture' action.yml
 	$(SWIFT) tools/fsd-ios.swift lint --root $(APP_ROOT) --strict --architecture
 
 lint:

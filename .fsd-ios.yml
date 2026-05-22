@@ -2,8 +2,6 @@ version: 1
 root: FSDDemoApp
 strict: false
 architecture: false
-ignoredPaths:
-  - DerivedData
 layers:
   app: app
   pages: pages
@@ -17,4 +15,3 @@ rules:
   sliceSegments: true
   dependencyDirection: true
   sameLayerSliceIsolation: true
-

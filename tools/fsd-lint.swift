@@ -93,7 +93,7 @@ struct LayerConfiguration {
             }
 
             guard !value.contains("/") else {
-                throw ConfigError.invalidValue("layers.\(value)", "Layer folder names must not contain `/`")
+                throw ConfigError.invalidValue("layers", "Layer folder name `\(value)` must not contain `/`")
             }
         }
 
@@ -473,8 +473,18 @@ struct FSDLinter {
             let segmentName = segmentURL.lastPathComponent
 
             if name == layerConfiguration.app, segmentName == "ui" {
+                let uiOwnerLayers = [
+                    layerConfiguration.pages,
+                    layerConfiguration.widgets,
+                    layerConfiguration.features,
+                    layerConfiguration.entities,
+                    layerConfiguration.shared,
+                ]
+                .map { "`\($0)`" }
+                .joined(separator: ", ")
+
                 findings.append(
-                    error(segmentURL, "`\(layerConfiguration.app)/ui` is discouraged; UI should usually live in pages/widgets/features/entities/shared")
+                    error(segmentURL, "`\(layerConfiguration.app)/ui` is discouraged; UI should usually live in configured UI-owning layers: \(uiOwnerLayers)")
                 )
                 continue
             }

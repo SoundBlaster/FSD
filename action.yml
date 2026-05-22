@@ -67,6 +67,7 @@ runs:
             args+=(--strict)
             ;;
           false)
+            args+=(--no-strict)
             ;;
           *)
             echo "::error::strict must be true or false"
@@ -79,6 +80,7 @@ runs:
             args+=(--architecture)
             ;;
           false)
+            args+=(--no-architecture)
             ;;
           *)
             echo "::error::architecture must be true or false"
