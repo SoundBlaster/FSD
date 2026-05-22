@@ -39,6 +39,7 @@ depending on active `codex/*` work branches.
 | Template generator | `tools/fsd-template-create.swift`, `make template-create-fixture` | `main` |
 | Legacy modular adoption | `templates/fsd-ios-spm`, `make spm-template-test` | `main` |
 | Unified DX CLI | `tools/fsd-ios.swift`, `docs/cli.md`, `make cli-smoke` | `main` |
+| Tooling roadmap | `docs/roadmap.md` | `main` |
 | External project adoption | `docs/adoption/external-project.md`, `examples/github-actions/external-project-fsd-ios.yml` | `main` |
 | Reusable GitHub Action | `action.yml`, `examples/github-actions/external-project-fsd-ios-action.yml`, `make action-smoke` | `main` |
 | Template package validation | `tools/fsd-template-validate.swift`, `make template-validate` | `main` |
