@@ -246,7 +246,7 @@ features/add-to-cart/
 A feature may import `entities` and `shared` because they are lower layers:
 
 ```ts
-import { Product } from '@/entities/product';
+import type { Product } from '@/entities/product';
 import { Button } from '@/shared/ui/button';
 ```
 
@@ -320,14 +320,15 @@ import { AddToCartButton } from '@/features/add-to-cart';
 Compose that higher:
 
 ```ts
+import type { Product } from '@/entities/product';
 import { ProductPrice } from '@/entities/product';
 import { AddToCartButton } from '@/features/add-to-cart';
 
-export function ProductCard() {
+export function ProductCard({ product }: { product: Product }) {
   return (
     <>
-      <ProductPrice />
-      <AddToCartButton />
+      <ProductPrice price={product.price} />
+      <AddToCartButton productId={product.id} />
     </>
   );
 }
@@ -474,9 +475,9 @@ objects intended for external use.
 Bad example:
 
 ```ts
-export * from './model/store';
-export * from './api/internal-api';
-export * from './lib/internal-normalize';
+export * from './model/product-store';
+export * from './api/internal-product-api';
+export * from './lib/normalize-product';
 ```
 
 This API hides nothing. It simply dumps the slice internals outside. That breaks

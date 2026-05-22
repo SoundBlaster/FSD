@@ -120,7 +120,7 @@ Example `Package.swift`:
 > toolchain, and app deployment target.
 
 ```swift
-// swift-tools-version: 6.0
+// swift-tools-version: 6.1
 
 import PackageDescription
 
@@ -368,7 +368,7 @@ public struct ProductListScreen: View {
     @State private var products: [Product]
 
     public init(products: [Product] = []) {
-        self.products = products
+        _products = State(initialValue: products)
     }
 
     public var body: some View {
@@ -717,7 +717,7 @@ like this:
 > them with the repository's project and CI settings.
 
 ```swift
-// swift-tools-version: 6.0
+// swift-tools-version: 6.1
 
 import PackageDescription
 
