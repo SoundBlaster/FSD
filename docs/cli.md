@@ -8,7 +8,10 @@ keep one stable entry point:
 
 ```bash
 swift tools/fsd-ios.swift --help
+swift tools/fsd-ios.swift version
+swift tools/fsd-ios.swift --version
 swift tools/fsd-ios.swift doctor
+swift tools/fsd-ios.swift doctor --json
 swift tools/fsd-ios.swift lint --root FSDDemoApp --strict --architecture
 swift tools/fsd-ios.swift create spm --name LegacyFSD --output ../LegacyFSDModules
 ```
@@ -42,6 +45,7 @@ internal tools as the source of truth.
 
 | Command | Purpose |
 |---|---|
+| `version`, `--version` | Prints the current `fsd-ios` CLI version |
 | `lint` | Runs the FSD structure lint and optional architecture checks |
 | `harmonize` | Prints read-only refactoring suggestions |
 | `create app` | Generates the full SwiftUI app starter template |
@@ -79,6 +83,7 @@ Then run:
 
 ```bash
 fsd-ios --help
+fsd-ios --version
 fsd-ios doctor
 fsd-ios lint --root FSDDemoApp --strict --architecture
 ```
@@ -161,6 +166,12 @@ Run `doctor` when onboarding a machine or before investigating a local failure:
 swift tools/fsd-ios.swift doctor
 ```
 
+Use JSON output when another script or CI job needs to parse the result:
+
+```bash
+swift tools/fsd-ios.swift doctor --json
+```
+
 It checks:
 
 - required files and template manifests;
@@ -172,7 +183,8 @@ It checks:
 - SwiftPM template description.
 
 `doctor` is intentionally quick. Use `make ci` for the full local gate,
-including Xcode tests.
+including Xcode tests. `make cli-doctor` verifies both human-readable and JSON
+doctor output.
 
 ## Make Targets
 

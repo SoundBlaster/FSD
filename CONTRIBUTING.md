@@ -43,6 +43,9 @@ make cli-smoke
 make cli-doctor
 ```
 
+`make cli-doctor` validates both text and JSON doctor output, so automation
+consumers stay covered when the CLI contract changes.
+
 When changing the linter, also run a negative fixture or another targeted check
 that proves the rule fails when it should.
 

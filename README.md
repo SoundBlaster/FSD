@@ -83,7 +83,10 @@ make spm-template-create-fixture
 
 ```bash
 swift tools/fsd-ios.swift --help
+swift tools/fsd-ios.swift version
+swift tools/fsd-ios.swift --version
 swift tools/fsd-ios.swift doctor
+swift tools/fsd-ios.swift doctor --json
 swift tools/fsd-ios.swift lint --root FSDDemoApp --strict --architecture
 ```
 

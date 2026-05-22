@@ -77,6 +77,8 @@ cli-smoke:
 	rm -rf $(DERIVED_DATA_PATH)/CLICreateAppDryRun
 	rm -rf $(DERIVED_DATA_PATH)/CLICreateSPMDryRun
 	$(SWIFT) tools/fsd-ios.swift --help
+	$(SWIFT) tools/fsd-ios.swift version
+	$(SWIFT) tools/fsd-ios.swift --version
 	$(SWIFT) tools/fsd-ios.swift lint --help
 	$(SWIFT) tools/fsd-ios.swift harmonize --help
 	$(SWIFT) tools/fsd-ios.swift validate template --help
@@ -94,6 +96,9 @@ cli-smoke:
 
 cli-doctor:
 	$(SWIFT) tools/fsd-ios.swift doctor
+	@mkdir -p $(DERIVED_DATA_PATH)
+	$(SWIFT) tools/fsd-ios.swift doctor --json > $(DERIVED_DATA_PATH)/DoctorSmoke.json
+	$(SWIFT) -e 'import Foundation; _ = try JSONSerialization.jsonObject(with: Data(contentsOf: URL(fileURLWithPath: CommandLine.arguments[1])))' $(DERIVED_DATA_PATH)/DoctorSmoke.json
 
 lint:
 	$(SWIFT) tools/fsd-lint.swift $(APP_ROOT)
