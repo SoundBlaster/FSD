@@ -90,8 +90,16 @@ swift tools/fsd-ios.swift lint --root FSDDemoApp --strict --architecture
 Make targets для проверки CLI:
 
 ```bash
+make install-smoke
 make cli-smoke
 make cli-doctor
+```
+
+Локальная установка wrapper в `~/.local/bin`:
+
+```bash
+make install
+fsd-ios doctor
 ```
 
 Подробности: [docs/cli.md](docs/cli.md).
