@@ -53,7 +53,7 @@ install:
 	@mkdir -p "$(INSTALL_BIN_DIR)"
 	@{ \
 		printf '%s\n' '#!/bin/sh'; \
-		printf '%s\n' 'exec swift "$(abspath tools/fsd-ios.swift)" "$$@"'; \
+		printf '%s\n' 'exec $(SWIFT) "$(abspath tools/fsd-ios.swift)" "$$@"'; \
 	} > "$(INSTALL_BIN_DIR)/fsd-ios"
 	@chmod +x "$(INSTALL_BIN_DIR)/fsd-ios"
 	@printf '%s\n' "Installed $(INSTALL_BIN_DIR)/fsd-ios"
@@ -64,6 +64,7 @@ uninstall:
 install-smoke:
 	rm -rf "$(INSTALL_SMOKE_PREFIX)"
 	$(MAKE) install INSTALL_PREFIX="$(INSTALL_SMOKE_PREFIX)"
+	@grep -F 'exec $(SWIFT) "$(abspath tools/fsd-ios.swift)" "$$@"' "$(INSTALL_SMOKE_PREFIX)/bin/fsd-ios" > /dev/null
 	"$(INSTALL_SMOKE_PREFIX)/bin/fsd-ios" --help
 	"$(INSTALL_SMOKE_PREFIX)/bin/fsd-ios" doctor --help
 	$(MAKE) uninstall INSTALL_PREFIX="$(INSTALL_SMOKE_PREFIX)"
