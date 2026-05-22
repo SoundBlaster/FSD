@@ -22,6 +22,7 @@ Detailed capability map: [docs/showcase.md](docs/showcase.md).
 - [CONTRIBUTING.md](CONTRIBUTING.md) - workflow for changes and review.
 - [docs/checklist.md](docs/checklist.md) - practical checklist for new PRs.
 - [docs/cli.md](docs/cli.md) - unified CLI, doctor, and template generation workflow.
+- [docs/roadmap.md](docs/roadmap.md) - planned CLI, lint, generator, and release DX work.
 - [docs/adoption/external-project.md](docs/adoption/external-project.md) - using FSD tooling in an external iOS project.
 - [docs/rules/fsd-layers.md](docs/rules/fsd-layers.md) - FSD layer responsibilities.
 - [docs/rules/fsd-imports.md](docs/rules/fsd-imports.md) - dependency direction and slice isolation.

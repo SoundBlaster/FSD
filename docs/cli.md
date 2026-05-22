@@ -234,9 +234,10 @@ brew install fsd-ios
 ```
 
 Before that, the repository should keep the script entry point documented and
-tested. The intended path is:
+tested. See [FSD iOS Roadmap](roadmap.md) for the current implementation plan.
+The intended path is:
 
 1. stabilize `tools/fsd-ios.swift`;
 2. add local install/uninstall targets;
 3. package the same interface for Homebrew;
-4. add a reusable GitHub Action once external projects depend on the tool.
+4. publish versioned installation instructions for external projects.
