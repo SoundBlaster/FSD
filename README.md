@@ -22,6 +22,7 @@ Detailed capability map: [docs/showcase.md](docs/showcase.md).
 - [CONTRIBUTING.md](CONTRIBUTING.md) - workflow for changes and review.
 - [docs/checklist.md](docs/checklist.md) - practical checklist for new PRs.
 - [docs/cli.md](docs/cli.md) - unified CLI, doctor, and template generation workflow.
+- [docs/configuration.md](docs/configuration.md) - `.fsd-ios.yml` configuration contract.
 - [docs/roadmap.md](docs/roadmap.md) - planned CLI, lint, generator, and release DX work.
 - [docs/adoption/external-project.md](docs/adoption/external-project.md) - using FSD tooling in an external iOS project.
 - [docs/rules/fsd-layers.md](docs/rules/fsd-layers.md) - FSD layer responsibilities.
@@ -107,6 +108,7 @@ swift tools/fsd-ios.swift version
 swift tools/fsd-ios.swift --version
 swift tools/fsd-ios.swift doctor
 swift tools/fsd-ios.swift doctor --json
+swift tools/fsd-ios.swift lint --config .fsd-ios.yml
 swift tools/fsd-ios.swift lint --root FSDDemoApp --strict --architecture
 ```
 
@@ -116,6 +118,7 @@ Make targets for CLI validation:
 make install-smoke
 make cli-smoke
 make cli-doctor
+make config-smoke
 make action-smoke
 ```
 
@@ -162,6 +165,9 @@ FSD dependency direction between layers and slices:
 ```bash
 make lint-architecture
 ```
+
+Repository-level lint defaults live in [.fsd-ios.yml](.fsd-ios.yml). The config
+contract is documented in [docs/configuration.md](docs/configuration.md).
 
 The template bundle is checked by a dedicated contract validator:
 

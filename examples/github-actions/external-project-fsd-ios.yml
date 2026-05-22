@@ -11,9 +11,6 @@ jobs:
     name: Run FSD iOS lint
     runs-on: macos-26
 
-    env:
-      FSD_ROOT: Sources/App
-
     steps:
       - name: Checkout app
         uses: actions/checkout@v5
@@ -39,6 +36,4 @@ jobs:
       - name: Run FSD architecture lint
         run: |
           swift .fsd-ios-tooling/tools/fsd-ios.swift lint \
-            --root "$FSD_ROOT" \
-            --strict \
-            --architecture
+            --config .fsd-ios.yml

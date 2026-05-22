@@ -19,7 +19,7 @@ jobs:
         uses: SoundBlaster/FSD@main
         with:
           # Pin the action ref to a tag or commit in production projects.
-          root: Sources/App
+          config: .fsd-ios.yml
           strict: "true"
           architecture: "true"
           doctor: "true"

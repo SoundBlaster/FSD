@@ -47,7 +47,7 @@ let toolsDirectoryURL = invokedScriptURL.deletingLastPathComponent()
 let repoRootURL = toolsDirectoryURL.lastPathComponent == "tools"
     ? toolsDirectoryURL.deletingLastPathComponent()
     : originalWorkingDirectoryURL
-let cliVersion = "0.2.0"
+let cliVersion = "0.3.0"
 
 func printUsage() {
     print(
@@ -59,7 +59,7 @@ func printUsage() {
           version, --version
               Print the fsd-ios CLI version.
 
-          lint [--root <path>] [--strict] [--architecture]
+          lint [--root <path>] [--config <path>] [--strict|--no-strict] [--architecture|--no-architecture]
               Run the FSD structure and optional architecture lint.
 
           harmonize [--root <path>]
@@ -79,6 +79,7 @@ func printUsage() {
 
         Examples:
           swift tools/fsd-ios.swift lint --root FSDDemoApp --strict --architecture
+          swift tools/fsd-ios.swift lint --config .fsd-ios.yml
           swift tools/fsd-ios.swift create app --name MyApp --output ../MyApp
           swift tools/fsd-ios.swift create spm --name LegacyFSD --output ../LegacyFSDModules
           swift tools/fsd-ios.swift version
@@ -291,6 +292,69 @@ func normalizePathOptions(
     return normalized
 }
 
+func hasOption(_ option: String, in arguments: [String]) -> Bool {
+    arguments.contains(option)
+}
+
+func hasPositionalLintRoot(in arguments: [String]) -> Bool {
+    let optionsWithValues: Set<String> = ["--root", "--config"]
+    var index = 0
+
+    while index < arguments.count {
+        let argument = arguments[index]
+
+        if optionsWithValues.contains(argument) {
+            index += 2
+            continue
+        }
+
+        if argument.hasPrefix("-") {
+            index += 1
+            continue
+        }
+
+        return true
+    }
+
+    return false
+}
+
+func discoverDefaultConfigPath() -> String? {
+    for filename in [".fsd-ios.yml", ".fsd-ios.yaml"] {
+        let url = originalWorkingDirectoryURL
+            .appendingPathComponent(filename)
+            .standardizedFileURL
+
+        if fileManager.fileExists(atPath: url.path) {
+            return url.path
+        }
+    }
+
+    return nil
+}
+
+func normalizeLintArguments(_ arguments: [String]) -> [String] {
+    var normalized = normalizePathOptions(
+        in: arguments,
+        options: ["--root", "--config"]
+    )
+
+    let hasConfig = hasOption("--config", in: arguments)
+    let hasRoot = hasOption("--root", in: arguments) || hasPositionalLintRoot(in: arguments)
+
+    if !hasConfig, let configPath = discoverDefaultConfigPath() {
+        normalized.append("--config")
+        normalized.append(configPath)
+    }
+
+    if !hasRoot, !hasConfig, discoverDefaultConfigPath() == nil {
+        normalized.append("--root")
+        normalized.append(repoPath("FSDDemoApp"))
+    }
+
+    return normalized
+}
+
 func runSwiftScript(_ scriptName: String, arguments: [String]) throws -> Int32 {
     let result = try runProcess(
         "swift",
@@ -482,8 +546,10 @@ func printDoctorJSON(checks: [DoctorCheckResult]) throws {
 
 func runDoctor(jsonOutput: Bool) throws -> Int32 {
     let requiredPaths = [
+        ".fsd-ios.yml",
         "FSDDemoApp",
         "Makefile",
+        "docs/configuration.md",
         "templates/fsd-ios/template.yaml",
         "templates/fsd-ios-spm/template.yaml",
         "tools/fsd-lint.swift",
@@ -502,6 +568,11 @@ func runDoctor(jsonOutput: Bool) throws -> Int32 {
             "FSD architecture lint",
             "swift",
             [resolveToolScript("fsd-lint.swift"), "--root", repoPath("FSDDemoApp"), "--strict", "--architecture"]
+        ),
+        (
+            "FSD config lint",
+            "swift",
+            [resolveToolScript("fsd-lint.swift"), "--config", repoPath(".fsd-ios.yml"), "--no-strict", "--no-architecture"]
         ),
         (
             "Template validator",
@@ -554,11 +625,7 @@ func runCLI(_ arguments: [String]) throws -> Int32 {
     case "lint":
         let lintArguments = containsHelp(commandArguments)
             ? commandArguments
-            : normalizePathOptions(
-                in: commandArguments,
-                options: ["--root"],
-                defaultOption: ("--root", repoPath("FSDDemoApp"))
-            )
+            : normalizeLintArguments(commandArguments)
         return try runSwiftScript("fsd-lint.swift", arguments: lintArguments)
     case "harmonize":
         let harmonizeArguments = containsHelp(commandArguments)
