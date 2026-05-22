@@ -2,55 +2,55 @@
 
 [![iOS CI](https://github.com/SoundBlaster/FSD/actions/workflows/ios-ci.yml/badge.svg)](https://github.com/SoundBlaster/FSD/actions/workflows/ios-ci.yml)
 
-Reference template для SwiftUI + SwiftData проектов, которые хотят применять
-Feature-Sliced Design как набор понятных правил, проверок и good practices.
+Reference template for SwiftUI + SwiftData projects that want to apply
+Feature-Sliced Design as a clear set of rules, checks, and good practices.
 
-## Что демонстрирует
+## What It Demonstrates
 
-- FSD-слои для SwiftUI: `app`, `pages`, `widgets`, `features`, `entities`, `shared`.
-- Разделение screen-level composition и reusable user actions.
-- Переиспользуемые feature actions: add, edit, delete, toggle completion, change priority.
-- Архитектурный lint на Swift CLI и GitHub Actions validation.
-- Локальный developer workflow через `make`.
-- Copyable template bundle для старта нового FSD iOS проекта.
+- FSD layers for SwiftUI: `app`, `pages`, `widgets`, `features`, `entities`, `shared`.
+- Separation between screen-level composition and reusable user actions.
+- Reusable feature actions: add, edit, delete, toggle completion, change priority.
+- Architecture lint implemented as Swift CLI tooling and GitHub Actions validation.
+- Local developer workflow through `make`.
+- Copyable template bundle for starting a new FSD iOS project.
 
-Подробная карта возможностей: [docs/showcase.md](docs/showcase.md).
+Detailed capability map: [docs/showcase.md](docs/showcase.md).
 
-## Правила шаблона
+## Template Rules
 
-- [ARCHITECTURE.md](ARCHITECTURE.md) - основной архитектурный контракт.
-- [CONTRIBUTING.md](CONTRIBUTING.md) - workflow для изменений и review.
-- [docs/checklist.md](docs/checklist.md) - practical checklist для новых PR.
-- [docs/cli.md](docs/cli.md) - unified CLI, doctor и template generation workflow.
-- [docs/adoption/external-project.md](docs/adoption/external-project.md) - подключение FSD tooling к внешнему iOS проекту.
-- [docs/rules/fsd-layers.md](docs/rules/fsd-layers.md) - назначение FSD layers.
-- [docs/rules/fsd-imports.md](docs/rules/fsd-imports.md) - dependency direction и slice isolation.
-- [docs/rules/fsd-slices.md](docs/rules/fsd-slices.md) - правила выделения slices.
+- [ARCHITECTURE.md](ARCHITECTURE.md) - the main architecture contract.
+- [CONTRIBUTING.md](CONTRIBUTING.md) - workflow for changes and review.
+- [docs/checklist.md](docs/checklist.md) - practical checklist for new PRs.
+- [docs/cli.md](docs/cli.md) - unified CLI, doctor, and template generation workflow.
+- [docs/adoption/external-project.md](docs/adoption/external-project.md) - using FSD tooling in an external iOS project.
+- [docs/rules/fsd-layers.md](docs/rules/fsd-layers.md) - FSD layer responsibilities.
+- [docs/rules/fsd-imports.md](docs/rules/fsd-imports.md) - dependency direction and slice isolation.
+- [docs/rules/fsd-slices.md](docs/rules/fsd-slices.md) - slice extraction rules.
 - [docs/rules/fsd-swiftui.md](docs/rules/fsd-swiftui.md) - SwiftUI-specific conventions.
 - [docs/rules/fsd-testing.md](docs/rules/fsd-testing.md) - testing expectations.
 
-## Структура
+## Structure
 
 ```text
 FSDDemoApp/
-  app/        # entrypoint и providers
-  pages/      # экраны приложения
-  widgets/    # крупные reusable UI blocks
-  features/   # пользовательские действия
-  entities/   # бизнес-сущности
+  app/        # entrypoint and providers
+  pages/      # application screens
+  widgets/    # large reusable UI blocks
+  features/   # user actions
+  entities/   # business entities
   shared/     # generic reusable UI
 ```
 
-Подробные рекомендации по архитектуре: [specs/fsd.md](specs/fsd.md).
+Detailed architecture recommendations: [specs/fsd.md](specs/fsd.md).
 
-Дополнительная заметка про перенос FSD-границ на Swift Package Manager:
+Additional notes on mapping FSD boundaries to Swift Package Manager:
 [specs/fsd-with-spm.md](specs/fsd-with-spm.md).
 
 ## Template Bundle
 
-Копируемый starter package лежит в [templates/fsd-ios](templates/fsd-ios).
-Он содержит минимальный SwiftUI/FSD skeleton, `Makefile`, CI workflow,
-PR template и checklist для нового проекта.
+The copyable starter package lives in [templates/fsd-ios](templates/fsd-ios).
+It contains a minimal SwiftUI/FSD skeleton, `Makefile`, CI workflow, PR template,
+and checklist for a new project.
 
 ```bash
 make template-demo
@@ -60,8 +60,8 @@ swift tools/fsd-ios.swift create app --name MyApp --output ../MyApp
 
 ## Legacy / Modular Adoption
 
-Для legacy-проектов приоритетнее не новый app skeleton, а локальный Swift Package
-с compile-time границами модулей. Такой template лежит в
+For legacy projects, a local Swift Package with compile-time module boundaries is
+usually more important than a new app skeleton. That template lives in
 [templates/fsd-ios-spm](templates/fsd-ios-spm).
 
 ```bash
@@ -70,8 +70,8 @@ swift tools/fsd-ios.swift create spm \
   --output ../LegacyFSDModules
 ```
 
-После генерации package можно добавить в существующий Xcode project как local
-package dependency и импортировать новый screen/feature module из legacy code.
+After generation, add the package to the existing Xcode project as a local
+package dependency and import the new screen/feature module from legacy code.
 
 ```bash
 make spm-template-test
@@ -80,9 +80,8 @@ make spm-template-create-fixture
 
 ## External Project Adoption
 
-Если существующий проект пока нельзя переложить в template, можно подключить
-этот репозиторий как внешний FSD toolset и запускать lint по выбранному source
-root:
+If an existing project cannot be moved into the template yet, use this repository
+as an external FSD toolset and run lint against the selected source root:
 
 ```bash
 git clone https://github.com/SoundBlaster/FSD.git .fsd-ios-tooling
@@ -95,11 +94,11 @@ swift .fsd-ios-tooling/tools/fsd-ios.swift lint \
 CI baseline: [examples/github-actions/external-project-fsd-ios.yml](examples/github-actions/external-project-fsd-ios.yml).
 Reusable Action baseline:
 [examples/github-actions/external-project-fsd-ios-action.yml](examples/github-actions/external-project-fsd-ios-action.yml).
-Подробности: [docs/adoption/external-project.md](docs/adoption/external-project.md).
+Details: [docs/adoption/external-project.md](docs/adoption/external-project.md).
 
 ## Unified CLI
 
-Для ежедневной работы есть единый Swift CLI поверх локальных tools:
+Daily work uses a single Swift CLI on top of the local tools:
 
 ```bash
 swift tools/fsd-ios.swift --help
@@ -110,7 +109,7 @@ swift tools/fsd-ios.swift doctor --json
 swift tools/fsd-ios.swift lint --root FSDDemoApp --strict --architecture
 ```
 
-Make targets для проверки CLI:
+Make targets for CLI validation:
 
 ```bash
 make install-smoke
@@ -119,58 +118,58 @@ make cli-doctor
 make action-smoke
 ```
 
-Локальная установка wrapper в `~/.local/bin`:
+Local wrapper installation into `~/.local/bin`:
 
 ```bash
 make install
 fsd-ios doctor
 ```
 
-Подробности: [docs/cli.md](docs/cli.md).
+Details: [docs/cli.md](docs/cli.md).
 
-## Запуск
+## Running
 
-Открой `FSDDemoApp.xcodeproj` в Xcode и запусти scheme `FSDDemoApp`.
+Open `FSDDemoApp.xcodeproj` in Xcode and run the `FSDDemoApp` scheme.
 
 ```bash
 make open
 ```
 
-Быстро показать структуру и архитектурную проверку:
+Quickly show the structure and architecture check:
 
 ```bash
 make demo
 ```
 
-## Архитектурный lint
+## Architecture Lint
 
-Baseline-проверка FSD-структуры реализована как Swift CLI:
+Baseline FSD structure checks are implemented as a Swift CLI:
 
 ```bash
 make lint
 ```
 
-Строгий режим превращает предупреждения в ошибки:
+Strict mode turns warnings into errors:
 
 ```bash
 make lint-strict
 ```
 
-Архитектурный режим дополнительно строит graph локальных Swift symbols и проверяет
-направление FSD-зависимостей между слоями и слайсами:
+Architecture mode additionally builds a graph of local Swift symbols and checks
+FSD dependency direction between layers and slices:
 
 ```bash
 make lint-architecture
 ```
 
-Template bundle проверяется отдельным контрактным валидатором:
+The template bundle is checked by a dedicated contract validator:
 
 ```bash
 make template-validate
 make template-validate-negative
 ```
 
-Read-only advisor для refactoring suggestions:
+Read-only advisor for refactoring suggestions:
 
 ```bash
 make harmonize
@@ -185,13 +184,13 @@ make template-create-fixture
 make spm-template-create-fixture
 ```
 
-Для проверки из терминала:
+Terminal test run:
 
 ```bash
 make test
 ```
 
-Полная локальная проверка:
+Full local validation:
 
 ```bash
 make ci

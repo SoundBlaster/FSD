@@ -1,12 +1,20 @@
-# Что такое Feature-Sliced Design
+# What Is Feature-Sliced Design
 
-`Feature-Sliced Design`, или `FSD`, — это архитектурная методология для организации кода frontend/UI-приложений. В официальной документации `FSD` описывается как набор правил и соглашений о структуре кода, цель которого — сделать проект понятнее и устойчивее к меняющимся бизнес-требованиям.
+`Feature-Sliced Design`, or `FSD`, is an architectural methodology for
+organizing frontend and UI application code. The official FSD documentation
+describes it as a set of rules and conventions for code structure whose goal is
+to make a project easier to understand and more resilient to changing business
+requirements.
 
-Методология не привязана к `React`, `Vue`, конкретному `state manager`’у или языку: её можно применять к `web`, `mobile` и `desktop UI`-приложениям, если это именно приложение, а не библиотека.
+The methodology is not tied to `React`, `Vue`, a specific `state manager`, or a
+specific programming language. It can be applied to `web`, `mobile`, and
+`desktop UI` applications when the project is an application rather than a
+library.
 
-Главная идея `FSD`: структурировать проект не по техническим типам файлов, а по смыслу, ответственности и бизнес-доменам.
+The main idea is simple: structure the project by meaning, responsibility, and
+business domain instead of by technical file type.
 
-Обычная структура часто выглядит так:
+A common technical structure often looks like this:
 
 ```text
 src/
@@ -18,9 +26,13 @@ src/
   types/
 ```
 
-На старте это удобно. Но когда проект растёт, логика одной пользовательской истории оказывается размазанной по всему проекту: компонент в `components`, запрос в `services`, типы в `types`, состояние в `store`, хелпер в `utils`. В итоге, чтобы изменить одну фичу, приходится прыгать по десяткам папок.
+That layout is convenient at the beginning. As the project grows, the logic of a
+single user story becomes spread across the whole codebase: a component in
+`components`, a request in `services`, types in `types`, state in `store`, and a
+helper in `utils`. Changing one feature then requires jumping through many
+unrelated folders.
 
-`FSD` предлагает другой подход:
+FSD proposes a different structure:
 
 ```text
 src/
@@ -32,19 +44,20 @@ src/
   shared/
 ```
 
-То есть проект организуется вокруг страниц, крупных блоков, пользовательских действий, бизнес-сущностей и общей инфраструктуры.
+The project is organized around pages, large composition blocks, user actions,
+business entities, and shared infrastructure.
 
 ---
 
-## Три базовых понятия FSD: `layers`, `slices`, `segments`
+## Three Core Concepts: `layers`, `slices`, `segments`
 
-В `FSD` есть три уровня организации:
+FSD has three organization levels:
 
 ```text
-Layer → Slice → Segment
+Layer -> Slice -> Segment
 ```
 
-Например:
+Example:
 
 ```text
 features/
@@ -55,19 +68,21 @@ features/
     index.ts
 ```
 
-Здесь:
+In this example:
 
-- `features` — `layer`, слой
-- `add-to-cart` — `slice`, слайс, то есть самостоятельная часть бизнес-функциональности
-- `ui`, `model`, `api` — `segments`, сегменты, то есть техническое разделение внутри слайса
+- `features` is the `layer`;
+- `add-to-cart` is the `slice`, meaning an independent unit of business functionality;
+- `ui`, `model`, and `api` are `segments`, meaning responsibility groups inside the slice.
 
-Официальная документация описывает именно эту иерархию: слои стандартизированы, слайсы делят слой по доменам, а сегменты группируют код по техническому назначению.
+The official documentation describes this hierarchy directly: layers are
+standardized, slices divide a layer by business domains, and segments group code
+by responsibility.
 
 ---
 
-## Слои FSD
+## FSD Layers
 
-Актуальная структура `FSD v2.1` обычно выглядит так:
+The current `FSD v2.1` structure usually looks like this:
 
 ```text
 src/
@@ -79,11 +94,14 @@ src/
   shared/
 ```
 
-В документации также упоминается слой `processes`, но он считается `deprecated`, то есть его лучше не использовать в новых проектах. Текущая рекомендация — переносить его ответственность в `features` и `app`.
+The documentation also mentions a `processes` layer, but it is considered
+`deprecated` and should not be used in new projects. Its responsibilities should
+usually move into `features` and `app`.
 
-### `app` — инициализация приложения
+### `app` - application initialization
 
-Слой `app` отвечает за всё, что запускает приложение и связывает его в единое целое:
+The `app` layer owns everything that starts the application and connects it into
+one whole:
 
 ```text
 app/
@@ -94,24 +112,25 @@ app/
   entrypoint/
 ```
 
-Сюда обычно кладут:
+Typical contents:
 
 ```text
 app/
   providers/        # ThemeProvider, QueryClientProvider, Redux Provider
-  router/           # настройка роутинга
-  store/            # конфигурация глобального стора
-  styles/           # глобальные стили
-  analytics/        # глобальная аналитика
+  router/           # routing setup
+  store/            # global store configuration
+  styles/           # global styles
+  analytics/        # global analytics
 ```
 
-`app` — верхний слой. Он может импортировать всё, что ниже: `pages`, `widgets`, `features`, `entities`, `shared`.
+`app` is the highest layer. It may import everything below it: `pages`,
+`widgets`, `features`, `entities`, and `shared`.
 
 ---
 
-### `pages` — страницы или экраны
+### `pages` - pages or screens
 
-`pages` — это слой экранов приложения:
+`pages` is the application screen layer:
 
 ```text
 pages/
@@ -122,7 +141,7 @@ pages/
   profile/
 ```
 
-Один слайс в `pages` обычно соответствует одной странице, экрану или `route`. Например:
+One slice in `pages` usually corresponds to one page, screen, or `route`:
 
 ```text
 pages/product-details/
@@ -135,15 +154,21 @@ pages/product-details/
   index.ts
 ```
 
-В `FSD v2.1` важная идея — `pages first`. Это значит: сначала держи большую часть `UI` и логики внутри страницы, а в `features`, `entities` и `widgets` выноси только тогда, когда появилась реальная причина: переиспользование, самостоятельный бизнес-смысл или необходимость отделить крупный блок.
+A key idea in `FSD v2.1` is `pages first`. Start by keeping most UI and logic
+inside the page. Extract to `features`, `entities`, and `widgets` only when
+there is a real reason: reuse, independent business meaning, or a need to
+separate a large composition block.
 
-Это очень важный сдвиг. Раньше разработчики часто пытались сразу разложить всё по `entities` и `features`, из-за чего появлялись десятки микрослайсов. Сейчас подход проще: не выноси раньше времени.
+This is an important shift. Teams used to split everything into `entities` and
+`features` too early, creating dozens of tiny slices. The current approach is
+simpler: do not extract code prematurely.
 
 ---
 
-### `widgets` — крупные самостоятельные блоки интерфейса
+### `widgets` - large standalone interface blocks
 
-`widgets` — это большие `UI`-блоки, которые могут состоять из сущностей, фич и `shared`-компонентов:
+`widgets` are large UI blocks that may be composed from entities, features, and
+shared components:
 
 ```text
 widgets/
@@ -154,7 +179,7 @@ widgets/
   user-profile-card/
 ```
 
-Примеры:
+Example:
 
 ```text
 widgets/product-card/
@@ -165,7 +190,7 @@ widgets/product-card/
   index.ts
 ```
 
-Виджет может собирать внутри себя:
+A widget can compose lower layers:
 
 ```ts
 import { ProductPrice, ProductImage } from '@/entities/product';
@@ -173,13 +198,16 @@ import { AddToCartButton } from '@/features/add-to-cart';
 import { Card } from '@/shared/ui/card';
 ```
 
-То есть `widget` — это композиционный блок. Он не обязан быть «глупым» `UI`-компонентом. В актуальном подходе виджет может хранить собственную локальную логику, если эта логика не нужна за пределами виджета.
+A `widget` is a composition block. It does not have to be a "dumb" UI component.
+In the current approach, a widget may own local logic if that logic is not needed
+outside the widget.
 
 ---
 
-### `features` — пользовательские действия
+### `features` - user actions
 
-`features` — это не «любая функциональность». Это действия пользователя, которые приносят бизнес-ценность:
+`features` are not "any functionality". They are user actions that provide
+business value:
 
 ```text
 features/
@@ -192,9 +220,9 @@ features/
   apply-promo-code/
 ```
 
-Хороший способ отличить `feature`: её название часто можно выразить глаголом.
+A good way to recognize a `feature`: its name can often be expressed as a verb.
 
-Например:
+Examples:
 
 - `add-to-cart`
 - `like-post`
@@ -202,7 +230,7 @@ features/
 - `change-password`
 - `upload-avatar`
 
-Внутри `feature` может быть `UI`, состояние, запросы, валидация:
+A `feature` may contain UI, state, requests, and validation:
 
 ```text
 features/add-to-cart/
@@ -215,267 +243,262 @@ features/add-to-cart/
   index.ts
 ```
 
-`Feature` может импортировать `entities` и `shared`, потому что они ниже:
+A feature may import `entities` and `shared` because they are lower layers:
 
 ```ts
+import type { Product } from '@/entities/product';
 import { Button } from '@/shared/ui/button';
-import type { ProductId } from '@/entities/product';
 ```
 
-Но `feature` не должна импортировать другую `feature`:
+But a feature must not import another feature directly:
 
 ```ts
-// Плохо
-import { ApplyPromoCode } from '@/features/apply-promo-code';
+// Bad
+import { ApplyDiscount } from '@/features/apply-discount';
 ```
 
-Если две `features` нужно использовать вместе, их нужно собрать выше — например, в `widget` или `page`.
+If two features must be used together, compose them above, usually in a `widget`
+or `page`.
 
 ---
 
-### `entities` — бизнес-сущности
+### `entities` - business entities
 
-`entities` — это ключевые объекты предметной области:
+`entities` are key objects of the product domain:
 
 ```text
 entities/
   user/
   product/
-  cart/
   order/
-  article/
+  cart/
   comment/
+  invoice/
 ```
 
-Если `feature` — это действие, то `entity` — это существительное.
+If a `feature` is an action, an `entity` is a noun.
 
-Примеры:
+Examples:
 
 - `user`
 - `product`
 - `order`
 - `invoice`
-- `playlist`
-- `message`
+- `task`
 
-Внутри `entity` можно хранить:
+An `entity` can contain:
 
 ```text
 entities/product/
   model/
-    types.ts
-    selectors.ts
-    product-store.ts
-  api/
-    get-product.ts
+    product.ts
+    product-schema.ts
   ui/
     product-price.tsx
     product-image.tsx
-  lib/
-    format-product-title.ts
+  api/
+    get-product.ts
   index.ts
 ```
 
-`Entity` может содержать `UI`-представление сущности, но не должна знать о более высокоуровневых действиях.
+An entity can contain UI that represents the entity, but it must not know about
+higher-level user actions.
 
-Например, это нормально:
+This is fine:
 
-```tsx
-// entities/product/ui/product-price.tsx
-export function ProductPrice({ price }: Props) {
-  return <span>{formatPrice(price)}</span>;
-}
+```ts
+import { ProductPrice } from '@/entities/product';
 ```
 
-А вот это плохо:
+This is not fine:
 
-```tsx
-// entities/product/ui/product-card.tsx
+```ts
+// Bad: entity imports a feature
 import { AddToCartButton } from '@/features/add-to-cart';
-// ❌ Entity не должна импортировать feature
 ```
 
-Правильнее собрать это выше:
+Compose that higher:
 
 ```tsx
-// widgets/product-card/ui/product-card.tsx
+import type { Product } from '@/entities/product';
 import { ProductPrice } from '@/entities/product';
 import { AddToCartButton } from '@/features/add-to-cart';
-export function ProductCard({ product }) {
+
+export function ProductCard({ product }: { product: Product }) {
   return (
-    <article>
+    <>
       <ProductPrice price={product.price} />
       <AddToCartButton productId={product.id} />
-    </article>
+    </>
   );
 }
 ```
 
-Официальный `FAQ` формулирует разницу так: `entity` — это реальная концепция, с которой работает приложение; `feature` — это взаимодействие, которое даёт пользователю ценность и обычно работает с `entities`.
+The official FAQ frames the difference this way: an `entity` is a real concept
+the application works with; a `feature` is an interaction that gives the user
+value and usually works with entities.
 
 ---
 
-### `shared` — общая инфраструктура
+### `shared` - shared infrastructure
 
-`shared` — самый нижний слой. Он не должен содержать бизнес-логику конкретного продукта.
+`shared` is the lowest layer. It must not contain product-specific business
+logic.
 
-Туда кладут:
+Typical contents:
 
 ```text
 shared/
-  api/
   ui/
-  lib/
+  api/
   config/
-  routes/
+  lib/
+  assets/
   i18n/
 ```
 
-Примеры:
+Examples:
 
 ```text
-shared/api/
-  client.ts
-  create-request.ts
-shared/ui/
-  button/
-  modal/
-  input/
-  spinner/
-shared/lib/
-  date/
-  currency/
-  validation/
-shared/config/
-  env.ts
-  feature-flags.ts
+shared/ui/button
+shared/ui/modal
+shared/api/client
+shared/config/env
+shared/lib/date
+shared/lib/currency
+shared/assets/icons
 ```
 
-`shared/ui/Button` не должен знать, что он используется в корзине. `shared/lib/date` не должен знать, что он форматирует дату заказа. `shared/api/client` не должен знать, что именно ты загружаешь — товар, пользователя или комментарий.
+`shared/ui/Button` should not know that it is used in a cart. `shared/lib/date`
+should not know that it formats an order date. `shared/api/client` should not
+know which product, user, or comment is being loaded.
 
-Документация описывает `shared` как фундамент приложения: место для соединения с внешним миром, `backend`, `third-party libraries`, `environment`, `UI kit`, внутренних библиотек и конфигурации. При этом `shared` и `app` не делятся на слайсы, потому что `shared` не содержит бизнес-доменов, а `app` объединяет всё приложение.
+The documentation describes `shared` as the foundation of the app: the place for
+external world integration, backend transport, third-party libraries,
+environment, UI kit, internal libraries, and configuration. `shared` and `app`
+are not split into slices: `shared` has no business domains, and `app` connects
+the whole application.
 
 ---
 
-## Главное правило импортов
+## Main Import Rule
 
-Самое важное правило `FSD`:
+The most important FSD rule:
 
 ```text
-app → pages → widgets → features → entities → shared
+dependencies go only from higher layers to lower layers
 ```
 
-Импорты идут только сверху вниз.
+Imports go only downward:
 
-То есть:
+- `pages` may import `widgets`, `features`, `entities`, `shared`;
+- `widgets` may import `features`, `entities`, `shared`;
+- `features` may import `entities`, `shared`;
+- `entities` may import `shared`;
+- `shared` must not import any FSD layer.
 
-- `pages` может импортировать `widgets`, `features`, `entities`, `shared`
-- `widgets` может импортировать `features`, `entities`, `shared`
-- `features` может импортировать `entities`, `shared`
-- `entities` может импортировать `shared`
-- `shared` никого из `FSD`-слоёв не импортирует
-
-Но нельзя:
-
-- `entities -> features`
-- `features -> widgets`
-- `widgets -> pages`
-- `shared -> entities`
-
-Также нельзя импортировать соседний слайс на том же слое:
+Do not import upward:
 
 ```ts
-// ❌ features/add-to-cart не должен импортировать features/apply-discount
+// Bad: entity imports feature
+import { AddToCartButton } from '@/features/add-to-cart';
+```
+
+Do not import sibling slices on the same layer directly:
+
+```ts
+// Bad: features/add-to-cart imports features/apply-discount
 import { ApplyDiscount } from '@/features/apply-discount';
 ```
 
-Официальное правило звучит так: модуль внутри слайса может импортировать другие слайсы только тогда, когда они находятся на слоях строго ниже. Это защищает проект от циклических зависимостей и случайного сцепления фич между собой.
+The official rule is: a module inside a slice may import other slices only when
+those slices are on strictly lower layers. This protects the project from
+cyclic dependencies and accidental coupling between features.
 
 ---
 
-## Public API: вход в слайс только через `index.ts`
+## Public API: Enter a Slice Only Through `index.ts`
 
-Каждый слайс должен иметь публичный `API`. Обычно это `index.ts`.
+Every slice should expose a public API. In TypeScript projects this is usually
+`index.ts`.
 
-Например:
+Example:
 
 ```text
 entities/product/
   model/
-    types.ts
+    product.ts
   ui/
     product-price.tsx
   index.ts
 ```
 
-```ts
-// entities/product/index.ts
-export type { Product, ProductId } from './model/types';
-export { ProductPrice } from './ui/product-price';
-```
-
-Снаружи правильно импортировать так:
+Correct external import:
 
 ```ts
 import { ProductPrice, type Product } from '@/entities/product';
 ```
 
-А не так:
+Incorrect external import:
 
 ```ts
-// ❌ Плохо: внешний код залезает внутрь слайса
+// Bad: external code reaches into slice internals
 import { ProductPrice } from '@/entities/product/ui/product-price';
 ```
 
-Зачем это нужно? Чтобы внутренняя структура слайса могла меняться без каскадного рефакторинга всего проекта.
+Why it matters: the internal slice structure can change without causing a
+cascading refactor across the whole project.
 
-Сегодня у тебя:
+Today:
 
 ```text
 entities/product/ui/product-price.tsx
 ```
 
-Завтра ты перенёс компонент:
+Tomorrow:
 
 ```text
 entities/product/ui/price/product-price.tsx
 ```
 
-Если внешний код импортирует через `@/entities/product`, ему всё равно. Нужно поправить только `index.ts`.
+If external code imports through `@/entities/product`, only `index.ts` needs to
+change.
 
-Документация описывает `public API` как контракт между группой модулей и кодом, который её использует; он работает как «ворота», через которые наружу выпускаются только нужные объекты.
-
----
-
-## Не делай `export *` бездумно
-
-Плохой пример:
-
-```ts
-// ❌ features/comments/index.ts
-export * from './ui/comment-form';
-export * from './model/store';
-export * from './api/comments-api';
-export * from './lib/internal-normalize-comment';
-```
-
-Такой `API` ничего не скрывает. Он просто вываливает наружу всё содержимое слайса. Это ломает инкапсуляцию: внешний код начинает зависеть от внутренних деталей.
-
-Лучше так:
-
-```ts
-// ✅ features/comments/index.ts
-export { CommentForm } from './ui/comment-form';
-export { useCreateComment } from './model/use-create-comment';
-```
-
-Официальная документация также предупреждает, что `wildcard re-export` ухудшает `discoverability API` и может случайно раскрыть внутренности модуля, из-за чего рефакторинг становится сложнее.
+The documentation describes the `public API` as a contract between a group of
+modules and the code that uses it. It works like a gate that exposes only the
+objects intended for external use.
 
 ---
 
-## Сегменты внутри слайса
+## Do Not Use `export *` Blindly
 
-Чаще всего используются такие сегменты:
+Bad example:
+
+```ts
+export * from './model/product-store';
+export * from './api/internal-product-api';
+export * from './lib/normalize-product';
+```
+
+This API hides nothing. It simply dumps the slice internals outside. That breaks
+encapsulation: external code starts depending on implementation details.
+
+Prefer explicit exports:
+
+```ts
+export { ProductPrice } from './ui/product-price';
+export type { Product } from './model/product';
+```
+
+The official documentation also warns that `wildcard re-export` makes the API
+harder to discover and can accidentally expose module internals, making
+refactoring harder.
+
+---
+
+## Segments Inside a Slice
+
+Common segments:
 
 ```text
 ui/
@@ -487,7 +510,7 @@ config/
 
 ### `ui`
 
-Всё, что связано с отображением:
+Everything related to rendering:
 
 ```text
 ui/
@@ -498,153 +521,159 @@ ui/
 
 ### `model`
 
-Состояние, бизнес-логика, схемы, `selectors`, `stores`:
+State, business logic, schemas, `selectors`, `stores`:
 
 ```text
 model/
-  types.ts
+  product.ts
+  product-schema.ts
+  use-product.ts
   selectors.ts
-  use-add-to-cart.ts
-  cart-store.ts
-  validation-schema.ts
 ```
 
 ### `api`
 
-Запросы, `DTO`, мапперы:
+Requests, `DTO`, mappers:
 
 ```text
 api/
-  add-to-cart.ts
   get-product.ts
-  map-product-dto.ts
+  update-product.ts
+  product-dto.ts
 ```
 
 ### `lib`
 
-Вспомогательные функции, локальные для этого слайса:
+Helper functions local to this slice:
 
 ```text
 lib/
-  calculate-discount.ts
   normalize-product.ts
+  calculate-discount.ts
 ```
 
 ### `config`
 
-Флаги и конфигурация:
+Flags and configuration:
 
 ```text
 config/
-  feature-flags.ts
+  product-status.ts
+  product-limits.ts
 ```
 
-Важный нюанс: `FSD` рекомендует называть сегменты по назначению, а не по технической природе файла. Поэтому `ui`, `model`, `api`, `lib`, `config` лучше, чем `components`, `hooks`, `types`, `utils`. В документации прямо указано, что `components`, `hooks` и `types` — плохие названия сегментов, потому что они хуже помогают понять, зачем существует код.
+Important nuance: FSD recommends naming segments by purpose, not by the technical
+nature of files. `ui`, `model`, `api`, `lib`, and `config` are better than
+`components`, `hooks`, `types`, and `utils`. The documentation explicitly calls
+`components`, `hooks`, and `types` poor segment names because they communicate
+less about why the code exists.
 
 ---
 
-## Пример структуры интернет-магазина
+## Online Store Structure Example
 
-Представим приложение магазина.
+Imagine a store application:
 
 ```text
 src/
   app/
     providers/
-      app-providers.tsx
     router/
-      router.tsx
-    styles/
-      globals.css
+    entrypoint/
+
   pages/
     catalog/
       ui/
         catalog-page.tsx
-      api/
-        get-catalog.ts
+      model/
+        use-catalog.ts
       index.ts
+
     product-details/
       ui/
         product-details-page.tsx
-      api/
-        get-product-details.ts
       index.ts
+
     cart/
       ui/
         cart-page.tsx
       index.ts
+
   widgets/
     product-card/
       ui/
         product-card.tsx
       index.ts
+
     cart-summary/
       ui/
         cart-summary.tsx
       index.ts
+
   features/
     add-to-cart/
       ui/
         add-to-cart-button.tsx
       model/
-        use-add-to-cart.ts
+        add-to-cart.ts
       api/
         add-to-cart.ts
       index.ts
+
     remove-from-cart/
       ui/
         remove-from-cart-button.tsx
-      model/
-        use-remove-from-cart.ts
-      api/
-        remove-from-cart.ts
       index.ts
+
+    apply-promo-code/
+      ui/
+        promo-code-form.tsx
+      model/
+        apply-promo-code.ts
+      index.ts
+
   entities/
     product/
       model/
-        types.ts
+        product.ts
       ui/
         product-price.tsx
         product-image.tsx
+      api/
+        get-product.ts
       index.ts
+
     cart/
       model/
-        types.ts
-        selectors.ts
+        cart.ts
+      ui/
+        cart-item-row.tsx
       index.ts
+
   shared/
-    api/
-      client.ts
     ui/
       button/
-        button.tsx
-        index.ts
+      input/
       modal/
-        modal.tsx
-        index.ts
+    api/
+      client.ts
     lib/
-      currency/
-        format-price.ts
-        index.ts
-    config/
-      env.ts
+      date.ts
+      money.ts
 ```
 
-Теперь посмотрим на композицию:
+Composition example:
 
 ```tsx
-// widgets/product-card/ui/product-card.tsx
-import { ProductImage, ProductPrice, type Product } from '@/entities/product';
+import type { Product } from '@/entities/product';
+import { ProductImage, ProductPrice } from '@/entities/product';
 import { AddToCartButton } from '@/features/add-to-cart';
 import { Card } from '@/shared/ui/card';
-type Props = {
-  product: Product;
-};
-export function ProductCard({ product }: Props) {
+
+export function ProductCard({ product }: { product: Product }) {
   return (
     <Card>
-      <ProductImage src={product.imageUrl} />
-      <h3>{product.title}</h3>
+      <ProductImage src={product.imageUrl} alt={product.title} />
       <ProductPrice price={product.price} />
       <AddToCartButton productId={product.id} />
     </Card>
@@ -652,448 +681,382 @@ export function ProductCard({ product }: Props) {
 }
 ```
 
-Это хороший `FSD`-код, потому что `widget` собирает более низкие слои:
+This is good FSD code because the widget composes lower layers:
 
-- `widget -> feature`
-- `widget -> entity`
-- `widget -> shared`
+```text
+widgets -> entities
+widgets -> features
+widgets -> shared
+```
 
-А вот так делать не стоит:
+Do not do this:
 
 ```ts
-// entities/product/ui/product-card.tsx
+// Bad: entity imports feature, meaning lower layer imports higher layer
 import { AddToCartButton } from '@/features/add-to-cart';
-// ❌ Entity импортирует feature, то есть нижний слой зависит от верхнего
 ```
 
 ---
 
-## Как понять, куда класть код
+## How To Decide Where Code Belongs
 
-Практическая шпаргалка:
+Use this checklist:
 
-| Вопрос | Куда класть |
-|---|---|
-| Это глобальная инициализация приложения? | `app` |
-| Это экран или `route`? | `pages` |
-| Это крупный самостоятельный блок страницы? | `widgets` |
-| Это пользовательское действие с бизнес-ценностью? | `features` |
-| Это бизнес-сущность: `user`, `product`, `order`? | `entities` |
-| Это `UI kit`, `API client`, `config`, `generic lib`? | `shared` |
-| Это используется только на одной странице? | Оставь в `pages` |
-| Это используется только внутри одного виджета? | Оставь в `widgets` |
-| Это переиспользуемая бизнес-логика? | Подумай про `features` или `entities` |
-| Это переиспользуемая техническая логика без бизнеса? | `shared` |
+1. Is the code used only by one route or screen? Keep it in `pages`.
+2. Is it a large reusable UI composition? Use `widgets`.
+3. Is it a user action with business value? Use `features`.
+4. Is it a business domain object? Use `entities`.
+5. Is it generic infrastructure without business meaning? Use `shared`.
+6. Are imports going only downward through the layer hierarchy?
+7. Are external imports going through slice public APIs?
 
-Самый частый правильный ответ в `FSD v2.1`: оставь код там, где он используется, пока не появилась причина вынести.
+Do not extract by default. Extract when the boundary solves a real problem:
+reuse, ownership, independent business meaning, or a large composition boundary.
 
 ---
 
-## Как разрабатывать новую функциональность в FSD-стиле
+## How To Develop New Functionality In FSD Style
 
-Допустим, нужно добавить возможность «добавить товар в избранное».
+### 1. Start From The Page
 
-### 1. Начни со страницы
-
-Если действие нужно только на странице товара:
+If a feature exists only on one screen, keep it inside that page first:
 
 ```text
 pages/product-details/
   ui/
-    product-details-page.tsx
-    add-to-favorites-button.tsx
+  model/
   api/
-    add-to-favorites.ts
 ```
 
-На этом этапе не обязательно создавать `features/add-to-favorites`.
+This keeps related code close while the boundary is still uncertain.
 
-### 2. Появилось переиспользование — выноси в `feature`
+### 2. Reuse Appears: Extract To `feature`
 
-Если кнопка нужна в каталоге, карточке товара, странице товара и рекомендациях:
+If the same user action appears in multiple places, extract it:
 
 ```text
 features/add-to-favorites/
   ui/
-    add-to-favorites-button.tsx
   model/
-    use-add-to-favorites.ts
   api/
-    add-to-favorites.ts
   index.ts
 ```
 
-### 3. Сущность `favorite` нужна в разных местах — подумай про `entity`
+Example trigger: the same "Add to favorites" action is used on product details,
+catalog cards, and recommendation lists.
 
-Если избранное становится самостоятельной бизнес-сущностью:
+### 3. Domain Reuse Appears: Consider `entity`
+
+If the same business concept is needed in multiple features/pages, move the
+shared domain model to `entities`:
 
 ```text
 entities/favorite/
   model/
-    types.ts
-    selectors.ts
+  ui/
   api/
-    get-favorites.ts
   index.ts
 ```
 
-### 4. Собери всё выше
+### 4. Compose Above
 
-```tsx
-// widgets/product-card/ui/product-card.tsx
-import { ProductPrice } from '@/entities/product';
-import { AddToFavoritesButton } from '@/features/add-to-favorites';
-import { AddToCartButton } from '@/features/add-to-cart';
-```
-
-То есть нижние слои не знают о верхних, а верхние собирают сценарий из нижних.
-
----
-
-## Где хранить API-запросы
-
-Здесь часто возникает путаница.
-
-Плохое правило:
-
-- Все запросы класть в `shared/api`
-
-Лучшее правило:
-
-- Клади запрос рядом с тем, кто им владеет
-
-Примеры:
-
-- `shared/api/client.ts`  
-  Базовый `HTTP client`, `interceptors`, `request factory`
-
-- `pages/product-details/api/get-product-details.ts`  
-  Запрос нужен только странице товара
-
-- `features/add-to-cart/api/add-to-cart.ts`  
-  Запрос является частью пользовательского действия «добавить в корзину»
-
-- `entities/product/api/get-product.ts`  
-  Запрос относится к бизнес-сущности `product` и переиспользуется в разных местах
-
-В документации для слоёв указано, что `features` могут содержать `API`-вызовы для выполнения действия, `entities` — `entity-related API request functions`, а `pages` — `data fetching` и `mutating requests`, если они относятся к странице.
-
----
-
-## `Cross-imports` и `@x`
-
-По умолчанию слайсы одного слоя не должны импортировать друг друга.
-
-Например, это плохо:
-
-```ts
-// entities/order/model/order.ts
-import type { User } from '@/entities/user';
-// ❌ entities/order импортирует entities/user напрямую
-```
-
-Но в реальной предметной области сущности часто связаны. Например, `Order` содержит `User`, `Artist` содержит `Song`, `Comment` содержит `Author`.
-
-Для таких случаев в `FSD` есть специальная нотация `@x`:
+Pages and widgets compose lower layers:
 
 ```text
-entities/
-  user/
-    @x/
-      order.ts
-    model/
-      types.ts
-    index.ts
-  order/
-    model/
-      types.ts
+pages/product-details -> widgets/product-card
+widgets/product-card -> entities/product
+widgets/product-card -> features/add-to-cart
 ```
-
-```ts
-// entities/user/@x/order.ts
-export type { User } from '../model/types';
-// entities/order/model/types.ts
-import type { User } from '@/entities/user/@x/order';
-export type Order = {
-  id: string;
-  user: User;
-};
-```
-
-`@x` читается как `cross API`: специальный публичный `API` одной `entity` для другой `entity`. Документация рекомендует держать такие `cross-imports` в минимуме и использовать их в основном на слое `entities`, где полностью избежать связей между сущностями часто нереалистично.
 
 ---
 
-## FSD и состояние приложения
+## Where To Store API Requests
 
-`FSD` не говорит, какой `state manager` использовать. Можно использовать:
+Place API calls near the behavior owner:
 
-- `Redux`
-- `Zustand`
-- `Effector`
-- `MobX`
-- `React Query`
-- `TanStack Query`
-- `Apollo`
-- обычный `React state`
+```text
+shared/api/client.ts                     # base HTTP client, interceptors, request factory
+pages/catalog/api/get-catalog.ts         # request used only by the catalog page
+features/add-to-cart/api/add-to-cart.ts  # request for the add-to-cart action
+entities/product/api/get-product.ts      # reusable product-related request
+```
 
-Важно не то, чем ты управляешь состоянием, а где живёт ответственность.
+Do not put every request into `shared/api`. That folder is for transport-level
+infrastructure, not product-specific business operations.
 
-Примеры:
+Good:
 
-- `features/add-to-cart/model/use-add-to-cart.ts`  
-  Логика действия «добавить в корзину»
+```text
+shared/api/client.ts
+features/login/api/login.ts
+entities/user/api/get-current-user.ts
+pages/dashboard/api/get-dashboard.ts
+```
 
-- `entities/cart/model/cart-store.ts`  
-  Состояние корзины как бизнес-сущности
+Bad:
 
-- `pages/catalog/model/use-catalog-filters.ts`  
-  Фильтры, которые нужны только странице каталога
+```text
+shared/api/login.ts
+shared/api/get-product.ts
+shared/api/update-cart.ts
+```
 
-- `app/store/store.ts`  
-  Конфигурация глобального стора
-
-- `shared/lib/storage/create-persisted-store.ts`  
-  Общая техническая утилита для `persistence`
+If a request knows about a product, order, user, or cart, it usually belongs to
+the layer that owns that behavior or domain concept.
 
 ---
 
-## FSD и `React Query` / `TanStack Query`
+## `Cross-imports` And `@x`
 
-Частый хороший подход:
+FSD discourages direct imports between sibling slices on the same layer. Some
+FSD material mentions special cross-import public APIs such as `@x`, but this is
+an advanced exception rather than the default.
+
+Prefer composition above:
 
 ```text
-shared/api/
-  client.ts
-entities/product/api/
-  get-product.ts
-pages/catalog/api/
-  get-catalog.ts
-features/add-to-cart/api/
-  add-to-cart.ts
+features/add-to-cart
+features/apply-promo-code
+widgets/cart-actions        # composes both
 ```
 
-А `query hooks` можно держать там, где они имеют смысл:
+Only introduce a cross-import contract when:
+
+- the dependency is stable;
+- composition above would create worse coupling;
+- the public contract is intentionally designed and documented;
+- reviewers understand the architectural tradeoff.
+
+For most teams, the safer rule is: sibling slices do not import each other.
+
+---
+
+## FSD And Application State
+
+FSD does not prescribe a state manager. `Redux`, `Zustand`, `Effector`, `MobX`,
+`TanStack Query`, `Apollo`, local framework state, and Swift/SwiftUI state can
+all be compatible with FSD.
+
+Place state by ownership:
 
 ```text
-pages/catalog/model/use-catalog-query.ts
+app/store/                              # global store configuration
+pages/catalog/model/use-catalog-query   # state/query needed only by catalog page
+features/add-to-cart/model/             # state for the add-to-cart action
+entities/cart/model/                    # state of cart as a business entity
+shared/lib/storage/                     # generic persistence helpers
+```
+
+The question is not "where does state live technically?" but "who owns this
+state semantically?"
+
+Examples:
+
+- Authentication session shared by the whole app may be initialized in `app` and
+  exposed through an `entity` or `shared` contract depending on product meaning.
+- Cart contents usually belong to `entities/cart`.
+- A promo-code form state belongs to `features/apply-promo-code`.
+- A local filter selected only on a catalog page may remain in `pages/catalog`.
+
+---
+
+## FSD And `React Query` / `TanStack Query`
+
+Query libraries do not replace architecture. They solve data fetching and cache
+management; FSD still decides ownership.
+
+Good:
+
+```text
+entities/product/api/get-product.ts
 entities/product/model/use-product-query.ts
+features/add-to-cart/api/add-to-cart.ts
 features/add-to-cart/model/use-add-to-cart-mutation.ts
 ```
 
-Например:
-
-```ts
-// features/add-to-cart/model/use-add-to-cart.ts
-import { useMutation } from '@tanstack/react-query';
-import { addToCart } from '../api/add-to-cart';
-export function useAddToCart() {
-  return useMutation({
-    mutationFn: addToCart,
-  });
-}
-```
-
-И наружу:
-
-```ts
-// features/add-to-cart/index.ts
-export { AddToCartButton } from './ui/add-to-cart-button';
-export { useAddToCart } from './model/use-add-to-cart';
-```
-
----
-
-## Хороший FSD-код выглядит так
-
-Он локален:
-
-- Если код нужен только странице — он лежит в странице
-
-Он инкапсулирован:
-
-- Снаружи импортируем только через `public API`
-
-Он направлен вниз:
-
-- `features` импортируют `entities`, но `entities` не импортируют `features`
-
-Он называется бизнес-языком:
-
-- `add-to-cart`, `product`, `order`, `checkout`
-
-А не абстрактно:
-
-- `components`, `modules`, `blocks`, `helpers`, `stuff`
-
-Он не дробится раньше времени:
-
-- Не надо создавать `feature` для каждой кнопки
-
----
-
-## Типичные ошибки
-
-### Ошибка 1. Делать `feature` из каждого маленького компонента
-
-Плохо:
+Page-only query:
 
 ```text
-features/
-  open-modal/
-  close-modal/
-  input-change/
-  submit-button-click/
+pages/catalog/model/use-catalog-query.ts
 ```
 
-Лучше:
+Shared transport:
 
 ```text
-features/
-  login/
-  add-to-cart/
-  apply-promo-code/
+shared/api/client.ts
+shared/api/query-client.ts
 ```
 
-`Feature` — это бизнес-действие, а не любой обработчик клика.
+Bad:
+
+```text
+shared/api/product-queries.ts
+shared/api/cart-mutations.ts
+```
+
+Again: if code knows about product behavior, it is not generic shared
+infrastructure.
 
 ---
 
-### Ошибка 2. Всё складывать в `shared`
+## Good FSD Code Looks Like This
 
-Плохо:
-
-```text
-shared/
-  utils/
-  hooks/
-  components/
-  services/
-  types/
-```
-
-Так `shared` превращается в свалку.
-
-Лучше:
-
-```text
-shared/
-  ui/
-  api/
-  lib/
-    date/
-    currency/
-    validation/
-  config/
-```
-
-И важно: если код содержит бизнес-смысл, ему обычно не место в `shared`.
-
----
-
-### Ошибка 3. Импортировать внутренности слайса
-
-Плохо:
+Good imports:
 
 ```ts
-import { useAddToCart } from '@/features/add-to-cart/model/use-add-to-cart';
-```
-
-Хорошо:
-
-```ts
-import { useAddToCart } from '@/features/add-to-cart';
-```
-
----
-
-### Ошибка 4. Нижний слой знает о верхнем
-
-Плохо:
-
-```ts
-// entities/product
+import { ProductCard } from '@/widgets/product-card';
 import { AddToCartButton } from '@/features/add-to-cart';
-```
-
-Хорошо:
-
-```ts
-// widgets/product-card
 import { ProductPrice } from '@/entities/product';
-import { AddToCartButton } from '@/features/add-to-cart';
+import { Button } from '@/shared/ui/button';
+```
+
+Good slice API:
+
+```ts
+// entities/product/index.ts
+export type { Product } from './model/product';
+export { ProductPrice } from './ui/product-price';
+export { getProduct } from './api/get-product';
+```
+
+Good dependency direction:
+
+```text
+pages -> widgets -> features -> entities -> shared
+```
+
+Good extraction rule:
+
+```text
+start in pages -> extract only when reuse or a clear boundary appears
 ```
 
 ---
 
-### Ошибка 5. Слишком ранняя декомпозиция
+## Typical Mistakes
 
-Плохо:
+### Mistake 1. Creating A `feature` For Every Small Component
 
-Ты только начал делать страницу, но уже создал:
+Bad:
 
 ```text
-entities/product
-entities/price
-entities/image
-features/select-product
-features/show-product
-widgets/product-layout
+features/open-modal/
+features/toggle-dropdown/
+features/click-button/
 ```
 
-Лучше:
+These are UI mechanics, not business actions.
+
+Better:
+
+```text
+pages/product-details/ui/
+widgets/product-card/ui/
+shared/ui/dropdown/
+```
+
+Create a `feature` when the action has business meaning, such as
+`add-to-cart`, `login`, or `apply-promo-code`.
+
+### Mistake 2. Putting Everything Into `shared`
+
+Bad:
+
+```text
+shared/product-utils
+shared/order-hooks
+shared/user-services
+```
+
+These names contain product business concepts. They likely belong in
+`entities`, `features`, `widgets`, or `pages`.
+
+Good:
+
+```text
+shared/ui/button
+shared/lib/date
+shared/api/client
+shared/config/env
+```
+
+### Mistake 3. Importing Slice Internals
+
+Bad:
+
+```ts
+import { ProductPrice } from '@/entities/product/ui/product-price';
+```
+
+Good:
+
+```ts
+import { ProductPrice } from '@/entities/product';
+```
+
+### Mistake 4. A Lower Layer Knows About A Higher Layer
+
+Bad:
+
+```text
+entities/product -> features/add-to-cart
+shared/ui -> entities/user
+features/login -> widgets/header
+```
+
+Good:
+
+```text
+widgets/product-card -> entities/product
+widgets/product-card -> features/add-to-cart
+pages/home -> widgets/header
+```
+
+### Mistake 5. Decomposing Too Early
+
+Bad early structure:
+
+```text
+features/show-product-title
+features/show-product-image
+features/show-product-price
+entities/product-title
+entities/product-image
+```
+
+Better start:
 
 ```text
 pages/product-details/
   ui/
-  api/
   model/
+  api/
 ```
 
-А потом выносить по мере появления повторного использования.
+Extract later when reuse and ownership become real.
 
 ---
 
-## Как внедрять FSD в существующий проект
+## How To Introduce FSD Into An Existing Project
 
-Хорошая стратегия:
+Do not rewrite the whole project at once. Introduce FSD gradually:
 
-1. Сначала выделить `pages`.
-2. Затем отделить `app` и `shared`.
-3. Убрать импорты между страницами.
-4. Разобрать `shared`, чтобы он не был свалкой.
-5. Организовать код внутри слайсов по сегментам `ui`, `model`, `api`, `lib`, `config`.
-6. Только потом выделять `features`, `entities`, `widgets`.
+1. Add the FSD layers at the source root.
+2. Start new screens in `pages`.
+3. Move obvious domain models into `entities`.
+4. Extract reusable business actions into `features`.
+5. Keep generic infrastructure in `shared`.
+6. Add lint rules for dependency direction.
+7. Avoid moving old code unless a real change requires touching it.
 
-Официальная `migration guide` для `custom architecture` предлагает похожий путь: сначала разделить код по страницам, затем вынести всё остальное в `shared` и `app`, разобраться с `cross-imports` между страницами и потом организовать код по техническим сегментам.
-
-Для автоматической проверки архитектурных правил у `FSD` есть `toolchain`: `linter` и генераторы папок. В документации упоминается `Steiger` как инструмент для проверки архитектуры проекта.
+This makes migration incremental and reviewable.
 
 ---
 
-## FSD в двух фразах
+## FSD In Two Sentences
 
-`Feature-Sliced Design` — это способ держать frontend-проект в состоянии, где код организован по бизнес-смыслу, а зависимости контролируются слоями.
+FSD is a way to organize application code by business meaning and dependency
+direction instead of technical file type.
 
-Практическое правило:
-
-- Сначала держи код ближе к месту использования
-- Выноси ниже только то, что действительно переиспользуется или имеет самостоятельный бизнес-смысл
-
-Для маленького проекта хватит:
-
-```text
-app/
-pages/
-shared/
-```
-
-Для растущего продукта постепенно добавятся:
-
-```text
-widgets/
-features/
-entities/
-```
-
-И тогда структура начнёт выглядеть не как набор технических папок, а как карта продукта.
+Start in `pages`, extract only when there is a real boundary, and keep imports
+moving downward through `app -> pages -> widgets -> features -> entities -> shared`.
