@@ -425,7 +425,7 @@ func isValidSliceName(_ value: String) -> Bool {
 }
 
 func isValidSwiftIdentifier(_ value: String) -> Bool {
-    // A lone underscore is not a valid Swift module name for import statements.
+    // This generator uses Swift identifiers as importable module names, where a lone underscore is invalid.
     guard value != "_" else {
         return false
     }
@@ -722,6 +722,7 @@ func validateGeneratedPlan(_ plan: GeneratedPlan) throws {
     // Reject plan-level duplicates before checking filesystem conflicts.
     for file in plan.files {
         let destinationURL = plan.outputURL.appendingPathComponent(file.relativePath)
+        // Standardize paths so equivalent destinations such as `./foo` and `foo` conflict consistently.
         let destinationPath = destinationURL.standardizedFileURL.path
 
         guard destinations.insert(destinationPath).inserted else {
