@@ -425,6 +425,10 @@ func isValidSliceName(_ value: String) -> Bool {
 }
 
 func isValidSwiftIdentifier(_ value: String) -> Bool {
+    guard value != "_" else {
+        return false
+    }
+
     let swiftKeywords: Set<String> = [
         "Any",
         "associatedtype",
@@ -687,32 +691,43 @@ func createModulePlan(name: String, outputPath: String) throws -> GeneratedPlan 
 func validateGeneratedPlan(_ plan: GeneratedPlan) throws {
     var isDirectory: ObjCBool = false
 
-    if fileManager.fileExists(atPath: plan.outputURL.path, isDirectory: &isDirectory),
-       !isDirectory.boolValue {
-        throw GeneratedCreateError.conflict("Output path exists and is not a directory: \(plan.outputURL.path)")
-    }
-
-    var parent = plan.outputURL.deletingLastPathComponent()
-
-    while parent.path != parent.deletingLastPathComponent().path {
-        var parentIsDirectory: ObjCBool = false
-
-        if fileManager.fileExists(atPath: parent.path, isDirectory: &parentIsDirectory) {
-            guard parentIsDirectory.boolValue else {
-                throw GeneratedCreateError.conflict("Output parent exists and is not a directory: \(parent.path)")
-            }
-
-            break
+    if fileManager.fileExists(atPath: plan.outputURL.path, isDirectory: &isDirectory) {
+        guard isDirectory.boolValue else {
+            throw GeneratedCreateError.conflict("Output path exists and is not a directory: \(plan.outputURL.path)")
         }
 
-        parent = parent.deletingLastPathComponent()
+        guard fileManager.isWritableFile(atPath: plan.outputURL.path) else {
+            throw GeneratedCreateError.conflict("Output path is not writable: \(plan.outputURL.path)")
+        }
+    } else {
+        let parent = plan.outputURL.deletingLastPathComponent()
+        var parentIsDirectory: ObjCBool = false
+
+        guard fileManager.fileExists(atPath: parent.path, isDirectory: &parentIsDirectory) else {
+            throw GeneratedCreateError.conflict("No existing parent directory for output path: \(plan.outputURL.path)")
+        }
+
+        guard parentIsDirectory.boolValue else {
+            throw GeneratedCreateError.conflict("Output parent exists and is not a directory: \(parent.path)")
+        }
+
+        guard fileManager.isWritableFile(atPath: parent.path) else {
+            throw GeneratedCreateError.conflict("Output parent is not writable: \(parent.path)")
+        }
     }
+
+    var destinations = Set<String>()
 
     for file in plan.files {
         let destinationURL = plan.outputURL.appendingPathComponent(file.relativePath)
+        let destinationPath = destinationURL.standardizedFileURL.path
 
-        if fileManager.fileExists(atPath: destinationURL.path) {
-            throw GeneratedCreateError.conflict("Destination file already exists: \(destinationURL.path)")
+        guard destinations.insert(destinationPath).inserted else {
+            throw GeneratedCreateError.conflict("Duplicate destination file in generated plan: \(destinationPath)")
+        }
+
+        if fileManager.fileExists(atPath: destinationPath) {
+            throw GeneratedCreateError.conflict("Destination file already exists: \(destinationPath)")
         }
     }
 }
