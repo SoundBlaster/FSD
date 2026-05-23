@@ -168,6 +168,12 @@ make lint-architecture
 
 Repository-level lint defaults live in [.fsd-ios.yml](.fsd-ios.yml). The config
 contract is documented in [docs/configuration.md](docs/configuration.md).
+Lint reports can also be emitted as JSON for CI tooling or as Xcode diagnostics:
+
+```bash
+swift tools/fsd-ios.swift lint --config .fsd-ios.yml --format json
+swift tools/fsd-ios.swift lint --config .fsd-ios.yml --format xcode
+```
 
 The template bundle is checked by a dedicated contract validator:
 

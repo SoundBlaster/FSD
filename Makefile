@@ -12,7 +12,7 @@ INSTALL_PREFIX ?= $(HOME)/.local
 INSTALL_BIN_DIR := $(INSTALL_PREFIX)/bin
 INSTALL_SMOKE_PREFIX := $(DERIVED_DATA_PATH)/LocalInstall
 
-.PHONY: help open install uninstall install-smoke cli-help cli-smoke cli-doctor config-smoke action-smoke lint lint-strict lint-architecture harmonize harmonize-fixture template-create-dry-run template-create-fixture template-validate template-validate-negative spm-template-test spm-template-create-fixture build test demo template-demo ci clean
+.PHONY: help open install uninstall install-smoke cli-help cli-smoke cli-doctor config-smoke report-smoke action-smoke lint lint-strict lint-architecture harmonize harmonize-fixture template-create-dry-run template-create-fixture template-validate template-validate-negative spm-template-test spm-template-create-fixture build test demo template-demo ci clean
 
 help:
 	@printf '%s\n' \
@@ -25,6 +25,7 @@ help:
 		'  make cli-smoke    Smoke-test the unified fsd-ios CLI' \
 		'  make cli-doctor   Check local FSD iOS tooling prerequisites' \
 		'  make config-smoke  Verify .fsd-ios.yml config loading' \
+		'  make report-smoke  Verify lint text/json/xcode report formats' \
 		'  make action-smoke  Smoke-test the reusable GitHub Action contract' \
 		'  make lint         Run the baseline FSD lint' \
 		'  make lint-strict  Run the strict FSD lint' \
@@ -115,6 +116,38 @@ config-smoke:
 		printf '%s\n' 'Invalid config fixture failed as expected'; \
 	fi
 
+report-smoke:
+	@mkdir -p $(DERIVED_DATA_PATH)
+	$(SWIFT) tools/fsd-ios.swift lint --config .fsd-ios.yml --format json > $(DERIVED_DATA_PATH)/LintReportPassing.json
+	$(SWIFT) -e 'import Foundation; let data = try Data(contentsOf: URL(fileURLWithPath: CommandLine.arguments[1])); let payload = try JSONSerialization.jsonObject(with: data) as! [String: Any]; precondition(payload["tool"] as? String == "fsd-lint"); precondition(payload["format"] as? String == "json"); precondition((payload["findings"] as! [[String: Any]]).isEmpty)' $(DERIVED_DATA_PATH)/LintReportPassing.json
+	@if $(SWIFT) tools/fsd-ios.swift lint --root tests/fixtures/report-violations/App --format text > $(DERIVED_DATA_PATH)/LintReportText.txt; then \
+		printf '%s\n' 'Expected text report violation fixture to fail'; \
+		exit 1; \
+	else \
+		printf '%s\n' 'Text report violation fixture failed as expected'; \
+	fi
+	@grep -q 'error: Loose.swift: Swift files should live inside an FSD layer' $(DERIVED_DATA_PATH)/LintReportText.txt
+	@if $(SWIFT) tools/fsd-ios.swift lint --root tests/fixtures/report-violations/App --format json > $(DERIVED_DATA_PATH)/LintReportFailing.json; then \
+		printf '%s\n' 'Expected report violation fixture to fail'; \
+		exit 1; \
+	else \
+		printf '%s\n' 'Report violation fixture failed as expected'; \
+	fi
+	$(SWIFT) -e 'import Foundation; let data = try Data(contentsOf: URL(fileURLWithPath: CommandLine.arguments[1])); let payload = try JSONSerialization.jsonObject(with: data) as! [String: Any]; let findings = payload["findings"] as! [[String: Any]]; precondition(findings.first?["ruleId"] as? String == "fsd/root-swift-file"); precondition(findings.first?["severity"] as? String == "error")' $(DERIVED_DATA_PATH)/LintReportFailing.json
+	@if $(SWIFT) tools/fsd-ios.swift lint --root tests/fixtures/report-violations/App --format xcode > $(DERIVED_DATA_PATH)/LintReportXcode.txt; then \
+		printf '%s\n' 'Expected Xcode report violation fixture to fail'; \
+		exit 1; \
+	else \
+		printf '%s\n' 'Xcode report violation fixture failed as expected'; \
+	fi
+	@grep -q 'Loose.swift:1: error: \[fsd/root-swift-file\]' $(DERIVED_DATA_PATH)/LintReportXcode.txt
+	@if $(SWIFT) tools/fsd-ios.swift lint --format xml > /dev/null 2>&1; then \
+		printf '%s\n' 'Expected unsupported lint report format to fail'; \
+		exit 1; \
+	else \
+		printf '%s\n' 'Unsupported lint report format failed as expected'; \
+	fi
+
 action-smoke:
 	@test -f action.yml
 	@grep -q '^runs:' action.yml
@@ -124,6 +157,8 @@ action-smoke:
 	@grep -q 'INPUT_CONFIG' action.yml
 	@grep -q -- '--no-strict' action.yml
 	@grep -q -- '--no-architecture' action.yml
+	@grep -q 'INPUT_FORMAT' action.yml
+	@grep -q -- '--format' action.yml
 	$(SWIFT) tools/fsd-ios.swift lint --root $(APP_ROOT) --strict --architecture
 
 lint:
@@ -288,7 +323,7 @@ test:
 		test \
 		CODE_SIGNING_ALLOWED=NO
 
-ci: lint lint-strict lint-architecture harmonize-fixture template-create-dry-run template-create-fixture template-validate template-validate-negative spm-template-test spm-template-create-fixture cli-smoke cli-doctor config-smoke install-smoke action-smoke test
+ci: lint lint-strict lint-architecture harmonize-fixture template-create-dry-run template-create-fixture template-validate template-validate-negative spm-template-test spm-template-create-fixture cli-smoke cli-doctor config-smoke report-smoke install-smoke action-smoke test
 
 clean:
 	rm -rf $(DERIVED_DATA_PATH)

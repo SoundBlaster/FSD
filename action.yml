@@ -18,6 +18,10 @@ inputs:
     description: Enable Swift symbol dependency checks.
     required: false
     default: "true"
+  format:
+    description: Lint report format: text, json, or xcode.
+    required: false
+    default: "text"
   doctor:
     description: Run fsd-ios doctor before linting.
     required: false
@@ -47,6 +51,7 @@ runs:
         INPUT_CONFIG: ${{ inputs.config }}
         INPUT_STRICT: ${{ inputs.strict }}
         INPUT_ARCHITECTURE: ${{ inputs.architecture }}
+        INPUT_FORMAT: ${{ inputs.format }}
       run: |
         set -euo pipefail
 
@@ -84,6 +89,16 @@ runs:
             ;;
           *)
             echo "::error::architecture must be true or false"
+            exit 2
+            ;;
+        esac
+
+        case "$INPUT_FORMAT" in
+          text|json|xcode)
+            args+=(--format "$INPUT_FORMAT")
+            ;;
+          *)
+            echo "::error::format must be text, json, or xcode"
             exit 2
             ;;
         esac

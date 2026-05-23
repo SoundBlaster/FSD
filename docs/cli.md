@@ -14,6 +14,7 @@ swift tools/fsd-ios.swift doctor
 swift tools/fsd-ios.swift doctor --json
 swift tools/fsd-ios.swift lint --config .fsd-ios.yml
 swift tools/fsd-ios.swift lint --root FSDDemoApp --strict --architecture
+swift tools/fsd-ios.swift lint --config .fsd-ios.yml --format xcode
 swift tools/fsd-ios.swift create spm --name LegacyFSD --output ../LegacyFSDModules
 ```
 
@@ -93,6 +94,61 @@ swift tools/fsd-ios.swift lint --config .fsd-ios.yml --no-strict --no-architectu
 ```
 
 See [FSD iOS Configuration](configuration.md) for the full config contract.
+
+## Lint Report Formats
+
+Human-readable text remains the default:
+
+```bash
+swift tools/fsd-ios.swift lint --config .fsd-ios.yml
+```
+
+Use JSON when CI, bots, or dashboards need stable fields instead of scraping
+text:
+
+```bash
+swift tools/fsd-ios.swift lint --config .fsd-ios.yml --format json
+```
+
+JSON reports use this shape:
+
+```json
+{
+  "tool": "fsd-lint",
+  "schemaVersion": 1,
+  "format": "json",
+  "root": "/absolute/source/root",
+  "summary": {
+    "errors": 1,
+    "warnings": 0
+  },
+  "findings": [
+    {
+      "ruleId": "fsd/root-swift-file",
+      "severity": "error",
+      "path": "Loose.swift",
+      "absolutePath": "/absolute/source/root/Loose.swift",
+      "message": "Swift files should live inside an FSD layer",
+      "suggestion": "Move the file under app, pages, widgets, features, entities, or shared."
+    }
+  ]
+}
+```
+
+Use Xcode format from a Run Script Build Phase so diagnostics become clickable
+in the build log and issue navigator:
+
+```bash
+swift .fsd-ios-tooling/tools/fsd-ios.swift lint \
+  --config "$SRCROOT/.fsd-ios.yml" \
+  --format xcode
+```
+
+The emitted lines follow Xcode's parser convention:
+
+```text
+/absolute/source/root/Loose.swift:1: error: [fsd/root-swift-file] Swift files should live inside an FSD layer
+```
 
 ## Local Install
 
@@ -231,6 +287,7 @@ make cli-help
 make cli-smoke
 make cli-doctor
 make config-smoke
+make report-smoke
 make install-smoke
 make action-smoke
 make ci
@@ -245,6 +302,9 @@ that it can run, and uninstalls it again.
 
 `make config-smoke` verifies explicit config loading, default config discovery,
 direct linter config support, and invalid config diagnostics.
+
+`make report-smoke` verifies `text`, `json`, and `xcode` lint output contracts
+on a targeted violation fixture.
 
 `make action-smoke` verifies the reusable GitHub Action metadata and runs the
 same strict architecture lint path that the Action dispatches.

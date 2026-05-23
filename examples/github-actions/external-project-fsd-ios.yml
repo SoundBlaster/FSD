@@ -36,4 +36,5 @@ jobs:
       - name: Run FSD architecture lint
         run: |
           swift .fsd-ios-tooling/tools/fsd-ios.swift lint \
-            --config .fsd-ios.yml
+            --config .fsd-ios.yml \
+            --format text

@@ -22,4 +22,5 @@ jobs:
           config: .fsd-ios.yml
           strict: "true"
           architecture: "true"
+          format: text
           doctor: "true"

@@ -55,6 +55,9 @@ Success metrics:
 Goal: make lint output consumable by CI, GitHub annotations, and future editor
 integrations.
 
+Status: implemented for the baseline linter with `text`, `json`, and `xcode`
+report formats. Future annotation formats can build on the same finding model.
+
 Scope:
 
 - add `--format text|json|xcode` to lint output;
