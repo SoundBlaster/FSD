@@ -1,22 +1,22 @@
 //
 //  ItemPriority.swift
-//  ItemEntity
+//  FSDDemoApp
 //
 //  Created by Egor Merkushev on 5/9/26.
 //
 
 import Foundation
 
-public enum ItemPriority: Int, CaseIterable, Identifiable {
+enum ItemPriority: Int, CaseIterable, Identifiable {
     case low = 0
     case medium = 1
     case high = 2
 
-    public var id: Int {
+    var id: Int {
         rawValue
     }
 
-    public var title: String {
+    var title: String {
         switch self {
         case .low:
             "Low"
@@ -27,7 +27,7 @@ public enum ItemPriority: Int, CaseIterable, Identifiable {
         }
     }
 
-    public var systemImage: String {
+    var systemImage: String {
         switch self {
         case .low:
             "arrow.down.circle"
@@ -38,7 +38,7 @@ public enum ItemPriority: Int, CaseIterable, Identifiable {
         }
     }
 
-    public var sortRank: Int {
+    var sortRank: Int {
         rawValue
     }
 }

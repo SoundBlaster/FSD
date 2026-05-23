@@ -1,6 +1,6 @@
 //
 //  Item.swift
-//  ItemEntity
+//  FSDDemoApp
 //
 //  Created by Egor Merkushev on 5/9/26.
 //
@@ -9,15 +9,15 @@ import Foundation
 import SwiftData
 
 @Model
-public final class Item {
-    public var title: String = "Untitled"
-    public var notes: String = ""
-    public var timestamp: Date = Date()
-    public var updatedAt: Date = Date()
-    public var isCompleted: Bool = false
-    public var priorityValue: Int = ItemPriority.medium.rawValue
+final class Item {
+    var title: String = "Untitled"
+    var notes: String = ""
+    var timestamp: Date = Date()
+    var updatedAt: Date = Date()
+    var isCompleted: Bool = false
+    var priorityValue: Int = ItemPriority.medium.rawValue
 
-    public var priority: ItemPriority {
+    var priority: ItemPriority {
         get {
             ItemPriority(rawValue: priorityValue) ?? .medium
         }
@@ -26,7 +26,7 @@ public final class Item {
         }
     }
 
-    public init(
+    init(
         title: String = "Untitled",
         notes: String = "",
         timestamp: Date = Date(),
@@ -42,17 +42,17 @@ public final class Item {
         priorityValue = priority.rawValue
     }
 
-    public func toggleCompletion(at date: Date = Date()) {
+    func toggleCompletion(at date: Date = Date()) {
         isCompleted.toggle()
         updatedAt = date
     }
 
-    public func changePriority(to priority: ItemPriority, at date: Date = Date()) {
+    func changePriority(to priority: ItemPriority, at date: Date = Date()) {
         self.priority = priority
         updatedAt = date
     }
 
-    public func update(
+    func update(
         title: String,
         notes: String,
         priority: ItemPriority,

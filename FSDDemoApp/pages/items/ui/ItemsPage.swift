@@ -5,7 +5,7 @@
 //  Created by Egor Merkushev on 5/9/26.
 //
 
-import ItemEntity
+import SharedUI
 import SwiftData
 import SwiftUI
 

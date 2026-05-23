@@ -2,15 +2,15 @@
 import PackageDescription
 
 let package = Package(
-    name: "ItemEntity",
+    name: "SharedUI",
     platforms: [.iOS(.v17)],
     products: [
-        .library(name: "ItemEntity", targets: ["ItemEntity"]),
+        .library(name: "SharedUI", targets: ["SharedUI"]),
     ],
     targets: [
         .target(
-            name: "ItemEntity",
-            path: "Sources/ItemEntity"
+            name: "SharedUI",
+            path: "Sources/SharedUI"
         ),
     ]
 )

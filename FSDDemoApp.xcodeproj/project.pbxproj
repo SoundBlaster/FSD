@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		E5440E6876FF4FB397EB7CD0 /* SharedUI in Frameworks */ = {isa = PBXBuildFile; productRef = 3E07169641A34B66B92B8DEC /* SharedUI */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		7499349B2FAF58A200C6FCBB /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -22,10 +26,6 @@
 			remoteInfo = FSDDemoApp;
 		};
 /* End PBXContainerItemProxy section */
-
-/* Begin PBXBuildFile section */
-		5AA1C0E70C3449F696E0EFAE /* ItemEntity in Frameworks */ = {isa = PBXBuildFile; productRef = BB2CF443855244BBB1B184BB /* ItemEntity */; };
-/* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		7499348B2FAF58A100C6FCBB /* FSDDemoApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FSDDemoApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -61,7 +61,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				5AA1C0E70C3449F696E0EFAE /* ItemEntity in Frameworks */,
+				E5440E6876FF4FB397EB7CD0 /* SharedUI in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -124,7 +124,7 @@
 			);
 			name = FSDDemoApp;
 			packageProductDependencies = (
-				BB2CF443855244BBB1B184BB /* ItemEntity */,
+				3E07169641A34B66B92B8DEC /* SharedUI */,
 			);
 			productName = FSDDemoApp;
 			productReference = 7499348B2FAF58A100C6FCBB /* FSDDemoApp.app */;
@@ -208,6 +208,9 @@
 			);
 			mainGroup = 749934822FAF58A100C6FCBB;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				F6BC0EA334CB4615873DF6F6 /* LocalPackages/SharedUI */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 7499348C2FAF58A100C6FCBB /* Products */;
 			projectDirPath = "";
@@ -216,9 +219,6 @@
 				7499348A2FAF58A100C6FCBB /* FSDDemoApp */,
 				749934992FAF58A200C6FCBB /* FSDDemoAppTests */,
 				749934A32FAF58A200C6FCBB /* FSDDemoAppUITests */,
-			);
-			packageReferences = (
-				5BFBE975C22C4D7E861A8349 /* LocalPackages/ItemEntity */,
 			);
 		};
 /* End PBXProject section */
@@ -633,17 +633,17 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		5BFBE975C22C4D7E861A8349 /* LocalPackages/ItemEntity */ = {
+		F6BC0EA334CB4615873DF6F6 /* LocalPackages/SharedUI */ = {
 			isa = XCLocalSwiftPackageReference;
-			relativePath = LocalPackages/ItemEntity;
+			relativePath = LocalPackages/SharedUI;
 		};
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		BB2CF443855244BBB1B184BB /* ItemEntity */ = {
+		3E07169641A34B66B92B8DEC /* SharedUI */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 5BFBE975C22C4D7E861A8349 /* LocalPackages/ItemEntity */;
-			productName = ItemEntity;
+			package = F6BC0EA334CB4615873DF6F6 /* LocalPackages/SharedUI */;
+			productName = SharedUI;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

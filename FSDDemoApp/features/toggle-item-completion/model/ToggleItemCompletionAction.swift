@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import ItemEntity
 
 struct ToggleItemCompletionAction {
     func toggle(_ item: Item, at date: Date = Date()) {

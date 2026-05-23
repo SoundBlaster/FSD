@@ -1,19 +1,19 @@
 //
 //  EmptyStateView.swift
-//  FSDDemoApp
+//  SharedUI
 //
 //  Created by Egor Merkushev on 5/9/26.
 //
 
 import SwiftUI
 
-struct EmptyStateView<Action: View>: View {
-    let title: String
-    let message: String
-    let systemImage: String
+public struct EmptyStateView<Action: View>: View {
+    public let title: String
+    public let message: String
+    public let systemImage: String
     private let action: Action
 
-    init(
+    public init(
         title: String,
         message: String,
         systemImage: String,
@@ -25,7 +25,7 @@ struct EmptyStateView<Action: View>: View {
         self.action = action()
     }
 
-    init(
+    public init(
         title: String,
         message: String,
         systemImage: String
@@ -36,7 +36,7 @@ struct EmptyStateView<Action: View>: View {
         action = EmptyView()
     }
 
-    var body: some View {
+    public var body: some View {
         VStack(spacing: 16) {
             Image(systemName: systemImage)
                 .font(.system(size: 40))
