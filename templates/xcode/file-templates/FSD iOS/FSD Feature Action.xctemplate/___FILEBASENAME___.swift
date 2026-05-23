@@ -3,6 +3,9 @@
 import Foundation
 
 struct ___FILEBASENAMEASIDENTIFIER___ {
-    func callAsFunction() {
+    <#let dependency: Dependency#>
+
+    func callAsFunction(<#parameters#>) <#async throws#> -> <#ResultType#> {
+        <#action body#>
     }
 }

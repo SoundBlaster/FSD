@@ -3,8 +3,10 @@
 import SwiftUI
 
 struct ___FILEBASENAMEASIDENTIFIER___: View {
+    <#let model: WidgetModel#>
+
     var body: some View {
-        EmptyView()
+        <#widget composition#>
     }
 }
 

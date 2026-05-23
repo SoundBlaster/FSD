@@ -4,4 +4,5 @@ import Foundation
 
 struct ___FILEBASENAMEASIDENTIFIER___: Identifiable, Hashable {
     let id: UUID
+    <#let attribute: AttributeType#>
 }

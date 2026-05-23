@@ -317,6 +317,11 @@ slices, and the Xcode templates for additional files within an existing
 slice folder. Generated files pass the same `fsd-lint` checks when placed
 in the appropriate FSD layer.
 
+Each stub also includes Xcode code-completion placeholders (`<#hint#>`) so
+the editor shows editable tokens for the model field, dependencies, body,
+and other slots the developer needs to fill in. Use Tab to jump between
+placeholders.
+
 To remove the templates:
 
 ```bash

@@ -103,6 +103,7 @@ xcode-templates-smoke:
 	@for swift in "$(XCODE_TEMPLATES_SMOKE_DIR)"/*.xctemplate/___FILEBASENAME___.swift; do \
 		grep -q '___FILEBASENAMEASIDENTIFIER___' "$$swift" || { printf '%s\n' "Missing identifier macro: $$swift"; exit 1; }; \
 		grep -q '___FILEHEADER___' "$$swift" || { printf '%s\n' "Missing header macro: $$swift"; exit 1; }; \
+		grep -q '<#.*#>' "$$swift" || { printf '%s\n' "Missing Xcode placeholder hint: $$swift"; exit 1; }; \
 	done
 	$(MAKE) uninstall-xcode-templates XCODE_TEMPLATES_DIR="$(XCODE_TEMPLATES_SMOKE_DIR)"
 	@test ! -e "$(XCODE_TEMPLATES_SMOKE_DIR)"

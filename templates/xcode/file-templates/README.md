@@ -42,6 +42,9 @@ make uninstall-xcode-templates
 
 - Templates use Xcode's `___FILEBASENAMEASIDENTIFIER___` and `___FILEHEADER___`
   macros so the type and header track the file name set in the dialog.
+- Each stub includes Xcode code-completion placeholders (`<#...#>`) that show
+  up as editable tokens in the editor. Use Tab to jump between them and
+  replace each placeholder with the concrete type, dependency, or body.
 - Generated files match the lint rules enforced by `fsd-lint`, provided they
   are saved into the appropriate FSD layer folder.
 - To override the install location set `XCODE_TEMPLATES_DIR` when invoking

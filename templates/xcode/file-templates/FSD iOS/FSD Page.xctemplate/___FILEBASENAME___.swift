@@ -3,8 +3,10 @@
 import SwiftUI
 
 struct ___FILEBASENAMEASIDENTIFIER___: View {
+    <#var dependencies: AppDependencies#>
+
     var body: some View {
-        Text("___FILEBASENAMEASIDENTIFIER___")
+        <#page content#>
     }
 }
 
