@@ -721,10 +721,10 @@ func validateGeneratedPlan(_ plan: GeneratedPlan) throws {
 
     for file in plan.files {
         let destinationURL = plan.outputURL.appendingPathComponent(file.relativePath)
-        // Standardize paths so equivalent destinations such as `./foo` and `foo` conflict consistently.
+        // Standardize paths so equivalent destinations such as `./foo` and `foo` are detected as duplicates.
         let destinationPath = destinationURL.standardizedFileURL.path
 
-        // Reject plan-level duplicates while building the destination set.
+        // Detect conflicts inside this generated plan; the next loop checks existing files.
         guard destinations.insert(destinationPath).inserted else {
             throw GeneratedCreateError.conflict("Duplicate destination file within generated plan: \(destinationPath)")
         }
