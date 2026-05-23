@@ -33,7 +33,7 @@ Make this repository a reusable baseline for teams that want:
 Goal: introduce `.fsd-ios.yml` as the stable project-level configuration
 contract.
 
-Status: in progress in the first implementation PR after this roadmap.
+Status: merged in [#20](https://github.com/SoundBlaster/FSD/pull/20).
 
 Scope:
 
@@ -57,15 +57,17 @@ integrations.
 
 Scope:
 
-- add `--format text|json` to lint output;
+- add `--format text|json|xcode` to lint output;
 - stabilize finding fields: rule id, severity, path, line, message, and
   suggested fix when available;
 - preserve human-readable output as the default;
-- document JSON examples for external projects.
+- document JSON examples for external projects;
+- document Xcode Run Script Build Phase usage for `--format xcode`.
 
 Success metrics:
 
 - CI can parse lint findings without scraping text;
+- Xcode can display FSD diagnostics in the build log and issue navigator;
 - future GitHub annotation or SARIF output can reuse the same finding model.
 
 ### 3. Slice And Module Generators
@@ -87,7 +89,32 @@ Success metrics:
 - generated files pass the linter immediately;
 - generator output follows the same rules documented in `docs/rules`.
 
-### 4. Distribution And Release DX
+### 4. Xcode Developer Experience
+
+Goal: expose the generator and diagnostics through familiar Xcode entry points
+without making Xcode the source of truth for the core tooling.
+
+Scope:
+
+- add installable Xcode File Templates for common FSD files and small slice
+  entry points;
+- add `make install-xcode-templates` and `make uninstall-xcode-templates`;
+- document the template install path under
+  `~/Library/Developer/Xcode/Templates/File Templates/FSD iOS`;
+- evaluate a SwiftPM command plugin wrapper for `fsd-ios create slice` and
+  `fsd-ios create module`;
+- keep the CLI generator as the canonical implementation used by templates and
+  plugins.
+
+Success metrics:
+
+- a developer can start an FSD page, feature, entity, or widget from
+  `File > New > File` in Xcode;
+- generated files still pass the same CLI linter checks;
+- SwiftPM module-island projects can expose generation through an Xcode package
+  plugin command.
+
+### 5. Distribution And Release DX
 
 Goal: make the toolkit easy to install and update outside the repository.
 
@@ -113,6 +140,8 @@ Success metrics:
 - More fixture apps that model UIKit legacy shells and mixed SwiftUI/UIKit
   adoption.
 - Optional Swift Package boundary validator for generated module islands.
+- Optional Xcode Source Editor Extension for current-file refactors and
+  boilerplate insertion after the CLI generator and file templates are stable.
 
 ## Review Strategy
 
