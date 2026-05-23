@@ -354,13 +354,16 @@ swift package --allow-writing-to-package-directory fsd-generate \
   --root Sources/App
 swift package --allow-writing-to-package-directory fsd-generate \
   module Reporting \
-  --output ../ReportingModule
+  --output Packages/ReportingModule
 ```
 
 `--allow-writing-to-package-directory` is required by SwiftPM because the plugin
 creates or previews files in the package directory. Arguments after
 `fsd-generate` match `fsd-ios create`, so validation, dry-run output, duplicate
 destination checks, and overwrite protection stay identical to the CLI.
+When intentionally writing generated output outside the package directory, pass
+SwiftPM's additional `--allow-writing-to-directory <path>` permission before
+`fsd-generate`.
 
 ## Doctor
 

@@ -382,7 +382,8 @@ spm-plugin-smoke:
 	rm -rf $(DERIVED_DATA_PATH)/SPMPluginSmoke
 	mkdir -p $(DERIVED_DATA_PATH)/SPMPluginSmoke/Sources/App
 	$(SWIFT) package plugin --list | grep -F 'fsd-generate'
-	$(SWIFT) package --allow-writing-to-package-directory fsd-generate --help
+	$(SWIFT) package --allow-writing-to-package-directory fsd-generate --help | grep -F -- '--output Packages/ReportingModule'
+	$(SWIFT) package --allow-writing-to-package-directory fsd-generate slice --help | grep -F 'Template kinds:'
 	$(SWIFT) package --allow-writing-to-package-directory fsd-generate \
 		slice feature export-report \
 		--root $(DERIVED_DATA_PATH)/SPMPluginSmoke/Sources/App \

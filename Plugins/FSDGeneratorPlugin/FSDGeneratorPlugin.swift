@@ -4,7 +4,7 @@ import PackagePlugin
 @main
 struct FSDGeneratorPlugin: CommandPlugin {
     func performCommand(context: PluginContext, arguments: [String]) async throws {
-        if arguments.isEmpty || arguments.contains("--help") || arguments.contains("-h") {
+        if arguments.isEmpty || isPluginHelp(arguments) {
             printUsage()
             return
         }
@@ -32,6 +32,14 @@ struct FSDGeneratorPlugin: CommandPlugin {
         arguments.first == "create" ? arguments : ["create"] + arguments
     }
 
+    private func isPluginHelp(_ arguments: [String]) -> Bool {
+        guard let first = arguments.first else {
+            return false
+        }
+
+        return first == "--help" || first == "-h"
+    }
+
     private func printUsage() {
         print(
             """
@@ -41,11 +49,14 @@ struct FSDGeneratorPlugin: CommandPlugin {
 
             Examples:
               swift package --allow-writing-to-package-directory fsd-generate slice feature export-report --root Sources/App
-              swift package --allow-writing-to-package-directory fsd-generate module Reporting --output ../ReportingModule
+              swift package --allow-writing-to-package-directory fsd-generate module Reporting --output Packages/ReportingModule
 
             The plugin delegates to the fsd-ios CLI target, so generated output,
             validation, dry-run behavior, and overwrite protection stay identical
             to `fsd-ios create`.
+
+            Use SwiftPM's --allow-writing-to-directory <path> permission when
+            intentionally writing generated output outside the package directory.
             """
         )
     }
