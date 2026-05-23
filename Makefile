@@ -13,7 +13,7 @@ INSTALL_BIN_DIR := $(INSTALL_PREFIX)/bin
 INSTALL_SMOKE_PREFIX := $(DERIVED_DATA_PATH)/LocalInstall
 XCODE_TEMPLATES_SRC := templates/xcode/file-templates/FSD iOS
 XCODE_TEMPLATES_DIR ?= $(HOME)/Library/Developer/Xcode/Templates/File Templates/FSD iOS
-XCODE_TEMPLATES_SMOKE_DIR := $(DERIVED_DATA_PATH)/XcodeTemplatesSmoke
+XCODE_TEMPLATES_SMOKE_DIR := $(DERIVED_DATA_PATH)/XcodeTemplatesSmoke/FSD iOS
 
 .PHONY: help open install uninstall install-smoke install-xcode-templates uninstall-xcode-templates xcode-templates-smoke cli-help cli-smoke cli-doctor config-smoke report-smoke action-smoke lint lint-strict lint-architecture harmonize harmonize-fixture template-create-dry-run template-create-fixture slice-create-fixture module-create-fixture template-validate template-validate-negative spm-template-test spm-template-create-fixture build test demo template-demo ci clean
 
@@ -77,9 +77,10 @@ install-xcode-templates:
 	@test -d "$(XCODE_TEMPLATES_SRC)" || { printf '%s\n' 'Missing source: $(XCODE_TEMPLATES_SRC)'; exit 1; }
 	@test -n "$(XCODE_TEMPLATES_DIR)" || { printf '%s\n' 'XCODE_TEMPLATES_DIR must not be empty'; exit 1; }
 	@case "$(XCODE_TEMPLATES_DIR)" in \
-		/|/usr|/usr/local|/System|/Applications|$(HOME)|$(HOME)/Library) \
+		/|/usr|/usr/local|/System|/Applications|$(HOME)|$(HOME)/Library|$(HOME)/Library/Developer|$(HOME)/Library/Developer/Xcode|$(HOME)/Library/Developer/Xcode/Templates|$(HOME)/Library/Developer/Xcode/Templates/File\ Templates) \
 			printf '%s\n' 'Refusing unsafe XCODE_TEMPLATES_DIR: $(XCODE_TEMPLATES_DIR)'; exit 1;; \
 	esac
+	@rm -rf "$(XCODE_TEMPLATES_DIR)"
 	@mkdir -p "$(XCODE_TEMPLATES_DIR)"
 	@cp -R "$(XCODE_TEMPLATES_SRC)/." "$(XCODE_TEMPLATES_DIR)/"
 	@printf '%s\n' "Installed Xcode File Templates to $(XCODE_TEMPLATES_DIR)"
@@ -88,8 +89,12 @@ install-xcode-templates:
 uninstall-xcode-templates:
 	@test -n "$(XCODE_TEMPLATES_DIR)" || { printf '%s\n' 'XCODE_TEMPLATES_DIR must not be empty'; exit 1; }
 	@case "$(XCODE_TEMPLATES_DIR)" in \
-		/|/usr|/usr/local|/System|/Applications|$(HOME)|$(HOME)/Library) \
+		/|/usr|/usr/local|/System|/Applications|$(HOME)|$(HOME)/Library|$(HOME)/Library/Developer|$(HOME)/Library/Developer/Xcode|$(HOME)/Library/Developer/Xcode/Templates|$(HOME)/Library/Developer/Xcode/Templates/File\ Templates) \
 			printf '%s\n' 'Refusing unsafe XCODE_TEMPLATES_DIR: $(XCODE_TEMPLATES_DIR)'; exit 1;; \
+	esac
+	@case "$$(basename "$(XCODE_TEMPLATES_DIR)")" in \
+		FSD\ iOS) ;; \
+		*) printf '%s\n' 'Refusing to remove: path must end with "FSD iOS"'; exit 1;; \
 	esac
 	rm -rf "$(XCODE_TEMPLATES_DIR)"
 	@printf '%s\n' "Removed $(XCODE_TEMPLATES_DIR)"

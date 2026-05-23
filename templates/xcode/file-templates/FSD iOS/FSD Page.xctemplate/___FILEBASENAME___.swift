@@ -3,7 +3,11 @@
 import SwiftUI
 
 struct ___FILEBASENAMEASIDENTIFIER___: View {
-    <#var dependencies: AppDependencies#>
+    let <#dependencies: DependencyType#>
+
+    init(<#dependencies: DependencyType#>) {
+        self.<#dependencies#> = <#dependencies#>
+    }
 
     var body: some View {
         <#page content#>
@@ -13,6 +17,6 @@ struct ___FILEBASENAMEASIDENTIFIER___: View {
 #if DEBUG
 @available(iOS 17, *)
 #Preview {
-    ___FILEBASENAMEASIDENTIFIER___()
+    ___FILEBASENAMEASIDENTIFIER___(<#dependencies: …#>)
 }
 #endif
