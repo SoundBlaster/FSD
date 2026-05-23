@@ -190,13 +190,17 @@ func runProcess(
         guard fileManager.createFile(atPath: outputFileURL.path, contents: nil),
               fileManager.createFile(atPath: errorFileURL.path, contents: nil)
         else {
-            throw CLIError.launchFailed("Could not create temporary output files")
+            throw CLIError.launchFailed(
+                "Could not create temporary output files: \(outputFileURL.path), \(errorFileURL.path)"
+            )
         }
 
         guard let writableOutput = FileHandle(forWritingAtPath: outputFileURL.path),
               let writableError = FileHandle(forWritingAtPath: errorFileURL.path)
         else {
-            throw CLIError.launchFailed("Could not create temporary output files")
+            throw CLIError.launchFailed(
+                "Could not open temporary output files: \(outputFileURL.path), \(errorFileURL.path)"
+            )
         }
 
         outputURL = outputFileURL
@@ -743,7 +747,6 @@ func printGeneratedPlan(_ plan: GeneratedPlan, dryRun: Bool) {
     print(dryRun ? "Planned files: \(plan.files.count)" : "Created files: \(plan.files.count)")
 }
 
-
 func discoverDefaultConfigPath() -> String? {
     for filename in [".fsd-ios.yml", ".fsd-ios.yaml"] {
         let url = originalWorkingDirectoryURL
@@ -896,7 +899,7 @@ func runCreateSlice(_ arguments: [String]) throws -> Int32 {
     }
 
     let name = arguments[1]
-    var root = repoPath("FSDDemoApp")
+    var sourceRootPath = repoPath("FSDDemoApp")
     var dryRun = false
     var index = 2
 
@@ -912,7 +915,7 @@ func runCreateSlice(_ arguments: [String]) throws -> Int32 {
             guard index < arguments.count else {
                 throw CLIError.invalidUsage("--root requires a value")
             }
-            root = absolutePath(arguments[index])
+            sourceRootPath = absolutePath(arguments[index])
         case "--dry-run":
             dryRun = true
         default:
@@ -922,7 +925,7 @@ func runCreateSlice(_ arguments: [String]) throws -> Int32 {
         index += 1
     }
 
-    let plan = try createSlicePlan(kind: kind, name: name, rootPath: root)
+    let plan = try createSlicePlan(kind: kind, name: name, rootPath: sourceRootPath)
 
     if dryRun {
         try validateGeneratedPlan(plan)
