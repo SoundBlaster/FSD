@@ -1,19 +1,19 @@
 //
 //  ItemSummary.swift
-//  FSDDemoApp
+//  ItemEntity
 //
 //  Created by Egor Merkushev on 5/9/26.
 //
 
 import Foundation
 
-struct ItemSummary {
-    let total: Int
-    let active: Int
-    let completed: Int
-    let highPriority: Int
+public struct ItemSummary {
+    public let total: Int
+    public let active: Int
+    public let completed: Int
+    public let highPriority: Int
 
-    var completionRatio: Double {
+    public var completionRatio: Double {
         guard total > 0 else {
             return 0
         }
@@ -21,7 +21,7 @@ struct ItemSummary {
         return Double(completed) / Double(total)
     }
 
-    init(items: [Item]) {
+    public init(items: [Item]) {
         total = items.count
         active = items.filter { !$0.isCompleted }.count
         completed = items.filter(\.isCompleted).count

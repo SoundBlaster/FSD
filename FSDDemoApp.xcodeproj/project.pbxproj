@@ -23,6 +23,10 @@
 		};
 /* End PBXContainerItemProxy section */
 
+/* Begin PBXBuildFile section */
+		5AA1C0E70C3449F696E0EFAE /* ItemEntity in Frameworks */ = {isa = PBXBuildFile; productRef = BB2CF443855244BBB1B184BB /* ItemEntity */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		7499348B2FAF58A100C6FCBB /* FSDDemoApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FSDDemoApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		7499349A2FAF58A200C6FCBB /* FSDDemoAppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FSDDemoAppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -57,6 +61,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5AA1C0E70C3449F696E0EFAE /* ItemEntity in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -119,6 +124,7 @@
 			);
 			name = FSDDemoApp;
 			packageProductDependencies = (
+				BB2CF443855244BBB1B184BB /* ItemEntity */,
 			);
 			productName = FSDDemoApp;
 			productReference = 7499348B2FAF58A100C6FCBB /* FSDDemoApp.app */;
@@ -210,6 +216,9 @@
 				7499348A2FAF58A100C6FCBB /* FSDDemoApp */,
 				749934992FAF58A200C6FCBB /* FSDDemoAppTests */,
 				749934A32FAF58A200C6FCBB /* FSDDemoAppUITests */,
+			);
+			packageReferences = (
+				5BFBE975C22C4D7E861A8349 /* LocalPackages/ItemEntity */,
 			);
 		};
 /* End PBXProject section */
@@ -622,6 +631,21 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		5BFBE975C22C4D7E861A8349 /* LocalPackages/ItemEntity */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = LocalPackages/ItemEntity;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		BB2CF443855244BBB1B184BB /* ItemEntity */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5BFBE975C22C4D7E861A8349 /* LocalPackages/ItemEntity */;
+			productName = ItemEntity;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 749934832FAF58A100C6FCBB /* Project object */;
 }

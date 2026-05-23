@@ -1,23 +1,23 @@
 //
 //  ItemFilter.swift
-//  FSDDemoApp
+//  ItemEntity
 //
 //  Created by Egor Merkushev on 5/9/26.
 //
 
 import Foundation
 
-enum ItemFilter: String, CaseIterable, Identifiable {
+public enum ItemFilter: String, CaseIterable, Identifiable {
     case all
     case active
     case completed
     case highPriority
 
-    var id: String {
+    public var id: String {
         rawValue
     }
 
-    var title: String {
+    public var title: String {
         switch self {
         case .all:
             "All"
@@ -30,7 +30,7 @@ enum ItemFilter: String, CaseIterable, Identifiable {
         }
     }
 
-    var systemImage: String {
+    public var systemImage: String {
         switch self {
         case .all:
             "tray.full"
@@ -43,7 +43,7 @@ enum ItemFilter: String, CaseIterable, Identifiable {
         }
     }
 
-    func includes(_ item: Item) -> Bool {
+    public func includes(_ item: Item) -> Bool {
         switch self {
         case .all:
             true

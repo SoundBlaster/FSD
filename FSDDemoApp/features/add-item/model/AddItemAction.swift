@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import ItemEntity
 import SwiftData
 
 struct AddItemDraft {

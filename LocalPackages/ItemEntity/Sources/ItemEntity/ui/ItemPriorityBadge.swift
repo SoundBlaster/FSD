@@ -1,14 +1,18 @@
 //
 //  ItemPriorityBadge.swift
-//  FSDDemoApp
+//  ItemEntity
 //
 //  Created by Egor Merkushev on 5/9/26.
 //
 
 import SwiftUI
 
-struct ItemPriorityBadge: View {
-    let priority: ItemPriority
+public struct ItemPriorityBadge: View {
+    public let priority: ItemPriority
+
+    public init(priority: ItemPriority) {
+        self.priority = priority
+    }
 
     private var tint: Color {
         switch priority {
@@ -21,7 +25,7 @@ struct ItemPriorityBadge: View {
         }
     }
 
-    var body: some View {
+    public var body: some View {
         Label(priority.title, systemImage: priority.systemImage)
             .font(.caption)
             .fontWeight(.medium)

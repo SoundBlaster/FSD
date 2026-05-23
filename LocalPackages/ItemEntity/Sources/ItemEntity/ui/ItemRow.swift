@@ -1,16 +1,20 @@
 //
 //  ItemRow.swift
-//  FSDDemoApp
+//  ItemEntity
 //
 //  Created by Egor Merkushev on 5/9/26.
 //
 
 import SwiftUI
 
-struct ItemRow: View {
-    let item: Item
+public struct ItemRow: View {
+    public let item: Item
 
-    var body: some View {
+    public init(item: Item) {
+        self.item = item
+    }
+
+    public var body: some View {
         HStack(alignment: .center, spacing: 10) {
             VStack(alignment: .leading, spacing: 3) {
                 Text(item.title)

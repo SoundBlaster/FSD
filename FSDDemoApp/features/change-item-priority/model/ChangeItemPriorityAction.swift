@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import ItemEntity
 
 struct ChangeItemPriorityAction {
     func change(
