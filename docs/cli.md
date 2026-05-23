@@ -338,13 +338,13 @@ make install-xcode-templates XCODE_TEMPLATES_DIR="$PWD/.xcode-templates/FSD iOS"
 
 The repository root also exposes a SwiftPM command plugin for Xcode/SwiftPM
 workflows that need to generate a whole slice directory, not just a single file
-template. The plugin is named `fsd-generate` and delegates to the `fsd-ios`
-executable target built from `tools/fsd-ios.swift`.
+template. The plugin is named `fsd-generate` and delegates to
+`tools/fsd-ios.swift`.
 
 Opening the root `Package.swift` in Xcode shows the `FSDTools` package with a
 small `FSDToolingSupport` marker target so the tooling package is visible in the
-project navigator. The generator itself still lives in the `fsd-ios` executable
-target and the `FSDGeneratorPlugin` command plugin.
+project navigator. The generator itself remains a script, not an Xcode-built
+SwiftPM target, so Xcode does not try to compile the CLI for iOS destinations.
 
 ```bash
 swift package plugin --list

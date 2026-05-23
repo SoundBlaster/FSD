@@ -9,13 +9,16 @@ struct FSDGeneratorPlugin: CommandPlugin {
             return
         }
 
-        let fsdIOS = try context.tool(named: "fsd-ios")
         let commandArguments = normalizedCreateArguments(arguments)
+        let packageDirectoryURL = context.package.directoryURL
+        let fsdIOSScriptURL = packageDirectoryURL
+            .appendingPathComponent("tools")
+            .appendingPathComponent("fsd-ios.swift")
 
         let process = Process()
-        process.executableURL = fsdIOS.url
-        process.arguments = commandArguments
-        process.currentDirectoryURL = context.package.directoryURL
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
+        process.arguments = ["swift", fsdIOSScriptURL.path] + commandArguments
+        process.currentDirectoryURL = packageDirectoryURL
 
         try process.run()
         process.waitUntilExit()
