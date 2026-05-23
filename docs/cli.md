@@ -334,6 +334,37 @@ Override the install location for sandboxes or per-user destinations:
 make install-xcode-templates XCODE_TEMPLATES_DIR="$PWD/.xcode-templates/FSD iOS"
 ```
 
+## SwiftPM Generator Plugin
+
+The repository root also exposes a SwiftPM command plugin for Xcode/SwiftPM
+workflows that need to generate a whole slice directory, not just a single file
+template. The plugin is named `fsd-generate` and delegates to
+`tools/fsd-ios.swift`.
+
+Opening the root `Package.swift` in Xcode shows the `FSDTools` package with a
+small `FSDToolingSupport` marker target so the tooling package is visible in the
+project navigator. The generator itself remains a script, not an Xcode-built
+SwiftPM target, so Xcode does not try to compile the CLI for iOS destinations.
+
+```bash
+swift package plugin --list
+swift package --allow-writing-to-package-directory fsd-generate --help
+swift package --allow-writing-to-package-directory fsd-generate \
+  slice feature export-report \
+  --root Sources/App
+swift package --allow-writing-to-package-directory fsd-generate \
+  module Reporting \
+  --output Packages/ReportingModule
+```
+
+`--allow-writing-to-package-directory` is required by SwiftPM because the plugin
+creates or previews files in the package directory. Arguments after
+`fsd-generate` match `fsd-ios create`, so validation, dry-run output, duplicate
+destination checks, and overwrite protection stay identical to the CLI.
+When intentionally writing generated output outside the package directory, pass
+SwiftPM's additional `--allow-writing-to-directory <path>` permission before
+`fsd-generate`.
+
 ## Doctor
 
 Run `doctor` when onboarding a machine or before investigating a local failure:
@@ -378,6 +409,7 @@ make install-smoke
 make install-xcode-templates
 make uninstall-xcode-templates
 make xcode-templates-smoke
+make spm-plugin-smoke
 make action-smoke
 make ci
 ```
@@ -393,6 +425,10 @@ that it can run, and uninstalls it again.
 `DerivedData/XcodeTemplatesSmoke`, verifies each `.xctemplate` bundle's
 `TemplateInfo.plist` parses and that the template Swift file references the
 expected Xcode substitution macros, then removes the directory.
+
+`make spm-plugin-smoke` verifies SwiftPM command plugin discovery, plugin help,
+slice dry-run/materialization, module dry-run/materialization, and `swift test`
+for the generated module island.
 
 `make config-smoke` verifies explicit config loading, default config discovery,
 direct linter config support, and invalid config diagnostics.

@@ -15,7 +15,7 @@ XCODE_TEMPLATES_SRC := templates/xcode/file-templates/FSD iOS
 XCODE_TEMPLATES_DIR ?= $(HOME)/Library/Developer/Xcode/Templates/File Templates/FSD iOS
 XCODE_TEMPLATES_SMOKE_DIR := $(DERIVED_DATA_PATH)/XcodeTemplatesSmoke/FSD iOS
 
-.PHONY: help open install uninstall install-smoke install-xcode-templates uninstall-xcode-templates xcode-templates-smoke cli-help cli-smoke cli-doctor config-smoke report-smoke action-smoke lint lint-strict lint-architecture harmonize harmonize-fixture template-create-dry-run template-create-fixture slice-create-fixture module-create-fixture template-validate template-validate-negative spm-template-test spm-template-create-fixture build test demo template-demo ci clean
+.PHONY: help open install uninstall install-smoke install-xcode-templates uninstall-xcode-templates xcode-templates-smoke cli-help cli-smoke cli-doctor config-smoke report-smoke action-smoke lint lint-strict lint-architecture harmonize harmonize-fixture template-create-dry-run template-create-fixture slice-create-fixture module-create-fixture template-validate template-validate-negative spm-template-test spm-template-create-fixture spm-plugin-smoke build test demo template-demo ci clean
 
 help:
 	@printf '%s\n' \
@@ -46,6 +46,7 @@ help:
 		'  make template-validate-negative  Run the negative template fixture' \
 		'  make spm-template-test  Build and test the SPM module-island template' \
 		'  make spm-template-create-fixture  Materialize and test the SPM template' \
+		'  make spm-plugin-smoke  Verify the SwiftPM fsd-generate command plugin' \
 		'  make build        Build the app for an iOS simulator' \
 		'  make test         Run the xcodebuild test command from README' \
 		'  make demo         Print the FSD map and run architecture lint' \
@@ -377,6 +378,32 @@ spm-template-create-fixture:
 	fi
 	$(SWIFT) test --package-path $(DERIVED_DATA_PATH)/SPMTemplateSmoke
 
+spm-plugin-smoke:
+	rm -rf $(DERIVED_DATA_PATH)/SPMPluginSmoke
+	mkdir -p $(DERIVED_DATA_PATH)/SPMPluginSmoke/Sources/App
+	$(SWIFT) package plugin --list | grep -F 'fsd-generate'
+	$(SWIFT) package --allow-writing-to-package-directory fsd-generate --help | grep -F -- '--output Packages/ReportingModule'
+	$(SWIFT) package --allow-writing-to-package-directory fsd-generate slice --help | grep -F 'Template kinds:'
+	$(SWIFT) package --allow-writing-to-package-directory fsd-generate \
+		slice feature export-report \
+		--root $(DERIVED_DATA_PATH)/SPMPluginSmoke/Sources/App \
+		--dry-run
+	@test ! -e $(DERIVED_DATA_PATH)/SPMPluginSmoke/Sources/App/features/export-report
+	$(SWIFT) package --allow-writing-to-package-directory fsd-generate \
+		slice feature export-report \
+		--root $(DERIVED_DATA_PATH)/SPMPluginSmoke/Sources/App
+	@test -f $(DERIVED_DATA_PATH)/SPMPluginSmoke/Sources/App/features/export-report/model/ExportReportAction.swift
+	$(SWIFT) package --allow-writing-to-package-directory fsd-generate \
+		module Reporting \
+		--output $(DERIVED_DATA_PATH)/SPMPluginSmoke/ReportingModule \
+		--dry-run
+	@test ! -e $(DERIVED_DATA_PATH)/SPMPluginSmoke/ReportingModule
+	$(SWIFT) package --allow-writing-to-package-directory fsd-generate \
+		module Reporting \
+		--output $(DERIVED_DATA_PATH)/SPMPluginSmoke/ReportingModule
+	@test -f $(DERIVED_DATA_PATH)/SPMPluginSmoke/ReportingModule/Package.swift
+	$(SWIFT) test --package-path $(DERIVED_DATA_PATH)/SPMPluginSmoke/ReportingModule
+
 demo:
 	@printf 'FSD layers:\n'
 	@printf '%s\n' \
@@ -427,7 +454,7 @@ test:
 		test \
 		CODE_SIGNING_ALLOWED=NO
 
-ci: lint lint-strict lint-architecture harmonize-fixture template-create-dry-run template-create-fixture slice-create-fixture module-create-fixture template-validate template-validate-negative spm-template-test spm-template-create-fixture cli-smoke cli-doctor config-smoke report-smoke install-smoke xcode-templates-smoke action-smoke test
+ci: lint lint-strict lint-architecture harmonize-fixture template-create-dry-run template-create-fixture slice-create-fixture module-create-fixture template-validate template-validate-negative spm-template-test spm-template-create-fixture spm-plugin-smoke cli-smoke cli-doctor config-smoke report-smoke install-smoke xcode-templates-smoke action-smoke test
 
 clean:
 	rm -rf $(DERIVED_DATA_PATH)

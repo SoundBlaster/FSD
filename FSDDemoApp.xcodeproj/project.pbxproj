@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		E5440E6876FF4FB397EB7CD0 /* SharedUI in Frameworks */ = {isa = PBXBuildFile; productRef = 3E07169641A34B66B92B8DEC /* SharedUI */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		7499349B2FAF58A200C6FCBB /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -57,6 +61,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E5440E6876FF4FB397EB7CD0 /* SharedUI in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -119,6 +124,7 @@
 			);
 			name = FSDDemoApp;
 			packageProductDependencies = (
+				3E07169641A34B66B92B8DEC /* SharedUI */,
 			);
 			productName = FSDDemoApp;
 			productReference = 7499348B2FAF58A100C6FCBB /* FSDDemoApp.app */;
@@ -202,6 +208,9 @@
 			);
 			mainGroup = 749934822FAF58A100C6FCBB;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				F6BC0EA334CB4615873DF6F6 /* LocalPackages/SharedUI */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 7499348C2FAF58A100C6FCBB /* Products */;
 			projectDirPath = "";
@@ -622,6 +631,21 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		F6BC0EA334CB4615873DF6F6 /* LocalPackages/SharedUI */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = LocalPackages/SharedUI;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		3E07169641A34B66B92B8DEC /* SharedUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F6BC0EA334CB4615873DF6F6 /* LocalPackages/SharedUI */;
+			productName = SharedUI;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 749934832FAF58A100C6FCBB /* Project object */;
 }

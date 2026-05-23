@@ -1,19 +1,26 @@
 //
 //  MetricTile.swift
-//  FSDDemoApp
+//  SharedUI
 //
 //  Created by Egor Merkushev on 5/9/26.
 //
 
 import SwiftUI
 
-struct MetricTile: View {
-    let title: String
-    let value: String
-    let systemImage: String
-    let tint: Color
+public struct MetricTile: View {
+    public let title: String
+    public let value: String
+    public let systemImage: String
+    public let tint: Color
 
-    var body: some View {
+    public init(title: String, value: String, systemImage: String, tint: Color) {
+        self.title = title
+        self.value = value
+        self.systemImage = systemImage
+        self.tint = tint
+    }
+
+    public var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Label(title, systemImage: systemImage)
                 .font(.caption)

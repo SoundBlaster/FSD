@@ -102,8 +102,8 @@ without making Xcode the source of truth for the core tooling.
 
 Status: Xcode File Templates for FSD page, feature action, entity model, and
 widget shipped together with `make install-xcode-templates` /
-`make uninstall-xcode-templates`. A SwiftPM command plugin wrapper is still
-under evaluation.
+`make uninstall-xcode-templates`. A SwiftPM command plugin wrapper is available
+as `swift package --allow-writing-to-package-directory fsd-generate`.
 
 Scope:
 
@@ -121,7 +121,7 @@ Scope:
 Success metrics:
 
 - a developer can start an FSD page, feature, entity, or widget from
-  `File > New > File` in Xcode;
+  `File > New > File…` in Xcode;
 - generated files still pass the same CLI linter checks;
 - SwiftPM module-island projects can expose generation through an Xcode package
   plugin command.
