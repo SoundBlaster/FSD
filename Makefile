@@ -15,7 +15,7 @@ XCODE_TEMPLATES_SRC := templates/xcode/file-templates/FSD iOS
 XCODE_TEMPLATES_DIR ?= $(HOME)/Library/Developer/Xcode/Templates/File Templates/FSD iOS
 XCODE_TEMPLATES_SMOKE_DIR := $(DERIVED_DATA_PATH)/XcodeTemplatesSmoke/FSD iOS
 
-.PHONY: help open install uninstall install-smoke install-xcode-templates uninstall-xcode-templates xcode-templates-smoke cli-help cli-smoke cli-doctor config-smoke report-smoke action-smoke lint lint-strict lint-architecture harmonize harmonize-fixture template-create-dry-run template-create-fixture slice-create-fixture module-create-fixture template-validate template-validate-negative spm-template-test spm-template-create-fixture spm-plugin-smoke build test demo template-demo ci clean
+.PHONY: help open install uninstall install-smoke install-xcode-templates uninstall-xcode-templates xcode-templates-smoke cli-help cli-smoke cli-doctor config-smoke report-smoke action-smoke lint lint-strict lint-architecture harmonize harmonize-fixture template-create-dry-run template-create-fixture slice-create-fixture module-create-fixture template-validate template-validate-negative spm-template-test item-export-feature-test spm-template-create-fixture spm-plugin-smoke build test demo template-demo ci clean
 
 help:
 	@printf '%s\n' \
@@ -45,6 +45,7 @@ help:
 		'  make template-validate  Validate the copyable template bundle' \
 		'  make template-validate-negative  Run the negative template fixture' \
 		'  make spm-template-test  Build and test the SPM module-island template' \
+		'  make item-export-feature-test  Test the local item export feature package' \
 		'  make spm-template-create-fixture  Materialize and test the SPM template' \
 		'  make spm-plugin-smoke  Verify the SwiftPM fsd-generate command plugin' \
 		'  make build        Build the app for an iOS simulator' \
@@ -364,6 +365,10 @@ spm-template-test:
 	$(SWIFT) package --package-path templates/fsd-ios-spm describe
 	$(SWIFT) test --package-path templates/fsd-ios-spm
 
+item-export-feature-test:
+	$(SWIFT) package --package-path LocalPackages/ItemExportFeature describe
+	$(SWIFT) test --package-path LocalPackages/ItemExportFeature
+
 spm-template-create-fixture:
 	rm -rf $(DERIVED_DATA_PATH)/SPMTemplateSmoke
 	$(SWIFT) tools/fsd-template-create.swift \
@@ -454,7 +459,7 @@ test:
 		test \
 		CODE_SIGNING_ALLOWED=NO
 
-ci: lint lint-strict lint-architecture harmonize-fixture template-create-dry-run template-create-fixture slice-create-fixture module-create-fixture template-validate template-validate-negative spm-template-test spm-template-create-fixture spm-plugin-smoke cli-smoke cli-doctor config-smoke report-smoke install-smoke xcode-templates-smoke action-smoke test
+ci: lint lint-strict lint-architecture harmonize-fixture template-create-dry-run template-create-fixture slice-create-fixture module-create-fixture template-validate template-validate-negative spm-template-test item-export-feature-test spm-template-create-fixture spm-plugin-smoke cli-smoke cli-doctor config-smoke report-smoke install-smoke xcode-templates-smoke action-smoke test
 
 clean:
 	rm -rf $(DERIVED_DATA_PATH)

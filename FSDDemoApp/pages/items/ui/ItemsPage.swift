@@ -5,6 +5,7 @@
 //  Created by Egor Merkushev on 5/9/26.
 //
 
+import ItemExportFeature
 import SharedUI
 import SwiftData
 import SwiftUI
@@ -31,6 +32,10 @@ struct ItemsPage: View {
 
     private var visibleItems: [Item] {
         sortedItems.filter(selectedFilter.includes)
+    }
+
+    private var exportItems: [ExportItem] {
+        visibleItems.map(\.exportItem)
     }
 
     private var emptyTitle: String {
@@ -87,6 +92,10 @@ struct ItemsPage: View {
                 }
 #endif
                 ToolbarItem {
+                    ExportItemsButton(items: exportItems)
+                }
+
+                ToolbarItem {
                     AddItemButton()
                 }
 
@@ -107,6 +116,19 @@ struct ItemsPage: View {
         withAnimation {
             DeleteItemsAction(modelContext: modelContext).delete(items)
         }
+    }
+}
+
+private extension Item {
+    var exportItem: ExportItem {
+        ExportItem(
+            id: String(describing: persistentModelID),
+            title: title,
+            notes: notes,
+            priority: priority.title,
+            isCompleted: isCompleted,
+            createdAt: timestamp
+        )
     }
 }
 

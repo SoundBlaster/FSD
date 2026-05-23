@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		4C7D1A8B9E0F4C2D8A6B1E3F /* ItemExportFeature in Frameworks */ = {isa = PBXBuildFile; productRef = 9F8E7D6C5B4A392817263544 /* ItemExportFeature */; };
 		E5440E6876FF4FB397EB7CD0 /* SharedUI in Frameworks */ = {isa = PBXBuildFile; productRef = 3E07169641A34B66B92B8DEC /* SharedUI */; };
 /* End PBXBuildFile section */
 
@@ -61,6 +62,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4C7D1A8B9E0F4C2D8A6B1E3F /* ItemExportFeature in Frameworks */,
 				E5440E6876FF4FB397EB7CD0 /* SharedUI in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -124,6 +126,7 @@
 			);
 			name = FSDDemoApp;
 			packageProductDependencies = (
+				9F8E7D6C5B4A392817263544 /* ItemExportFeature */,
 				3E07169641A34B66B92B8DEC /* SharedUI */,
 			);
 			productName = FSDDemoApp;
@@ -209,6 +212,7 @@
 			mainGroup = 749934822FAF58A100C6FCBB;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
+				6A5B4C3D2E1F0A9B8C7D6E5F /* LocalPackages/ItemExportFeature */,
 				F6BC0EA334CB4615873DF6F6 /* LocalPackages/SharedUI */,
 			);
 			preferredProjectObjectVersion = 77;
@@ -633,6 +637,10 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
+		6A5B4C3D2E1F0A9B8C7D6E5F /* LocalPackages/ItemExportFeature */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = LocalPackages/ItemExportFeature;
+		};
 		F6BC0EA334CB4615873DF6F6 /* LocalPackages/SharedUI */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = LocalPackages/SharedUI;
@@ -644,6 +652,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = F6BC0EA334CB4615873DF6F6 /* LocalPackages/SharedUI */;
 			productName = SharedUI;
+		};
+		9F8E7D6C5B4A392817263544 /* ItemExportFeature */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 6A5B4C3D2E1F0A9B8C7D6E5F /* LocalPackages/ItemExportFeature */;
+			productName = ItemExportFeature;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

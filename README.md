@@ -40,7 +40,9 @@ FSDDemoApp/
   widgets/    # large reusable UI blocks
   features/   # user actions
   entities/   # business entities
-  shared/     # generic reusable UI
+LocalPackages/
+  SharedUI/          # generic reusable UI package
+  ItemExportFeature/ # feature-level SwiftPM package used by the app
 ```
 
 Detailed architecture recommendations: [specs/fsd.md](specs/fsd.md).
@@ -78,6 +80,16 @@ package dependency and import the new screen/feature module from legacy code.
 ```bash
 make spm-template-test
 make spm-template-create-fixture
+```
+
+The demo app also includes real local package dependencies under
+`LocalPackages/`: `SharedUI` for generic UI primitives and `ItemExportFeature`
+for the export-items user action. `ItemExportFeature` receives an `ExportItem`
+DTO from the page layer, so the package stays independent from the app's
+SwiftData model while the app still demonstrates feature-level modularity.
+
+```bash
+make item-export-feature-test
 ```
 
 ## External Project Adoption
