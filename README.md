@@ -110,6 +110,8 @@ swift tools/fsd-ios.swift doctor
 swift tools/fsd-ios.swift doctor --json
 swift tools/fsd-ios.swift lint --config .fsd-ios.yml
 swift tools/fsd-ios.swift lint --root FSDDemoApp --strict --architecture
+swift tools/fsd-ios.swift create slice feature export-report --root FSDDemoApp
+swift tools/fsd-ios.swift create module Reporting --output ../ReportingModule
 ```
 
 Make targets for CLI validation:
