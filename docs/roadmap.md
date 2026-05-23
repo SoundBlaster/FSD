@@ -97,14 +97,15 @@ without making Xcode the source of truth for the core tooling.
 Scope:
 
 - add installable Xcode File Templates for common FSD files and small slice
-  entry points;
-- add `make install-xcode-templates` and `make uninstall-xcode-templates`;
-- document the template install path under
-  `~/Library/Developer/Xcode/Templates/File Templates/FSD iOS`;
-- evaluate a SwiftPM command plugin wrapper for `fsd-ios create slice` and
-  `fsd-ios create module`;
+  entry points
+- add install and uninstall targets: `make install-xcode-templates` and
+  `make uninstall-xcode-templates`
+- document the Xcode template install path:
+  `~/Library/Developer/Xcode/Templates/File Templates/FSD iOS`
+- evaluate a SwiftPM command plugin wrapper for `fsd-ios create slice`
+  and `fsd-ios create module`
 - keep the CLI generator as the canonical implementation used by templates and
-  plugins.
+  plugins
 
 Success metrics:
 
