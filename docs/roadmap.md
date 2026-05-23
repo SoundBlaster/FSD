@@ -77,6 +77,9 @@ Success metrics:
 
 Goal: make correct structure easier than manual folder creation.
 
+Status: initial CLI support added for page, feature, entity, and standalone
+SwiftPM module generation.
+
 Scope:
 
 - add `fsd-ios create slice page <name>`;

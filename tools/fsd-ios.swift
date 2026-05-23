@@ -71,6 +71,12 @@ func printUsage() {
           create spm --name <Name> --output <path> [--dry-run]
               Materialize the SwiftPM module-island template for legacy adoption.
 
+          create slice page|feature|entity <name> [--root <path>] [--dry-run]
+              Generate an FSD slice in an existing app source root.
+
+          create module <Name> --output <path> [--dry-run]
+              Generate a standalone SwiftPM module island.
+
           validate template [--template <path>]
               Validate a copyable template bundle.
 
@@ -83,6 +89,8 @@ func printUsage() {
           swift tools/fsd-ios.swift lint --config .fsd-ios.yml --format xcode
           swift tools/fsd-ios.swift create app --name MyApp --output ../MyApp
           swift tools/fsd-ios.swift create spm --name LegacyFSD --output ../LegacyFSDModules
+          swift tools/fsd-ios.swift create slice feature export-report --root Sources/App
+          swift tools/fsd-ios.swift create module Reporting --output ../ReportingModule
           swift tools/fsd-ios.swift version
           swift tools/fsd-ios.swift --version
           swift tools/fsd-ios.swift doctor
@@ -96,10 +104,14 @@ func printCreateUsage() {
         Usage:
           swift tools/fsd-ios.swift create app --name <Name> --output <path> [--dry-run]
           swift tools/fsd-ios.swift create spm --name <Name> --output <path> [--dry-run]
+          swift tools/fsd-ios.swift create slice page|feature|entity <name> [--root <path>] [--dry-run]
+          swift tools/fsd-ios.swift create module <Name> --output <path> [--dry-run]
 
         Template kinds:
-          app  Full SwiftUI app starter under templates/fsd-ios.
-          spm  Local Swift Package module island under templates/fsd-ios-spm.
+          app     Full SwiftUI app starter under templates/fsd-ios.
+          spm     Local Swift Package module island under templates/fsd-ios-spm.
+          slice   Page, feature, or entity slice in an app source root.
+          module  Standalone SwiftPM module island.
         """
     )
 }
@@ -175,13 +187,20 @@ func runProcess(
         let outputFileURL = temporaryDirectory.appendingPathComponent("fsd-ios-\(UUID().uuidString).stdout")
         let errorFileURL = temporaryDirectory.appendingPathComponent("fsd-ios-\(UUID().uuidString).stderr")
 
-        fileManager.createFile(atPath: outputFileURL.path, contents: nil)
-        fileManager.createFile(atPath: errorFileURL.path, contents: nil)
+        guard fileManager.createFile(atPath: outputFileURL.path, contents: nil),
+              fileManager.createFile(atPath: errorFileURL.path, contents: nil)
+        else {
+            throw CLIError.launchFailed(
+                "Could not create temporary output files: \(outputFileURL.path), \(errorFileURL.path)"
+            )
+        }
 
         guard let writableOutput = FileHandle(forWritingAtPath: outputFileURL.path),
               let writableError = FileHandle(forWritingAtPath: errorFileURL.path)
         else {
-            throw CLIError.launchFailed("Could not create temporary output files")
+            throw CLIError.launchFailed(
+                "Could not open temporary output files: \(outputFileURL.path), \(errorFileURL.path)"
+            )
         }
 
         outputURL = outputFileURL
@@ -320,6 +339,434 @@ func hasPositionalLintRoot(in arguments: [String]) -> Bool {
     return false
 }
 
+struct GeneratedFile {
+    let relativePath: String
+    let contents: String
+}
+
+struct GeneratedPlan {
+    let title: String
+    let outputURL: URL
+    let files: [GeneratedFile]
+}
+
+enum GeneratedCreateError: Error, CustomStringConvertible {
+    case invalidUsage(String)
+    case conflict(String)
+
+    var description: String {
+        switch self {
+        case .invalidUsage(let message), .conflict(let message):
+            return message
+        }
+    }
+}
+
+enum SliceKind: String {
+    case page
+    case feature
+    case entity
+
+    var layer: String {
+        switch self {
+        case .page:
+            return "pages"
+        case .feature:
+            return "features"
+        case .entity:
+            return "entities"
+        }
+    }
+
+}
+
+func titleCaseWords(from kebabName: String) -> String {
+    kebabName
+        .split(separator: "-")
+        .map { word in
+            guard let first = word.first else {
+                return ""
+            }
+
+            return String(first).uppercased() + String(word.dropFirst())
+        }
+        .joined(separator: " ")
+}
+
+func pascalCase(from kebabName: String) -> String {
+    kebabName
+        .split(separator: "-")
+        .map { word in
+            guard let first = word.first else {
+                return ""
+            }
+
+            return String(first).uppercased() + String(word.dropFirst())
+        }
+        .joined()
+}
+
+func isValidSliceName(_ value: String) -> Bool {
+    let reservedSegments: Set<String> = ["api", "assets", "config", "lib", "model", "testing", "ui"]
+    let allowed = CharacterSet(charactersIn: "abcdefghijklmnopqrstuvwxyz0123456789-")
+
+    guard !value.isEmpty,
+          !reservedSegments.contains(value),
+          value.unicodeScalars.allSatisfy({ allowed.contains($0) }),
+          let first = value.unicodeScalars.first,
+          CharacterSet(charactersIn: "abcdefghijklmnopqrstuvwxyz").contains(first),
+          let last = value.unicodeScalars.last,
+          CharacterSet(charactersIn: "abcdefghijklmnopqrstuvwxyz0123456789").contains(last)
+    else {
+        return false
+    }
+
+    return !value.contains("--")
+}
+
+func isValidSwiftIdentifier(_ value: String) -> Bool {
+    // Swift treats a lone underscore as a wildcard token, so it cannot be imported as a module name.
+    guard value != "_" else {
+        return false
+    }
+
+    let swiftKeywords: Set<String> = [
+        "Any",
+        "associatedtype",
+        "as",
+        "actor",
+        "await",
+        "break",
+        "case",
+        "catch",
+        "class",
+        "continue",
+        "default",
+        "defer",
+        "deinit",
+        "do",
+        "else",
+        "enum",
+        "extension",
+        "false",
+        "fileprivate",
+        "for",
+        "func",
+        "guard",
+        "if",
+        "import",
+        "in",
+        "init",
+        "inout",
+        "internal",
+        "is",
+        "let",
+        "nil",
+        "open",
+        "operator",
+        "private",
+        "protocol",
+        "public",
+        "repeat",
+        "rethrows",
+        "return",
+        "self",
+        "static",
+        "struct",
+        "subscript",
+        "super",
+        "switch",
+        "throws",
+        "true",
+        "try",
+        "typealias",
+        "var",
+        "where",
+        "while",
+    ]
+
+    guard !swiftKeywords.contains(value) else {
+        return false
+    }
+
+    guard let first = value.unicodeScalars.first,
+          CharacterSet(charactersIn: "_ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz").contains(first)
+    else {
+        return false
+    }
+
+    let allowed = CharacterSet(charactersIn: "_ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789")
+    return value.unicodeScalars.allSatisfy { allowed.contains($0) }
+}
+
+func createSlicePlan(kind: SliceKind, name: String, rootPath: String) throws -> GeneratedPlan {
+    guard isValidSliceName(name) else {
+        throw GeneratedCreateError.invalidUsage(
+            "slice name `\(name)` must be kebab-case business language, for example `item-details`"
+        )
+    }
+
+    let typeName = pascalCase(from: name)
+    let title = titleCaseWords(from: name)
+    let rootURL = URL(fileURLWithPath: rootPath).standardizedFileURL
+    let sliceRelativePath = "\(kind.layer)/\(name)"
+    let files: [GeneratedFile]
+
+    switch kind {
+    case .page:
+        files = [
+            GeneratedFile(
+                relativePath: "\(sliceRelativePath)/README.md",
+                contents: "# \(title) Page\n\nFSD page slice generated by `fsd-ios create slice`.\n"
+            ),
+            GeneratedFile(
+                relativePath: "\(sliceRelativePath)/ui/\(typeName)Page.swift",
+                contents:
+                    """
+                    import SwiftUI
+
+                    struct \(typeName)Page: View {
+                        var body: some View {
+                            Text("\(title)")
+                        }
+                    }
+
+                    """
+            ),
+        ]
+    case .feature:
+        files = [
+            GeneratedFile(
+                relativePath: "\(sliceRelativePath)/README.md",
+                contents: "# \(title) Feature\n\nFSD feature slice generated by `fsd-ios create slice`.\n"
+            ),
+            GeneratedFile(
+                relativePath: "\(sliceRelativePath)/model/\(typeName)Action.swift",
+                contents:
+                    """
+                    struct \(typeName)Action {
+                        func callAsFunction() {
+                        }
+                    }
+
+                    """
+            ),
+            GeneratedFile(
+                relativePath: "\(sliceRelativePath)/ui/\(typeName)Button.swift",
+                contents:
+                    """
+                    import SwiftUI
+
+                    struct \(typeName)Button: View {
+                        let action: \(typeName)Action
+
+                        init(action: \(typeName)Action = \(typeName)Action()) {
+                            self.action = action
+                        }
+
+                        var body: some View {
+                            Button("\(title)") {
+                                action()
+                            }
+                        }
+                    }
+
+                    """
+            ),
+        ]
+    case .entity:
+        files = [
+            GeneratedFile(
+                relativePath: "\(sliceRelativePath)/README.md",
+                contents: "# \(title) Entity\n\nFSD entity slice generated by `fsd-ios create slice`.\n"
+            ),
+            GeneratedFile(
+                relativePath: "\(sliceRelativePath)/model/\(typeName).swift",
+                contents:
+                    """
+                    import Foundation
+
+                    struct \(typeName) {
+                        let id = UUID()
+                    }
+
+                    """
+            ),
+            GeneratedFile(
+                relativePath: "\(sliceRelativePath)/ui/\(typeName)Row.swift",
+                contents:
+                    """
+                    import SwiftUI
+
+                    struct \(typeName)Row: View {
+                        let model: \(typeName)
+
+                        var body: some View {
+                            Text(model.id.uuidString)
+                        }
+                    }
+
+                    """
+            ),
+        ]
+    }
+
+    return GeneratedPlan(title: "FSD slice", outputURL: rootURL, files: files)
+}
+
+func createModulePlan(name: String, outputPath: String) throws -> GeneratedPlan {
+    guard isValidSwiftIdentifier(name) else {
+        throw GeneratedCreateError.invalidUsage("module name `\(name)` must be a valid Swift identifier")
+    }
+
+    let outputURL = URL(fileURLWithPath: outputPath).standardizedFileURL
+    let files = [
+        GeneratedFile(
+            relativePath: "Package.swift",
+            contents:
+                """
+                // swift-tools-version: 6.1
+
+                import PackageDescription
+
+                let package = Package(
+                    name: "\(name)",
+                    platforms: [
+                        .iOS(.v17),
+                        .macOS(.v14),
+                    ],
+                    products: [
+                        .library(name: "\(name)", targets: ["\(name)"]),
+                    ],
+                    targets: [
+                        .target(name: "\(name)"),
+                        .testTarget(name: "\(name)Tests", dependencies: ["\(name)"]),
+                    ]
+                )
+
+                """
+        ),
+        GeneratedFile(
+            relativePath: "README.md",
+            contents:
+                """
+                # \(name)
+
+                SwiftPM module island generated by `fsd-ios create module`.
+
+                """
+        ),
+        GeneratedFile(
+            relativePath: "Sources/\(name)/\(name)Module.swift",
+            contents:
+                """
+                public struct \(name)Module {
+                    public init() {
+                    }
+
+                    public var name: String {
+                        "\(name)"
+                    }
+                }
+
+                """
+        ),
+        GeneratedFile(
+            relativePath: "Tests/\(name)Tests/\(name)Tests.swift",
+            contents:
+                """
+                import Testing
+                @testable import \(name)
+
+                @Test func exposesModuleName() {
+                    #expect(\(name)Module().name == "\(name)")
+                }
+
+                """
+        ),
+    ]
+
+    return GeneratedPlan(title: "FSD module", outputURL: outputURL, files: files)
+}
+
+func validateGeneratedPlan(_ plan: GeneratedPlan) throws {
+    var isDirectory: ObjCBool = false
+
+    if fileManager.fileExists(atPath: plan.outputURL.path, isDirectory: &isDirectory) {
+        guard isDirectory.boolValue else {
+            throw GeneratedCreateError.conflict("Output path exists and is not a directory: \(plan.outputURL.path)")
+        }
+
+        guard fileManager.isWritableFile(atPath: plan.outputURL.path) else {
+            throw GeneratedCreateError.conflict("Output path is not writable: \(plan.outputURL.path)")
+        }
+    } else {
+        let parent = plan.outputURL.deletingLastPathComponent()
+        var parentIsDirectory: ObjCBool = false
+
+        guard fileManager.fileExists(atPath: parent.path, isDirectory: &parentIsDirectory) else {
+            throw GeneratedCreateError.conflict("Output parent directory does not exist: \(parent.path)")
+        }
+
+        guard parentIsDirectory.boolValue else {
+            throw GeneratedCreateError.conflict("Output parent exists and is not a directory: \(parent.path)")
+        }
+
+        guard fileManager.isWritableFile(atPath: parent.path) else {
+            throw GeneratedCreateError.conflict("Output parent is not writable: \(parent.path)")
+        }
+    }
+
+    var destinations = Set<String>()
+
+    for file in plan.files {
+        let destinationURL = plan.outputURL.appendingPathComponent(file.relativePath)
+        // Standardize paths so equivalent destinations such as `./foo` and `foo` are detected as duplicates.
+        let destinationPath = destinationURL.standardizedFileURL.path
+
+        // Detect conflicts inside this generated plan; the next loop checks existing files.
+        guard destinations.insert(destinationPath).inserted else {
+            throw GeneratedCreateError.conflict("Duplicate destination file within generated plan: \(destinationPath)")
+        }
+    }
+
+    for destinationPath in destinations {
+        if fileManager.fileExists(atPath: destinationPath) {
+            throw GeneratedCreateError.conflict("Destination file already exists: \(destinationPath)")
+        }
+    }
+}
+
+func materializeGeneratedPlan(_ plan: GeneratedPlan) throws {
+    try validateGeneratedPlan(plan)
+
+    for file in plan.files {
+        let destinationURL = plan.outputURL.appendingPathComponent(file.relativePath)
+
+        try fileManager.createDirectory(
+            at: destinationURL.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
+        try file.contents.write(to: destinationURL, atomically: true, encoding: .utf8)
+    }
+}
+
+func printGeneratedPlan(_ plan: GeneratedPlan, dryRun: Bool) {
+    if dryRun {
+        print("\(plan.title) create dry run:")
+    } else {
+        print("\(plan.title) created:")
+    }
+
+    print("Output: \(plan.outputURL.path)")
+
+    for file in plan.files.sorted(by: { $0.relativePath < $1.relativePath }) {
+        print("create \(file.relativePath)")
+    }
+
+    print(dryRun ? "Planned files: \(plan.files.count)" : "Created files: \(plan.files.count)")
+}
+
 func discoverDefaultConfigPath() -> String? {
     for filename in [".fsd-ios.yml", ".fsd-ios.yaml"] {
         let url = originalWorkingDirectoryURL
@@ -367,7 +814,7 @@ func runSwiftScript(_ scriptName: String, arguments: [String]) throws -> Int32 {
 
 func parseCreateArguments(_ arguments: [String]) throws -> [String] {
     guard let kind = arguments.first else {
-        throw CLIError.invalidUsage("create requires a template kind: app or spm")
+        throw CLIError.invalidUsage("create requires a kind: app, spm, slice, or module")
     }
 
     if kind == "--help" || kind == "-h" {
@@ -375,17 +822,27 @@ func parseCreateArguments(_ arguments: [String]) throws -> [String] {
         return []
     }
 
-    let templatePath: String
-
     switch kind {
     case "app":
-        templatePath = repoPath("templates/fsd-ios")
+        return try parseTemplateCreateArguments(
+            kind: kind,
+            templatePath: repoPath("templates/fsd-ios"),
+            arguments: arguments
+        )
     case "spm":
-        templatePath = repoPath("templates/fsd-ios-spm")
+        return try parseTemplateCreateArguments(
+            kind: kind,
+            templatePath: repoPath("templates/fsd-ios-spm"),
+            arguments: arguments
+        )
+    case "slice", "module":
+        return []
     default:
-        throw CLIError.invalidUsage("unknown template kind `\(kind)`. Use `app` or `spm`.")
+        throw CLIError.invalidUsage("unknown create kind `\(kind)`. Use `app`, `spm`, `slice`, or `module`.")
     }
+}
 
+func parseTemplateCreateArguments(kind: String, templatePath: String, arguments: [String]) throws -> [String] {
     var name: String?
     var output: String?
     var dryRun = false
@@ -441,6 +898,117 @@ func parseCreateArguments(_ arguments: [String]) throws -> [String] {
     }
 
     return mappedArguments
+}
+
+func runCreateSlice(_ arguments: [String]) throws -> Int32 {
+    guard let rawKind = arguments.first else {
+        throw CLIError.invalidUsage("create slice requires a kind: page, feature, or entity")
+    }
+
+    if rawKind == "--help" || rawKind == "-h" {
+        printCreateUsage()
+        return 0
+    }
+
+    guard let kind = SliceKind(rawValue: rawKind) else {
+        throw CLIError.invalidUsage("unknown slice kind `\(rawKind)`. Use `page`, `feature`, or `entity`.")
+    }
+
+    guard arguments.count >= 2 else {
+        throw CLIError.invalidUsage("create slice \(rawKind) requires a slice name")
+    }
+
+    let name = arguments[1]
+    var sourceRootPath = repoPath("FSDDemoApp")
+    var dryRun = false
+    var index = 2
+
+    while index < arguments.count {
+        let argument = arguments[index]
+
+        switch argument {
+        case "--help", "-h":
+            printCreateUsage()
+            return 0
+        case "--root":
+            index += 1
+            guard index < arguments.count else {
+                throw CLIError.invalidUsage("--root requires a value")
+            }
+            sourceRootPath = absolutePath(arguments[index])
+        case "--dry-run":
+            dryRun = true
+        default:
+            throw CLIError.invalidUsage("unknown create slice option `\(argument)`")
+        }
+
+        index += 1
+    }
+
+    let plan = try createSlicePlan(kind: kind, name: name, rootPath: sourceRootPath)
+
+    if dryRun {
+        try validateGeneratedPlan(plan)
+        printGeneratedPlan(plan, dryRun: true)
+    } else {
+        try materializeGeneratedPlan(plan)
+        printGeneratedPlan(plan, dryRun: false)
+    }
+
+    return 0
+}
+
+func runCreateModule(_ arguments: [String]) throws -> Int32 {
+    guard let name = arguments.first else {
+        throw CLIError.invalidUsage("create module requires a module name")
+    }
+
+    if name == "--help" || name == "-h" {
+        printCreateUsage()
+        return 0
+    }
+
+    var output: String?
+    var dryRun = false
+    var index = 1
+
+    while index < arguments.count {
+        let argument = arguments[index]
+
+        switch argument {
+        case "--help", "-h":
+            printCreateUsage()
+            return 0
+        case "--output":
+            index += 1
+            guard index < arguments.count else {
+                throw CLIError.invalidUsage("--output requires a value")
+            }
+            output = absolutePath(arguments[index])
+        case "--dry-run":
+            dryRun = true
+        default:
+            throw CLIError.invalidUsage("unknown create module option `\(argument)`")
+        }
+
+        index += 1
+    }
+
+    guard let output else {
+        throw CLIError.invalidUsage("create module requires --output")
+    }
+
+    let plan = try createModulePlan(name: name, outputPath: output)
+
+    if dryRun {
+        try validateGeneratedPlan(plan)
+        printGeneratedPlan(plan, dryRun: true)
+    } else {
+        try materializeGeneratedPlan(plan)
+        printGeneratedPlan(plan, dryRun: false)
+    }
+
+    return 0
 }
 
 func firstOutputLine(stdout: String, stderr: String) -> String {
@@ -638,6 +1206,14 @@ func runCLI(_ arguments: [String]) throws -> Int32 {
             )
         return try runSwiftScript("fsd-harmonize.swift", arguments: harmonizeArguments)
     case "create":
+        if commandArguments.first == "slice" {
+            return try runCreateSlice(Array(commandArguments.dropFirst()))
+        }
+
+        if commandArguments.first == "module" {
+            return try runCreateModule(Array(commandArguments.dropFirst()))
+        }
+
         let mappedArguments = try parseCreateArguments(commandArguments)
         guard !mappedArguments.isEmpty else {
             return 0
@@ -688,6 +1264,10 @@ do {
 } catch let error as CLIError {
     print("error: \(error.description)")
     print("Run `swift tools/fsd-ios.swift --help` for usage.")
+    exit(2)
+} catch let error as GeneratedCreateError {
+    print("error: \(error.description)")
+    print("Run `swift tools/fsd-ios.swift create --help` for usage.")
     exit(2)
 } catch {
     print("error: \(error.localizedDescription)")

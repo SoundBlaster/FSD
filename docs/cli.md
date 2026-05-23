@@ -16,6 +16,8 @@ swift tools/fsd-ios.swift lint --config .fsd-ios.yml
 swift tools/fsd-ios.swift lint --root FSDDemoApp --strict --architecture
 swift tools/fsd-ios.swift lint --config .fsd-ios.yml --format xcode
 swift tools/fsd-ios.swift create spm --name LegacyFSD --output ../LegacyFSDModules
+swift tools/fsd-ios.swift create slice feature export-report --root Sources/App
+swift tools/fsd-ios.swift create module Reporting --output ../ReportingModule
 ```
 
 Use `make cli-smoke` to verify the CLI contract and `make cli-doctor` to check
@@ -62,6 +64,8 @@ internal tools as the source of truth.
 | `harmonize` | Prints read-only refactoring suggestions |
 | `create app` | Generates the full SwiftUI app starter template |
 | `create spm` | Generates the SwiftPM module-island template for legacy adoption |
+| `create slice` | Generates page, feature, or entity slice files in an app source root |
+| `create module` | Generates a standalone SwiftPM module island |
 | `validate template` | Validates a copyable template bundle |
 | `doctor` | Checks local prerequisites and quick repository health |
 
@@ -250,6 +254,42 @@ navigationController?.pushViewController(controller, animated: true)
 The important boundary is in `Package.swift`: lower modules cannot import higher
 modules unless that dependency is declared.
 
+## Slice Generator Flow
+
+Use slice generation when an existing FSD app already has a source root and you
+want a predictable page, feature, or entity boundary:
+
+```bash
+swift tools/fsd-ios.swift create slice page order-details --root Sources/App
+swift tools/fsd-ios.swift create slice feature export-report --root Sources/App
+swift tools/fsd-ios.swift create slice entity customer-account --root Sources/App
+```
+
+The slice name must be kebab-case business language. The generator refuses to
+overwrite existing files and creates only allowed FSD segments such as `ui` and
+`model`, so the generated structure can be linted immediately:
+
+```bash
+swift tools/fsd-ios.swift lint --root Sources/App --strict --architecture
+```
+
+Omit `--root` inside this repository to target `FSDDemoApp`. Use `--dry-run` to
+review the planned file map without writing files.
+
+## Standalone Module Generator Flow
+
+Use module generation when a legacy codebase needs a small SwiftPM island before
+adopting the larger module template:
+
+```bash
+swift tools/fsd-ios.swift create module Reporting --output ../ReportingModule
+swift test --package-path ../ReportingModule
+```
+
+The module name must be a valid Swift identifier. The generator creates a
+minimal package manifest, public API placeholder, test target, and README, and
+refuses to overwrite existing files.
+
 ## Doctor
 
 Run `doctor` when onboarding a machine or before investigating a local failure:
@@ -288,6 +328,8 @@ make cli-smoke
 make cli-doctor
 make config-smoke
 make report-smoke
+make slice-create-fixture
+make module-create-fixture
 make install-smoke
 make action-smoke
 make ci

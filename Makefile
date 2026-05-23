@@ -12,7 +12,7 @@ INSTALL_PREFIX ?= $(HOME)/.local
 INSTALL_BIN_DIR := $(INSTALL_PREFIX)/bin
 INSTALL_SMOKE_PREFIX := $(DERIVED_DATA_PATH)/LocalInstall
 
-.PHONY: help open install uninstall install-smoke cli-help cli-smoke cli-doctor config-smoke report-smoke action-smoke lint lint-strict lint-architecture harmonize harmonize-fixture template-create-dry-run template-create-fixture template-validate template-validate-negative spm-template-test spm-template-create-fixture build test demo template-demo ci clean
+.PHONY: help open install uninstall install-smoke cli-help cli-smoke cli-doctor config-smoke report-smoke action-smoke lint lint-strict lint-architecture harmonize harmonize-fixture template-create-dry-run template-create-fixture slice-create-fixture module-create-fixture template-validate template-validate-negative spm-template-test spm-template-create-fixture build test demo template-demo ci clean
 
 help:
 	@printf '%s\n' \
@@ -34,6 +34,8 @@ help:
 		'  make harmonize-fixture  Verify harmonize suggestions on a fixture' \
 		'  make template-create-dry-run  Preview template materialization' \
 		'  make template-create-fixture  Materialize and verify a generated template smoke app' \
+		'  make slice-create-fixture  Generate sample page, feature, and entity slices' \
+		'  make module-create-fixture  Generate and test a standalone SwiftPM module island' \
 		'  make template-validate  Validate the copyable template bundle' \
 		'  make template-validate-negative  Run the negative template fixture' \
 		'  make spm-template-test  Build and test the SPM module-island template' \
@@ -79,6 +81,8 @@ cli-help:
 cli-smoke:
 	rm -rf $(DERIVED_DATA_PATH)/CLICreateAppDryRun
 	rm -rf $(DERIVED_DATA_PATH)/CLICreateSPMDryRun
+	rm -rf $(DERIVED_DATA_PATH)/CLICreateSliceDryRun
+	rm -rf $(DERIVED_DATA_PATH)/CLICreateModuleDryRun
 	$(SWIFT) tools/fsd-ios.swift --help
 	$(SWIFT) tools/fsd-ios.swift version
 	$(SWIFT) tools/fsd-ios.swift --version
@@ -97,6 +101,15 @@ cli-smoke:
 		--output $(DERIVED_DATA_PATH)/CLICreateSPMDryRun \
 		--dry-run
 	@test ! -e $(DERIVED_DATA_PATH)/CLICreateSPMDryRun
+	mkdir -p $(DERIVED_DATA_PATH)/CLICreateSliceDryRun
+	$(SWIFT) tools/fsd-ios.swift create slice feature export-report \
+		--root $(DERIVED_DATA_PATH)/CLICreateSliceDryRun \
+		--dry-run
+	@test ! -e $(DERIVED_DATA_PATH)/CLICreateSliceDryRun/features/export-report
+	$(SWIFT) tools/fsd-ios.swift create module CLICreateModule \
+		--output $(DERIVED_DATA_PATH)/CLICreateModuleDryRun \
+		--dry-run
+	@test ! -e $(DERIVED_DATA_PATH)/CLICreateModuleDryRun
 
 cli-doctor:
 	$(SWIFT) tools/fsd-ios.swift doctor
@@ -243,6 +256,42 @@ template-create-fixture:
 		printf '%s\n' 'Existing destination conflict failed as expected'; \
 	fi
 
+slice-create-fixture:
+	rm -rf $(DERIVED_DATA_PATH)/SliceCreateSmoke
+	mkdir -p $(DERIVED_DATA_PATH)/SliceCreateSmoke
+	$(SWIFT) tools/fsd-ios.swift create slice page order-details \
+		--root $(DERIVED_DATA_PATH)/SliceCreateSmoke
+	$(SWIFT) tools/fsd-ios.swift create slice feature export-report \
+		--root $(DERIVED_DATA_PATH)/SliceCreateSmoke
+	$(SWIFT) tools/fsd-ios.swift create slice entity customer-account \
+		--root $(DERIVED_DATA_PATH)/SliceCreateSmoke
+	@test -f $(DERIVED_DATA_PATH)/SliceCreateSmoke/pages/order-details/ui/OrderDetailsPage.swift
+	@test -f $(DERIVED_DATA_PATH)/SliceCreateSmoke/features/export-report/model/ExportReportAction.swift
+	@test -f $(DERIVED_DATA_PATH)/SliceCreateSmoke/entities/customer-account/ui/CustomerAccountRow.swift
+	$(SWIFT) tools/fsd-lint.swift --root $(DERIVED_DATA_PATH)/SliceCreateSmoke --strict --architecture
+	@if $(SWIFT) tools/fsd-ios.swift create slice feature export-report \
+		--root $(DERIVED_DATA_PATH)/SliceCreateSmoke; then \
+		printf '%s\n' 'Expected existing slice conflict to fail'; \
+		exit 1; \
+	else \
+		printf '%s\n' 'Existing slice conflict failed as expected'; \
+	fi
+	@if $(SWIFT) tools/fsd-ios.swift create slice feature ui \
+		--root $(DERIVED_DATA_PATH)/SliceCreateSmoke; then \
+		printf '%s\n' 'Expected reserved slice name to fail'; \
+		exit 1; \
+	else \
+		printf '%s\n' 'Reserved slice name failed as expected'; \
+	fi
+
+module-create-fixture:
+	rm -rf $(DERIVED_DATA_PATH)/ModuleCreateSmoke
+	$(SWIFT) tools/fsd-ios.swift create module Reporting \
+		--output $(DERIVED_DATA_PATH)/ModuleCreateSmoke
+	@test -f $(DERIVED_DATA_PATH)/ModuleCreateSmoke/Package.swift
+	@test -f $(DERIVED_DATA_PATH)/ModuleCreateSmoke/Sources/Reporting/ReportingModule.swift
+	$(SWIFT) test --package-path $(DERIVED_DATA_PATH)/ModuleCreateSmoke
+
 template-validate:
 	$(SWIFT) tools/fsd-template-validate.swift --template templates/fsd-ios
 	$(SWIFT) tools/fsd-lint.swift --root templates/fsd-ios/AppName --strict --architecture
@@ -323,7 +372,7 @@ test:
 		test \
 		CODE_SIGNING_ALLOWED=NO
 
-ci: lint lint-strict lint-architecture harmonize-fixture template-create-dry-run template-create-fixture template-validate template-validate-negative spm-template-test spm-template-create-fixture cli-smoke cli-doctor config-smoke report-smoke install-smoke action-smoke test
+ci: lint lint-strict lint-architecture harmonize-fixture template-create-dry-run template-create-fixture slice-create-fixture module-create-fixture template-validate template-validate-negative spm-template-test spm-template-create-fixture cli-smoke cli-doctor config-smoke report-smoke install-smoke action-smoke test
 
 clean:
 	rm -rf $(DERIVED_DATA_PATH)
