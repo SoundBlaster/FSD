@@ -425,6 +425,7 @@ func isValidSliceName(_ value: String) -> Bool {
 }
 
 func isValidSwiftIdentifier(_ value: String) -> Bool {
+    // A lone wildcard is not importable as a Swift module name.
     guard value != "_" else {
         return false
     }
@@ -725,7 +726,9 @@ func validateGeneratedPlan(_ plan: GeneratedPlan) throws {
         guard destinations.insert(destinationPath).inserted else {
             throw GeneratedCreateError.conflict("Duplicate destination file in generated plan: \(destinationPath)")
         }
+    }
 
+    for destinationPath in destinations {
         if fileManager.fileExists(atPath: destinationPath) {
             throw GeneratedCreateError.conflict("Destination file already exists: \(destinationPath)")
         }
