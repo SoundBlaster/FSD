@@ -735,7 +735,7 @@ func printGeneratedPlan(_ plan: GeneratedPlan, dryRun: Bool) {
     if dryRun {
         print("\(plan.title) create dry run:")
     } else {
-        print("\(plan.title) created: \(plan.outputURL.path)")
+        print("\(plan.title) created:")
     }
 
     print("Output: \(plan.outputURL.path)")
