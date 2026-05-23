@@ -62,6 +62,36 @@ swift .fsd-ios-tooling/tools/fsd-ios.swift lint \
   --architecture
 ```
 
+For repeatable local and CI usage, commit `.fsd-ios.yml` to the host project:
+
+```yaml
+version: 1
+root: Sources/App
+strict: true
+architecture: true
+ignoredPaths:
+  - Generated
+layers:
+  app: app
+  pages: pages
+  widgets: widgets
+  features: features
+  entities: entities
+  shared: shared
+rules:
+  rootStructure: true
+  layerSegments: true
+  sliceSegments: true
+  dependencyDirection: true
+  sameLayerSliceIsolation: true
+```
+
+Then `fsd-ios lint` discovers the config from the caller's current directory:
+
+```bash
+swift .fsd-ios-tooling/tools/fsd-ios.swift lint
+```
+
 ## Local Developer Workflow
 
 Clone or update the tooling checkout:
@@ -95,6 +125,12 @@ swift .fsd-ios-tooling/tools/fsd-ios.swift lint \
   --architecture
 ```
 
+Or use the committed config:
+
+```bash
+swift .fsd-ios-tooling/tools/fsd-ios.swift lint --config .fsd-ios.yml
+```
+
 For refactoring planning, use the read-only advisor:
 
 ```bash
@@ -107,8 +143,7 @@ Copy [examples/github-actions/external-project-fsd-ios.yml](../../examples/githu
 into the external project and adjust:
 
 - `ref` to the pinned FSD tooling version;
-- `FSD_ROOT` to the source root that contains `app`, `pages`, `widgets`,
-  `features`, `entities`, and `shared`;
+- `.fsd-ios.yml` to the source root and lint policy for the host project;
 - simulator/build steps for the host application, if needed.
 
 The baseline workflow intentionally uses the Swift script directly. The reusable
@@ -124,7 +159,7 @@ the reusable Action wrapper:
 - name: Run FSD architecture lint
   uses: SoundBlaster/FSD@main
   with:
-    root: Sources/App
+    config: .fsd-ios.yml
     strict: "true"
     architecture: "true"
     doctor: "true"

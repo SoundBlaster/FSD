@@ -12,6 +12,7 @@ swift tools/fsd-ios.swift version
 swift tools/fsd-ios.swift --version
 swift tools/fsd-ios.swift doctor
 swift tools/fsd-ios.swift doctor --json
+swift tools/fsd-ios.swift lint --config .fsd-ios.yml
 swift tools/fsd-ios.swift lint --root FSDDemoApp --strict --architecture
 swift tools/fsd-ios.swift create spm --name LegacyFSD --output ../LegacyFSDModules
 ```
@@ -67,6 +68,31 @@ Default repository paths are resolved from the CLI script location, so the
 command can be invoked from another working directory with an absolute script
 path. Explicit user paths such as `--root`, `--template`, and `--output` are
 resolved relative to the caller's current directory.
+
+## Configuration
+
+`lint` can read `.fsd-ios.yml` automatically from the caller's current
+directory:
+
+```bash
+swift tools/fsd-ios.swift lint
+```
+
+Use `--config` when the file lives elsewhere:
+
+```bash
+swift tools/fsd-ios.swift lint --config .fsd-ios.yml
+swift tools/fsd-ios.swift lint --config .fsd-ios.yml --strict --architecture
+```
+
+Command-line values override config values:
+
+```bash
+swift tools/fsd-ios.swift lint --config .fsd-ios.yml --root Sources/App
+swift tools/fsd-ios.swift lint --config .fsd-ios.yml --no-strict --no-architecture
+```
+
+See [FSD iOS Configuration](configuration.md) for the full config contract.
 
 ## Local Install
 
@@ -204,6 +230,7 @@ The Makefile exposes the CLI through stable targets:
 make cli-help
 make cli-smoke
 make cli-doctor
+make config-smoke
 make install-smoke
 make action-smoke
 make ci
@@ -215,6 +242,9 @@ already run elsewhere in `make ci`.
 
 `make install-smoke` installs the wrapper into `DerivedData/LocalInstall`, checks
 that it can run, and uninstalls it again.
+
+`make config-smoke` verifies explicit config loading, default config discovery,
+direct linter config support, and invalid config diagnostics.
 
 `make action-smoke` verifies the reusable GitHub Action metadata and runs the
 same strict architecture lint path that the Action dispatches.

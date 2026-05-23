@@ -33,6 +33,8 @@ Make this repository a reusable baseline for teams that want:
 Goal: introduce `.fsd-ios.yml` as the stable project-level configuration
 contract.
 
+Status: in progress in the first implementation PR after this roadmap.
+
 Scope:
 
 - document the config file format;
@@ -124,4 +126,3 @@ Each PR in the stack should explain:
 For implementation PRs, prefer targeted fixture tests over broad rewrites.
 Documentation should be updated in the same PR when a command, rule, or workflow
 changes.
-

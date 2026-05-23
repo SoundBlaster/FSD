@@ -1,0 +1,20 @@
+version: 1
+root: Sources/App
+strict: true
+architecture: true
+ignoredPaths:
+  - Generated
+layers:
+  app: app
+  pages: pages
+  widgets: widgets
+  features: features
+  entities: entities
+  shared: shared
+rules:
+  rootStructure: true
+  layerSegments: true
+  sliceSegments: true
+  dependencyDirection: true
+  sameLayerSliceIsolation: true
+

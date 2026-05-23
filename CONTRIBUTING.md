@@ -41,6 +41,7 @@ When changing the unified CLI or documented developer workflow, run:
 make install-smoke
 make cli-smoke
 make cli-doctor
+make config-smoke
 make action-smoke
 ```
 
@@ -49,6 +50,9 @@ consumers stay covered when the CLI contract changes.
 
 `make action-smoke` checks the reusable GitHub Action contract and verifies that
 it still dispatches through the same FSD lint path.
+
+`make config-smoke` verifies `.fsd-ios.yml` discovery, explicit config loading,
+direct linter config support, and invalid config diagnostics.
 
 When changing the linter, also run a negative fixture or another targeted check
 that proves the rule fails when it should.

@@ -12,7 +12,7 @@ INSTALL_PREFIX ?= $(HOME)/.local
 INSTALL_BIN_DIR := $(INSTALL_PREFIX)/bin
 INSTALL_SMOKE_PREFIX := $(DERIVED_DATA_PATH)/LocalInstall
 
-.PHONY: help open install uninstall install-smoke cli-help cli-smoke cli-doctor action-smoke lint lint-strict lint-architecture harmonize harmonize-fixture template-create-dry-run template-create-fixture template-validate template-validate-negative spm-template-test spm-template-create-fixture build test demo template-demo ci clean
+.PHONY: help open install uninstall install-smoke cli-help cli-smoke cli-doctor config-smoke action-smoke lint lint-strict lint-architecture harmonize harmonize-fixture template-create-dry-run template-create-fixture template-validate template-validate-negative spm-template-test spm-template-create-fixture build test demo template-demo ci clean
 
 help:
 	@printf '%s\n' \
@@ -24,6 +24,7 @@ help:
 		'  make cli-help     Print the unified fsd-ios CLI help' \
 		'  make cli-smoke    Smoke-test the unified fsd-ios CLI' \
 		'  make cli-doctor   Check local FSD iOS tooling prerequisites' \
+		'  make config-smoke  Verify .fsd-ios.yml config loading' \
 		'  make action-smoke  Smoke-test the reusable GitHub Action contract' \
 		'  make lint         Run the baseline FSD lint' \
 		'  make lint-strict  Run the strict FSD lint' \
@@ -81,6 +82,7 @@ cli-smoke:
 	$(SWIFT) tools/fsd-ios.swift version
 	$(SWIFT) tools/fsd-ios.swift --version
 	$(SWIFT) tools/fsd-ios.swift lint --help
+	$(SWIFT) tools/fsd-ios.swift lint --config .fsd-ios.yml --no-strict --no-architecture
 	$(SWIFT) tools/fsd-ios.swift harmonize --help
 	$(SWIFT) tools/fsd-ios.swift validate template --help
 	$(SWIFT) tools/fsd-ios.swift doctor --help
@@ -101,12 +103,27 @@ cli-doctor:
 	$(SWIFT) tools/fsd-ios.swift doctor --json > $(DERIVED_DATA_PATH)/DoctorSmoke.json
 	$(SWIFT) -e 'import Foundation; _ = try JSONSerialization.jsonObject(with: Data(contentsOf: URL(fileURLWithPath: CommandLine.arguments[1])))' $(DERIVED_DATA_PATH)/DoctorSmoke.json
 
+config-smoke:
+	$(SWIFT) tools/fsd-ios.swift lint --config .fsd-ios.yml --no-strict --no-architecture
+	$(SWIFT) tools/fsd-ios.swift lint --config tests/fixtures/config-explicit/.fsd-ios.yml
+	$(SWIFT) tools/fsd-lint.swift --config tests/fixtures/config-explicit/.fsd-ios.yml
+	cd tests/fixtures/config-explicit && $(SWIFT) ../../../tools/fsd-ios.swift lint
+	@if $(SWIFT) tools/fsd-ios.swift lint --config tests/fixtures/config-invalid/.fsd-ios.yml; then \
+		printf '%s\n' 'Expected invalid config fixture to fail'; \
+		exit 1; \
+	else \
+		printf '%s\n' 'Invalid config fixture failed as expected'; \
+	fi
+
 action-smoke:
 	@test -f action.yml
 	@grep -q '^runs:' action.yml
 	@grep -q 'using: composite' action.yml
 	@grep -q 'tools/fsd-ios.swift' action.yml
 	@grep -q 'INPUT_ROOT' action.yml
+	@grep -q 'INPUT_CONFIG' action.yml
+	@grep -q -- '--no-strict' action.yml
+	@grep -q -- '--no-architecture' action.yml
 	$(SWIFT) tools/fsd-ios.swift lint --root $(APP_ROOT) --strict --architecture
 
 lint:
@@ -271,7 +288,7 @@ test:
 		test \
 		CODE_SIGNING_ALLOWED=NO
 
-ci: lint lint-strict lint-architecture harmonize-fixture template-create-dry-run template-create-fixture template-validate template-validate-negative spm-template-test spm-template-create-fixture cli-smoke cli-doctor install-smoke action-smoke test
+ci: lint lint-strict lint-architecture harmonize-fixture template-create-dry-run template-create-fixture template-validate template-validate-negative spm-template-test spm-template-create-fixture cli-smoke cli-doctor config-smoke install-smoke action-smoke test
 
 clean:
 	rm -rf $(DERIVED_DATA_PATH)

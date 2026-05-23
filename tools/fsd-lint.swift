@@ -25,10 +25,166 @@ struct Finding {
     let message: String
 }
 
+struct LayerConfiguration {
+    var app: String
+    var pages: String
+    var widgets: String
+    var features: String
+    var entities: String
+    var shared: String
+
+    static let defaults = LayerConfiguration(
+        app: "app",
+        pages: "pages",
+        widgets: "widgets",
+        features: "features",
+        entities: "entities",
+        shared: "shared"
+    )
+
+    var all: Set<String> {
+        [app, pages, widgets, features, entities, shared]
+    }
+
+    var sliced: Set<String> {
+        [pages, widgets, features, entities]
+    }
+
+    var sameLayerSliceIsolation: Set<String> {
+        [widgets, features, entities]
+    }
+
+    var ranks: [String: Int] {
+        [
+            shared: 0,
+            entities: 1,
+            features: 2,
+            widgets: 3,
+            pages: 4,
+            app: 5,
+        ]
+    }
+
+    mutating func apply(key: String, value: String) throws {
+        switch key {
+        case "app":
+            app = value
+        case "pages":
+            pages = value
+        case "widgets":
+            widgets = value
+        case "features":
+            features = value
+        case "entities":
+            entities = value
+        case "shared":
+            shared = value
+        default:
+            throw ConfigError.invalidValue("layers.\(key)", "Unknown layer key")
+        }
+    }
+
+    func validated() throws -> LayerConfiguration {
+        let values = [app, pages, widgets, features, entities, shared]
+
+        for value in values {
+            guard !value.isEmpty else {
+                throw ConfigError.invalidValue("layers", "Layer folder names must not be empty")
+            }
+
+            guard !value.contains("/") else {
+                throw ConfigError.invalidValue("layers", "Layer folder name `\(value)` must not contain `/`")
+            }
+        }
+
+        guard Set(values).count == values.count else {
+            throw ConfigError.invalidValue("layers", "Layer folder names must be unique")
+        }
+
+        return self
+    }
+}
+
+struct RuleConfiguration {
+    var rootStructure: Bool
+    var layerSegments: Bool
+    var sliceSegments: Bool
+    var dependencyDirection: Bool
+    var sameLayerSliceIsolation: Bool
+
+    static let defaults = RuleConfiguration(
+        rootStructure: true,
+        layerSegments: true,
+        sliceSegments: true,
+        dependencyDirection: true,
+        sameLayerSliceIsolation: true
+    )
+
+    mutating func apply(key: String, value: Bool) throws {
+        switch key {
+        case "rootStructure":
+            rootStructure = value
+        case "layerSegments":
+            layerSegments = value
+        case "sliceSegments":
+            sliceSegments = value
+        case "dependencyDirection":
+            dependencyDirection = value
+        case "sameLayerSliceIsolation":
+            sameLayerSliceIsolation = value
+        default:
+            throw ConfigError.invalidValue("rules.\(key)", "Unknown rule key")
+        }
+    }
+}
+
 struct Configuration {
     let rootPath: String
     let strict: Bool
     let architecture: Bool
+    let ignoredPaths: [String]
+    let layers: LayerConfiguration
+    let rules: RuleConfiguration
+}
+
+struct ArgumentConfiguration {
+    let rootPath: String?
+    let strict: Bool?
+    let architecture: Bool?
+    let configPath: String?
+}
+
+struct FileConfiguration {
+    let url: URL
+    let rootPath: String?
+    let strict: Bool?
+    let architecture: Bool?
+    let ignoredPaths: [String]
+    let layers: LayerConfiguration
+    let rules: RuleConfiguration
+}
+
+struct ConfigLine {
+    let number: Int
+    let indent: Int
+    let content: String
+}
+
+enum ConfigError: Error, CustomStringConvertible {
+    case readFailed(String)
+    case syntax(line: Int, message: String)
+    case invalidValue(String, String)
+
+    var description: String {
+        switch self {
+        case .readFailed(let message):
+            return message
+        case .syntax(let line, let message):
+            return "line \(line): \(message)"
+        case .invalidValue(let key, let message):
+            return "\(key): \(message)"
+        }
+    }
 }
 
 struct FSDLinter {
@@ -36,22 +192,17 @@ struct FSDLinter {
     private let rootURL: URL
     private let strict: Bool
     private let architectureChecksEnabled: Bool
+    private let ignoredPaths: [String]
+    private let layerConfiguration: LayerConfiguration
+    private let rules: RuleConfiguration
 
-    private let layers: Set<String> = [
-        "app",
-        "pages",
-        "widgets",
-        "features",
-        "entities",
-        "shared",
-    ]
+    private var layers: Set<String> {
+        layerConfiguration.all
+    }
 
-    private let slicedLayers: Set<String> = [
-        "pages",
-        "widgets",
-        "features",
-        "entities",
-    ]
+    private var slicedLayers: Set<String> {
+        layerConfiguration.sliced
+    }
 
     private let appSegments: Set<String> = [
         "config",
@@ -85,20 +236,13 @@ struct FSDLinter {
         "Preview Content",
     ]
 
-    private let layerRanks: [String: Int] = [
-        "shared": 0,
-        "entities": 1,
-        "features": 2,
-        "widgets": 3,
-        "pages": 4,
-        "app": 5,
-    ]
+    private var layerRanks: [String: Int] {
+        layerConfiguration.ranks
+    }
 
-    private let sameLayerSliceIsolationLayers: Set<String> = [
-        "widgets",
-        "features",
-        "entities",
-    ]
+    private var sameLayerSliceIsolationLayers: Set<String> {
+        layerConfiguration.sameLayerSliceIsolation
+    }
 
     private let swiftKeywords: Set<String> = [
         "Any",
@@ -155,10 +299,20 @@ struct FSDLinter {
         "while",
     ]
 
-    init(rootURL: URL, strict: Bool, architectureChecksEnabled: Bool) {
+    init(
+        rootURL: URL,
+        strict: Bool,
+        architectureChecksEnabled: Bool,
+        ignoredPaths: [String],
+        layerConfiguration: LayerConfiguration,
+        rules: RuleConfiguration
+    ) {
         self.rootURL = rootURL
         self.strict = strict
         self.architectureChecksEnabled = architectureChecksEnabled
+        self.ignoredPaths = ignoredPaths.map(Self.normalizeIgnoredPath)
+        self.layerConfiguration = layerConfiguration
+        self.rules = rules
     }
 
     func run() -> [Finding] {
@@ -174,9 +328,17 @@ struct FSDLinter {
             ]
         }
 
-        lintRoot(&findings)
-        lintSlicedLayers(&findings)
-        lintSlicelessLayers(&findings)
+        if rules.rootStructure {
+            lintRoot(&findings)
+        }
+
+        if rules.sliceSegments {
+            lintSlicedLayers(&findings)
+        }
+
+        if rules.layerSegments {
+            lintSlicelessLayers(&findings)
+        }
 
         if architectureChecksEnabled {
             lintArchitectureDependencies(&findings)
@@ -278,13 +440,13 @@ struct FSDLinter {
 
     private func lintSlicelessLayers(_ findings: inout [Finding]) {
         lintSlicelessLayer(
-            name: "app",
+            name: layerConfiguration.app,
             allowedSegments: appSegments,
             findings: &findings
         )
 
         lintSlicelessLayer(
-            name: "shared",
+            name: layerConfiguration.shared,
             allowedSegments: sharedSegments,
             findings: &findings
         )
@@ -310,9 +472,19 @@ struct FSDLinter {
         for segmentURL in childDirectories(of: layerURL) {
             let segmentName = segmentURL.lastPathComponent
 
-            if name == "app", segmentName == "ui" {
+            if name == layerConfiguration.app, segmentName == "ui" {
+                let uiOwnerLayers = [
+                    layerConfiguration.pages,
+                    layerConfiguration.widgets,
+                    layerConfiguration.features,
+                    layerConfiguration.entities,
+                    layerConfiguration.shared,
+                ]
+                .map { "`\($0)`" }
+                .joined(separator: ", ")
+
                 findings.append(
-                    error(segmentURL, "`app/ui` is discouraged; UI should usually live in pages/widgets/features/entities/shared")
+                    error(segmentURL, "`\(layerConfiguration.app)/ui` is discouraged; UI should usually live in configured UI-owning layers: \(uiOwnerLayers)")
                 )
                 continue
             }
@@ -398,6 +570,10 @@ struct FSDLinter {
         }
 
         if sourceLayer == targetLayer {
+            guard rules.sameLayerSliceIsolation else {
+                return nil
+            }
+
             guard sameLayerSliceIsolationLayers.contains(sourceLayer),
                   sourceFile.slice != nil,
                   targetFile.slice != nil,
@@ -407,6 +583,10 @@ struct FSDLinter {
             }
 
             return "Same-layer slices should not depend on each other: `\(sourceLayer)/\(sourceFile.slice ?? "")` references `\(symbol)` from `\(targetLayer)/\(targetFile.slice ?? "")`"
+        }
+
+        guard rules.dependencyDirection else {
+            return nil
         }
 
         guard sourceRank < targetRank else {
@@ -433,7 +613,9 @@ struct FSDLinter {
             return []
         }
 
-        return urls.sorted { $0.path < $1.path }
+        return urls
+            .filter { !isIgnored($0) }
+            .sorted { $0.path < $1.path }
     }
 
     private func directoryExists(_ url: URL) -> Bool {
@@ -452,7 +634,16 @@ struct FSDLinter {
         }
 
         return enumerator.compactMap { item -> URL? in
-            guard let url = item as? URL, url.pathExtension == "swift" else {
+            guard let url = item as? URL else {
+                return nil
+            }
+
+            if directoryExists(url), isIgnored(url) {
+                enumerator.skipDescendants()
+                return nil
+            }
+
+            guard url.pathExtension == "swift", !isIgnored(url) else {
                 return nil
             }
 
@@ -770,6 +961,22 @@ struct FSDLinter {
         return relative.isEmpty ? "." : relative
     }
 
+    private func isIgnored(_ url: URL) -> Bool {
+        guard !ignoredPaths.isEmpty else {
+            return false
+        }
+
+        let relativePath = Self.normalizeIgnoredPath(relativePath(for: url))
+
+        return ignoredPaths.contains { ignoredPath in
+            relativePath == ignoredPath || relativePath.hasPrefix("\(ignoredPath)/")
+        }
+    }
+
+    private static func normalizeIgnoredPath(_ path: String) -> String {
+        path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+    }
+
     private struct SourceFile {
         let url: URL
         let relativePath: String
@@ -786,10 +993,11 @@ struct FSDLinter {
     }
 }
 
-func parseArguments(_ arguments: [String]) -> Configuration? {
-    var rootPath = "FSDDemoApp"
-    var strict = false
-    var architecture = false
+func parseArguments(_ arguments: [String]) -> ArgumentConfiguration? {
+    var rootPath: String?
+    var strict: Bool?
+    var architecture: Bool?
+    var configPath: String?
     var index = 0
 
     while index < arguments.count {
@@ -801,8 +1009,12 @@ func parseArguments(_ arguments: [String]) -> Configuration? {
             return nil
         case "--strict":
             strict = true
+        case "--no-strict":
+            strict = false
         case "--architecture":
             architecture = true
+        case "--no-architecture":
+            architecture = false
         case "--root":
             index += 1
             guard index < arguments.count else {
@@ -810,6 +1022,13 @@ func parseArguments(_ arguments: [String]) -> Configuration? {
                 exit(2)
             }
             rootPath = arguments[index]
+        case "--config":
+            index += 1
+            guard index < arguments.count else {
+                print("error: --config requires a path")
+                exit(2)
+            }
+            configPath = arguments[index]
         default:
             if argument.hasPrefix("-") {
                 print("error: unknown option \(argument)")
@@ -821,14 +1040,362 @@ func parseArguments(_ arguments: [String]) -> Configuration? {
         index += 1
     }
 
-    return Configuration(rootPath: rootPath, strict: strict, architecture: architecture)
+    return ArgumentConfiguration(
+        rootPath: rootPath,
+        strict: strict,
+        architecture: architecture,
+        configPath: configPath
+    )
+}
+
+func makeConfiguration(from arguments: ArgumentConfiguration) throws -> Configuration {
+    let fileConfiguration = try loadFileConfiguration(from: arguments.configPath)
+
+    let rootPath: String
+
+    if let argumentRootPath = arguments.rootPath {
+        rootPath = makeURL(from: argumentRootPath).path
+    } else if let configRootPath = fileConfiguration?.rootPath {
+        rootPath = makeURL(
+            from: configRootPath,
+            relativeTo: fileConfiguration?.url.deletingLastPathComponent() ?? currentDirectoryURL()
+        ).path
+    } else {
+        rootPath = makeURL(from: "FSDDemoApp").path
+    }
+
+    return Configuration(
+        rootPath: rootPath,
+        strict: arguments.strict ?? fileConfiguration?.strict ?? false,
+        architecture: arguments.architecture ?? fileConfiguration?.architecture ?? false,
+        ignoredPaths: fileConfiguration?.ignoredPaths ?? [],
+        layers: try (fileConfiguration?.layers ?? .defaults).validated(),
+        rules: fileConfiguration?.rules ?? .defaults
+    )
+}
+
+func loadFileConfiguration(from path: String?) throws -> FileConfiguration? {
+    if let path {
+        let url = makeURL(from: path)
+
+        guard FileManager.default.fileExists(atPath: url.path) else {
+            throw ConfigError.readFailed("Config file does not exist: \(url.path)")
+        }
+
+        return try parseFileConfiguration(at: url)
+    }
+
+    guard let discoveredURL = discoverDefaultConfigURL() else {
+        return nil
+    }
+
+    return try parseFileConfiguration(at: discoveredURL)
+}
+
+func discoverDefaultConfigURL() -> URL? {
+    let directory = currentDirectoryURL()
+
+    for filename in [".fsd-ios.yml", ".fsd-ios.yaml"] {
+        let url = directory.appendingPathComponent(filename).standardizedFileURL
+
+        if FileManager.default.fileExists(atPath: url.path) {
+            return url
+        }
+    }
+
+    return nil
+}
+
+func parseFileConfiguration(at url: URL) throws -> FileConfiguration {
+    let source: String
+
+    do {
+        source = try String(contentsOf: url, encoding: .utf8)
+    } catch {
+        throw ConfigError.readFailed("Could not read config file: \(url.path)")
+    }
+
+    let lines = try parseConfigLines(source)
+    var rootPath: String?
+    var strict: Bool?
+    var architecture: Bool?
+    var ignoredPaths: [String] = []
+    var layers = LayerConfiguration.defaults
+    var rules = RuleConfiguration.defaults
+    var index = 0
+
+    while index < lines.count {
+        let line = lines[index]
+
+        guard line.indent == 0 else {
+            throw ConfigError.syntax(line: line.number, message: "Top-level keys must not be indented")
+        }
+
+        let pair = try parseKeyValue(line.content, lineNumber: line.number)
+
+        switch pair.key {
+        case "version":
+            guard let value = pair.value else {
+                throw ConfigError.syntax(line: line.number, message: "`version` requires a scalar value")
+            }
+
+            guard value == "1" else {
+                throw ConfigError.invalidValue("version", "Only config version `1` is supported")
+            }
+        case "root":
+            rootPath = try parseString(pair.value, key: "root", lineNumber: line.number)
+        case "strict":
+            strict = try parseBool(pair.value, key: "strict", lineNumber: line.number)
+        case "architecture":
+            architecture = try parseBool(pair.value, key: "architecture", lineNumber: line.number)
+        case "ignoredPaths", "ignore":
+            if let value = pair.value {
+                ignoredPaths = try parseInlineList(value, key: pair.key, lineNumber: line.number)
+            } else {
+                index += 1
+                ignoredPaths = try parseList(lines: lines, index: &index, parentIndent: line.indent, key: pair.key)
+                continue
+            }
+        case "layers":
+            guard pair.value == nil else {
+                throw ConfigError.syntax(line: line.number, message: "`layers` must be a mapping")
+            }
+
+            index += 1
+            let values = try parseMap(lines: lines, index: &index, parentIndent: line.indent, key: "layers")
+
+            for value in values {
+                try layers.apply(key: value.key, value: value.value)
+            }
+
+            continue
+        case "rules":
+            guard pair.value == nil else {
+                throw ConfigError.syntax(line: line.number, message: "`rules` must be a mapping")
+            }
+
+            index += 1
+            let values = try parseMap(lines: lines, index: &index, parentIndent: line.indent, key: "rules")
+
+            for value in values {
+                try rules.apply(
+                    key: value.key,
+                    value: parseBoolValue(value.value, key: "rules.\(value.key)", lineNumber: value.line)
+                )
+            }
+
+            continue
+        default:
+            throw ConfigError.syntax(line: line.number, message: "Unknown config key `\(pair.key)`")
+        }
+
+        index += 1
+    }
+
+    return FileConfiguration(
+        url: url,
+        rootPath: rootPath,
+        strict: strict,
+        architecture: architecture,
+        ignoredPaths: ignoredPaths,
+        layers: try layers.validated(),
+        rules: rules
+    )
+}
+
+func parseConfigLines(_ source: String) throws -> [ConfigLine] {
+    try source
+        .replacingOccurrences(of: "\r\n", with: "\n")
+        .split(separator: "\n", omittingEmptySubsequences: false)
+        .enumerated()
+        .compactMap { offset, rawLine -> ConfigLine? in
+            let lineNumber = offset + 1
+            let line = String(rawLine)
+
+            guard !line.contains("\t") else {
+                throw ConfigError.syntax(line: lineNumber, message: "Tabs are not supported in config indentation")
+            }
+
+            let uncommented = stripComment(from: line)
+            let trimmed = uncommented.trimmingCharacters(in: .whitespaces)
+
+            guard !trimmed.isEmpty else {
+                return nil
+            }
+
+            let indent = uncommented.prefix { $0 == " " }.count
+            return ConfigLine(number: lineNumber, indent: indent, content: trimmed)
+        }
+}
+
+func stripComment(from line: String) -> String {
+    var result = ""
+    var isInSingleQuote = false
+    var isInDoubleQuote = false
+
+    for character in line {
+        if character == "'", !isInDoubleQuote {
+            isInSingleQuote.toggle()
+        } else if character == "\"", !isInSingleQuote {
+            isInDoubleQuote.toggle()
+        } else if character == "#", !isInSingleQuote, !isInDoubleQuote {
+            break
+        }
+
+        result.append(character)
+    }
+
+    return result
+}
+
+func parseKeyValue(_ content: String, lineNumber: Int) throws -> (key: String, value: String?) {
+    guard let separatorIndex = content.firstIndex(of: ":") else {
+        throw ConfigError.syntax(line: lineNumber, message: "Expected `key: value`")
+    }
+
+    let key = String(content[..<separatorIndex]).trimmingCharacters(in: .whitespaces)
+    let rawValue = String(content[content.index(after: separatorIndex)...])
+        .trimmingCharacters(in: .whitespaces)
+
+    guard !key.isEmpty else {
+        throw ConfigError.syntax(line: lineNumber, message: "Config key must not be empty")
+    }
+
+    return (key, rawValue.isEmpty ? nil : rawValue)
+}
+
+func parseString(_ value: String?, key: String, lineNumber: Int) throws -> String {
+    guard let value else {
+        throw ConfigError.syntax(line: lineNumber, message: "`\(key)` requires a scalar value")
+    }
+
+    return unquote(value)
+}
+
+func parseBool(_ value: String?, key: String, lineNumber: Int) throws -> Bool {
+    guard let value else {
+        throw ConfigError.syntax(line: lineNumber, message: "`\(key)` requires `true` or `false`")
+    }
+
+    return try parseBoolValue(value, key: key, lineNumber: lineNumber)
+}
+
+func parseBoolValue(_ value: String, key: String, lineNumber: Int) throws -> Bool {
+    switch unquote(value) {
+    case "true":
+        return true
+    case "false":
+        return false
+    default:
+        throw ConfigError.syntax(line: lineNumber, message: "`\(key)` must be `true` or `false`")
+    }
+}
+
+func parseInlineList(_ value: String, key: String, lineNumber: Int) throws -> [String] {
+    let trimmed = value.trimmingCharacters(in: .whitespaces)
+
+    guard trimmed.hasPrefix("["), trimmed.hasSuffix("]") else {
+        throw ConfigError.syntax(line: lineNumber, message: "`\(key)` must be a block list or inline list")
+    }
+
+    let body = trimmed.dropFirst().dropLast()
+
+    guard !body.trimmingCharacters(in: .whitespaces).isEmpty else {
+        return []
+    }
+
+    return body
+        .split(separator: ",")
+        .map { unquote(String($0).trimmingCharacters(in: .whitespaces)) }
+}
+
+func parseList(
+    lines: [ConfigLine],
+    index: inout Int,
+    parentIndent: Int,
+    key: String
+) throws -> [String] {
+    var values: [String] = []
+
+    while index < lines.count {
+        let line = lines[index]
+
+        guard line.indent > parentIndent else {
+            break
+        }
+
+        guard line.indent == parentIndent + 2 else {
+            throw ConfigError.syntax(line: line.number, message: "`\(key)` supports one indentation level")
+        }
+
+        guard line.content.hasPrefix("- ") else {
+            throw ConfigError.syntax(line: line.number, message: "`\(key)` entries must use `- value`")
+        }
+
+        let value = String(line.content.dropFirst(2)).trimmingCharacters(in: .whitespaces)
+
+        guard !value.isEmpty else {
+            throw ConfigError.syntax(line: line.number, message: "`\(key)` entries must not be empty")
+        }
+
+        values.append(unquote(value))
+        index += 1
+    }
+
+    return values
+}
+
+func parseMap(
+    lines: [ConfigLine],
+    index: inout Int,
+    parentIndent: Int,
+    key: String
+) throws -> [(key: String, value: String, line: Int)] {
+    var values: [(key: String, value: String, line: Int)] = []
+
+    while index < lines.count {
+        let line = lines[index]
+
+        guard line.indent > parentIndent else {
+            break
+        }
+
+        guard line.indent == parentIndent + 2 else {
+            throw ConfigError.syntax(line: line.number, message: "`\(key)` supports one indentation level")
+        }
+
+        let pair = try parseKeyValue(line.content, lineNumber: line.number)
+
+        guard let value = pair.value else {
+            throw ConfigError.syntax(line: line.number, message: "`\(key).\(pair.key)` requires a scalar value")
+        }
+
+        values.append((pair.key, unquote(value), line.number))
+        index += 1
+    }
+
+    return values
+}
+
+func unquote(_ value: String) -> String {
+    let trimmed = value.trimmingCharacters(in: .whitespaces)
+
+    if trimmed.count >= 2,
+       let first = trimmed.first,
+       let last = trimmed.last,
+       (first == "\"" && last == "\"") || (first == "'" && last == "'")
+    {
+        return String(trimmed.dropFirst().dropLast())
+    }
+
+    return trimmed
 }
 
 func printUsage() {
     print(
         """
         Usage:
-          swift tools/fsd-lint.swift [--root <path>] [--strict] [--architecture]
+          swift tools/fsd-lint.swift [--root <path>] [--config <path>] [--strict|--no-strict] [--architecture|--no-architecture]
           swift tools/fsd-lint.swift FSDDemoApp
 
         Checks baseline Feature-Sliced Design folder structure:
@@ -843,32 +1410,56 @@ func printUsage() {
           - feature/widget/entity slices do not reference sibling slices directly
 
         Options:
-          --root <path>    Source root to inspect. Defaults to `FSDDemoApp`.
+          --root <path>    Source root to inspect. Overrides config root.
+          --config <path>  Config file. Defaults to `.fsd-ios.yml` when present.
           --strict         Treat warnings as errors.
+          --no-strict      Disable strict mode even when config enables it.
           --architecture   Enable Swift symbol dependency checks.
+          --no-architecture
+                           Disable architecture checks even when config enables them.
         """
     )
 }
 
-func makeRootURL(from path: String) -> URL {
+func currentDirectoryURL() -> URL {
+    URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+        .standardizedFileURL
+}
+
+func makeURL(from path: String, relativeTo baseURL: URL = currentDirectoryURL()) -> URL {
     if path.hasPrefix("/") {
         return URL(fileURLWithPath: path).standardizedFileURL
     }
 
-    return URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+    return baseURL
         .appendingPathComponent(path)
         .standardizedFileURL
 }
 
-guard let configuration = parseArguments(Array(CommandLine.arguments.dropFirst())) else {
+guard let argumentConfiguration = parseArguments(Array(CommandLine.arguments.dropFirst())) else {
     exit(0)
 }
 
-let rootURL = makeRootURL(from: configuration.rootPath)
+let configuration: Configuration
+
+do {
+    configuration = try makeConfiguration(from: argumentConfiguration)
+} catch let error as ConfigError {
+    print("error: \(error.description)")
+    exit(2)
+} catch {
+    print("error: \(error.localizedDescription)")
+    exit(1)
+}
+
+let rootURL = makeURL(from: configuration.rootPath)
 let findings = FSDLinter(
     rootURL: rootURL,
     strict: configuration.strict,
-    architectureChecksEnabled: configuration.architecture
+    architectureChecksEnabled: configuration.architecture,
+    ignoredPaths: configuration.ignoredPaths,
+    layerConfiguration: configuration.layers,
+    rules: configuration.rules
 ).run()
 
 for finding in findings {

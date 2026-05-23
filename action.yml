@@ -5,7 +5,11 @@ inputs:
   root:
     description: Source root containing app, pages, widgets, features, entities, and shared.
     required: false
-    default: FSDDemoApp
+    default: ""
+  config:
+    description: Optional .fsd-ios.yml config path. When set, root can be omitted or used as an override.
+    required: false
+    default: ""
   strict:
     description: Treat FSD lint warnings as errors.
     required: false
@@ -40,18 +44,30 @@ runs:
       working-directory: ${{ inputs.working-directory }}
       env:
         INPUT_ROOT: ${{ inputs.root }}
+        INPUT_CONFIG: ${{ inputs.config }}
         INPUT_STRICT: ${{ inputs.strict }}
         INPUT_ARCHITECTURE: ${{ inputs.architecture }}
       run: |
         set -euo pipefail
 
-        args=(lint --root "$INPUT_ROOT")
+        args=(lint)
+
+        if [ -n "$INPUT_CONFIG" ]; then
+          args+=(--config "$INPUT_CONFIG")
+        fi
+
+        if [ -n "$INPUT_ROOT" ]; then
+          args+=(--root "$INPUT_ROOT")
+        elif [ -z "$INPUT_CONFIG" ]; then
+          args+=(--root FSDDemoApp)
+        fi
 
         case "$INPUT_STRICT" in
           true)
             args+=(--strict)
             ;;
           false)
+            args+=(--no-strict)
             ;;
           *)
             echo "::error::strict must be true or false"
@@ -64,6 +80,7 @@ runs:
             args+=(--architecture)
             ;;
           false)
+            args+=(--no-architecture)
             ;;
           *)
             echo "::error::architecture must be true or false"
