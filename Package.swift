@@ -8,10 +8,15 @@ let package = Package(
         .macOS(.v14),
     ],
     products: [
+        .library(name: "FSDToolingSupport", targets: ["FSDToolingSupport"]),
         .executable(name: "fsd-ios", targets: ["fsd-ios"]),
         .plugin(name: "FSDGeneratorPlugin", targets: ["FSDGeneratorPlugin"]),
     ],
     targets: [
+        .target(
+            name: "FSDToolingSupport",
+            path: "Sources/FSDToolingSupport"
+        ),
         .executableTarget(
             name: "fsd-ios",
             path: "tools",

@@ -341,6 +341,11 @@ workflows that need to generate a whole slice directory, not just a single file
 template. The plugin is named `fsd-generate` and delegates to the `fsd-ios`
 executable target built from `tools/fsd-ios.swift`.
 
+Opening the root `Package.swift` in Xcode shows the `FSDTools` package with a
+small `FSDToolingSupport` marker target so the tooling package is visible in the
+project navigator. The generator itself still lives in the `fsd-ios` executable
+target and the `FSDGeneratorPlugin` command plugin.
+
 ```bash
 swift package plugin --list
 swift package --allow-writing-to-package-directory fsd-generate --help

@@ -13,9 +13,9 @@ struct FSDGeneratorPlugin: CommandPlugin {
         let commandArguments = normalizedCreateArguments(arguments)
 
         let process = Process()
-        process.executableURL = URL(fileURLWithPath: fsdIOS.path.string)
+        process.executableURL = fsdIOS.url
         process.arguments = commandArguments
-        process.currentDirectoryURL = URL(fileURLWithPath: context.package.directory.string)
+        process.currentDirectoryURL = context.package.directoryURL
 
         try process.run()
         process.waitUntilExit()
