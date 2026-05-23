@@ -290,6 +290,45 @@ The module name must be a valid Swift identifier. The generator creates a
 minimal package manifest, public API placeholder, test target, and README, and
 refuses to overwrite existing files.
 
+## Xcode File Templates
+
+For developers who prefer adding files through Xcode after a slice already
+exists, the repository ships file templates that mirror the CLI generator
+layouts.
+
+```bash
+make install-xcode-templates
+```
+
+This copies the bundled templates into
+`~/Library/Developer/Xcode/Templates/File Templates/FSD iOS/`. Restart Xcode
+and the **FSD iOS** group appears in `File > New > File…` with these entries:
+
+- **FSD Page** — SwiftUI page view for `pages/<slice>/ui/<Name>Page.swift`;
+- **FSD Feature Action** — callable action struct for
+  `features/<slice>/model/<Name>Action.swift`;
+- **FSD Entity Model** — `Identifiable` value type for
+  `entities/<slice>/model/<Name>.swift`;
+- **FSD Widget** — SwiftUI composition view for
+  `widgets/<slice>/ui/<Name>Widget.swift`.
+
+The CLI generator remains canonical: use `fsd-ios create slice` for new
+slices, and the Xcode templates for additional files within an existing
+slice folder. Generated files pass the same `fsd-lint` checks when placed
+in the appropriate FSD layer.
+
+To remove the templates:
+
+```bash
+make uninstall-xcode-templates
+```
+
+Override the install location for sandboxes or per-user destinations:
+
+```bash
+make install-xcode-templates XCODE_TEMPLATES_DIR="$PWD/.xcode-templates/FSD iOS"
+```
+
 ## Doctor
 
 Run `doctor` when onboarding a machine or before investigating a local failure:
@@ -331,6 +370,9 @@ make report-smoke
 make slice-create-fixture
 make module-create-fixture
 make install-smoke
+make install-xcode-templates
+make uninstall-xcode-templates
+make xcode-templates-smoke
 make action-smoke
 make ci
 ```
@@ -341,6 +383,11 @@ already run elsewhere in `make ci`.
 
 `make install-smoke` installs the wrapper into `DerivedData/LocalInstall`, checks
 that it can run, and uninstalls it again.
+
+`make xcode-templates-smoke` installs the Xcode File Templates into
+`DerivedData/XcodeTemplatesSmoke`, verifies each `.xctemplate` bundle's
+`TemplateInfo.plist` parses and that the template Swift file references the
+expected Xcode substitution macros, then removes the directory.
 
 `make config-smoke` verifies explicit config loading, default config discovery,
 direct linter config support, and invalid config diagnostics.
