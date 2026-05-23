@@ -43,6 +43,9 @@ jobs:
           make spm-template-create-fixture
           make cli-smoke
           make cli-doctor
+          make config-smoke
+          make report-smoke
+          make action-smoke
 
       - name: Select iOS simulator
         id: simulator

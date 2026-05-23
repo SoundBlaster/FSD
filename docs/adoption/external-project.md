@@ -131,11 +131,35 @@ Or use the committed config:
 swift .fsd-ios-tooling/tools/fsd-ios.swift lint --config .fsd-ios.yml
 ```
 
+Use JSON when another local script needs stable finding metadata:
+
+```bash
+swift .fsd-ios-tooling/tools/fsd-ios.swift lint \
+  --config .fsd-ios.yml \
+  --format json
+```
+
 For refactoring planning, use the read-only advisor:
 
 ```bash
 swift .fsd-ios-tooling/tools/fsd-ios.swift harmonize --root Sources/App
 ```
+
+## Xcode Run Script Build Phase
+
+Add a Run Script Build Phase when developers should see FSD diagnostics directly
+in Xcode:
+
+```bash
+set -euo pipefail
+
+swift "$SRCROOT/.fsd-ios-tooling/tools/fsd-ios.swift" lint \
+  --config "$SRCROOT/.fsd-ios.yml" \
+  --format xcode
+```
+
+`--format xcode` emits `path:line: error:` or `path:line: warning:` diagnostics,
+so Xcode can show them in the build log and issue navigator.
 
 ## GitHub Actions Baseline
 
@@ -162,6 +186,7 @@ the reusable Action wrapper:
     config: .fsd-ios.yml
     strict: "true"
     architecture: "true"
+    format: text
     doctor: "true"
 ```
 
@@ -198,8 +223,9 @@ For production CI:
 1. Pin the tooling checkout to a tag or commit.
 2. Run `version` before lint so logs show the exact contract.
 3. Run `doctor --json` when machine-readable environment diagnostics are useful.
-4. Pass `--root` explicitly; do not rely on the demo app default.
-5. Keep host-project build/test steps separate from FSD lint checks.
+4. Use `--format json` for machine parsing and `--format xcode` for Xcode build phases.
+5. Pass `--root` explicitly; do not rely on the demo app default.
+6. Keep host-project build/test steps separate from FSD lint checks.
 
 Success means the external project can add new FSD-compliant code without
 renaming its existing folders first, and CI can reject upward or sideways

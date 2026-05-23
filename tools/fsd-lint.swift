@@ -19,10 +19,20 @@ enum Severity: String {
     case warning
 }
 
+enum ReportFormat: String {
+    case text
+    case json
+    case xcode
+}
+
 struct Finding {
+    let ruleId: String
     let severity: Severity
     let path: String
+    let absolutePath: String
+    let line: Int?
     let message: String
+    let suggestion: String?
 }
 
 struct LayerConfiguration {
@@ -142,6 +152,7 @@ struct Configuration {
     let rootPath: String
     let strict: Bool
     let architecture: Bool
+    let format: ReportFormat
     let ignoredPaths: [String]
     let layers: LayerConfiguration
     let rules: RuleConfiguration
@@ -151,6 +162,7 @@ struct ArgumentConfiguration {
     let rootPath: String?
     let strict: Bool?
     let architecture: Bool?
+    let format: ReportFormat?
     let configPath: String?
 }
 
@@ -321,9 +333,13 @@ struct FSDLinter {
         guard directoryExists(rootURL) else {
             return [
                 Finding(
+                    ruleId: "fsd/root-missing",
                     severity: .error,
                     path: rootURL.path,
-                    message: "FSD root does not exist or is not a directory"
+                    absolutePath: rootURL.path,
+                    line: nil,
+                    message: "FSD root does not exist or is not a directory",
+                    suggestion: "Pass --root with an existing FSD source directory."
                 ),
             ]
         }
@@ -355,7 +371,12 @@ struct FSDLinter {
 
             if name == "processes" {
                 findings.append(
-                    error(directory, "Deprecated FSD layer `processes` should not be used")
+                    error(
+                        directory,
+                        ruleId: "fsd/deprecated-processes-layer",
+                        "Deprecated FSD layer `processes` should not be used",
+                        suggestion: "Move process orchestration to pages, widgets, features, or app composition."
+                    )
                 )
                 continue
             }
@@ -365,13 +386,23 @@ struct FSDLinter {
             }
 
             findings.append(
-                warning(directory, "Directory is outside known FSD layers")
+                warning(
+                    directory,
+                    ruleId: "fsd/unknown-root-directory",
+                    "Directory is outside known FSD layers",
+                    suggestion: "Move the directory under a configured FSD layer or add it to ignoredPaths."
+                )
             )
         }
 
         for file in childFiles(of: rootURL) where file.pathExtension == "swift" {
             findings.append(
-                error(file, "Swift files should live inside an FSD layer")
+                error(
+                    file,
+                    ruleId: "fsd/root-swift-file",
+                    "Swift files should live inside an FSD layer",
+                    suggestion: "Move the file under app, pages, widgets, features, entities, or shared."
+                )
             )
         }
     }
@@ -386,7 +417,12 @@ struct FSDLinter {
 
             for file in childFiles(of: layerURL) where file.pathExtension == "swift" {
                 findings.append(
-                    error(file, "Swift files in sliced layers should live inside a slice segment")
+                    error(
+                        file,
+                        ruleId: "fsd/sliced-layer-file",
+                        "Swift files in sliced layers should live inside a slice segment",
+                        suggestion: "Create a slice and segment path such as \(layer)/<slice>/ui."
+                    )
                 )
             }
 
@@ -403,7 +439,9 @@ struct FSDLinter {
             findings.append(
                 error(
                     sliceURL,
-                    "Sliced layer `\(layer)` must contain slices first; `\(sliceName)` looks like a segment"
+                    ruleId: "fsd/slice-name-looks-like-segment",
+                    "Sliced layer `\(layer)` must contain slices first; `\(sliceName)` looks like a segment",
+                    suggestion: "Insert a business slice name between the layer and segment."
                 )
             )
         }
@@ -412,13 +450,23 @@ struct FSDLinter {
 
         if segmentURLs.isEmpty {
             findings.append(
-                error(sliceURL, "Slice has no segments such as `ui`, `model`, `api`, or `lib`")
+                error(
+                    sliceURL,
+                    ruleId: "fsd/slice-missing-segments",
+                    "Slice has no segments such as `ui`, `model`, `api`, or `lib`",
+                    suggestion: "Add at least one purpose segment, for example ui or model."
+                )
             )
         }
 
         for file in childFiles(of: sliceURL) where file.pathExtension == "swift" {
             findings.append(
-                error(file, "Swift files should live inside a segment, not directly in a slice")
+                error(
+                    file,
+                    ruleId: "fsd/slice-root-swift-file",
+                    "Swift files should live inside a segment, not directly in a slice",
+                    suggestion: "Move the file into a segment such as ui, model, api, or lib."
+                )
             )
         }
 
@@ -429,7 +477,9 @@ struct FSDLinter {
                 findings.append(
                     warning(
                         segmentURL,
-                        "Unexpected segment `\(segmentName)` in `\(layer)/\(sliceName)`"
+                        ruleId: "fsd/unexpected-slice-segment",
+                        "Unexpected segment `\(segmentName)` in `\(layer)/\(sliceName)`",
+                        suggestion: "Rename the directory to an allowed segment or add it to ignoredPaths."
                     )
                 )
             }
@@ -465,7 +515,12 @@ struct FSDLinter {
 
         for file in childFiles(of: layerURL) where file.pathExtension == "swift" {
             findings.append(
-                warning(file, "Consider moving Swift files into a purpose segment")
+                warning(
+                    file,
+                    ruleId: "fsd/sliceless-layer-file",
+                    "Consider moving Swift files into a purpose segment",
+                    suggestion: "Move the file into an allowed segment such as ui, lib, config, providers, or routes."
+                )
             )
         }
 
@@ -484,21 +539,36 @@ struct FSDLinter {
                 .joined(separator: ", ")
 
                 findings.append(
-                    error(segmentURL, "`\(layerConfiguration.app)/ui` is discouraged; UI should usually live in configured UI-owning layers: \(uiOwnerLayers)")
+                    error(
+                        segmentURL,
+                        ruleId: "fsd/app-ui-segment",
+                        "`\(layerConfiguration.app)/ui` is discouraged; UI should usually live in configured UI-owning layers: \(uiOwnerLayers)",
+                        suggestion: "Move screen or reusable UI into pages, widgets, features, entities, or shared/ui."
+                    )
                 )
                 continue
             }
 
             if layers.contains(segmentName) {
                 findings.append(
-                    error(segmentURL, "FSD layer name `\(segmentName)` should not be nested inside `\(name)`")
+                    error(
+                        segmentURL,
+                        ruleId: "fsd/nested-layer-name",
+                        "FSD layer name `\(segmentName)` should not be nested inside `\(name)`",
+                        suggestion: "Keep FSD layers at the source root."
+                    )
                 )
                 continue
             }
 
             if !allowedSegments.contains(segmentName) {
                 findings.append(
-                    warning(segmentURL, "Unexpected segment `\(segmentName)` in `\(name)` layer")
+                    warning(
+                        segmentURL,
+                        ruleId: "fsd/unexpected-layer-segment",
+                        "Unexpected segment `\(segmentName)` in `\(name)` layer",
+                        suggestion: "Rename the directory to an allowed segment or add it to ignoredPaths."
+                    )
                 )
             }
         }
@@ -513,7 +583,12 @@ struct FSDLinter {
             }
 
             findings.append(
-                warning(directory, "Nested directory reuses reserved segment name `\(name)`")
+                warning(
+                    directory,
+                    ruleId: "fsd/nested-reserved-segment",
+                    "Nested directory reuses reserved segment name `\(name)`",
+                    suggestion: "Use a domain-specific nested folder name instead of an FSD segment name."
+                )
             )
         }
     }
@@ -544,14 +619,21 @@ struct FSDLinter {
                     continue
                 }
 
-                let key = "\(sourceFile.relativePath)|\(targetFile.relativePath)|\(reference)|\(violation)"
+                let key = "\(sourceFile.relativePath)|\(targetFile.relativePath)|\(reference)|\(violation.ruleId)|\(violation.message)"
 
                 guard !emittedFindings.contains(key) else {
                     continue
                 }
 
                 emittedFindings.insert(key)
-                findings.append(error(sourceFile.url, violation))
+                findings.append(
+                    error(
+                        sourceFile.url,
+                        ruleId: violation.ruleId,
+                        violation.message,
+                        suggestion: violation.suggestion
+                    )
+                )
             }
         }
     }
@@ -560,7 +642,7 @@ struct FSDLinter {
         from sourceFile: SourceFile,
         to targetFile: SourceFile,
         symbol: String
-    ) -> String? {
+    ) -> DependencyViolation? {
         guard let sourceLayer = sourceFile.layer,
               let targetLayer = targetFile.layer,
               let sourceRank = layerRanks[sourceLayer],
@@ -582,7 +664,11 @@ struct FSDLinter {
                 return nil
             }
 
-            return "Same-layer slices should not depend on each other: `\(sourceLayer)/\(sourceFile.slice ?? "")` references `\(symbol)` from `\(targetLayer)/\(targetFile.slice ?? "")`"
+            return DependencyViolation(
+                ruleId: "fsd/same-layer-slice-dependency",
+                message: "Same-layer slices should not depend on each other: `\(sourceLayer)/\(sourceFile.slice ?? "")` references `\(symbol)` from `\(targetLayer)/\(targetFile.slice ?? "")`",
+                suggestion: "Move shared behavior to a lower layer or compose both slices from a higher layer."
+            )
         }
 
         guard rules.dependencyDirection else {
@@ -593,7 +679,11 @@ struct FSDLinter {
             return nil
         }
 
-        return "Invalid FSD dependency direction: `\(sourceLayer)` references `\(symbol)` from higher layer `\(targetLayer)`"
+        return DependencyViolation(
+            ruleId: "fsd/dependency-direction",
+            message: "Invalid FSD dependency direction: `\(sourceLayer)` references `\(symbol)` from higher layer `\(targetLayer)`",
+            suggestion: "Invert the dependency or move shared behavior to a lower FSD layer."
+        )
     }
 
     private func childDirectories(of url: URL) -> [URL] {
@@ -936,15 +1026,37 @@ struct FSDLinter {
         return result
     }
 
-    private func error(_ url: URL, _ message: String) -> Finding {
-        Finding(severity: .error, path: relativePath(for: url), message: message)
+    private func error(
+        _ url: URL,
+        ruleId: String,
+        _ message: String,
+        suggestion: String? = nil
+    ) -> Finding {
+        Finding(
+            ruleId: ruleId,
+            severity: .error,
+            path: relativePath(for: url),
+            absolutePath: url.standardizedFileURL.path,
+            line: nil,
+            message: message,
+            suggestion: suggestion
+        )
     }
 
-    private func warning(_ url: URL, _ message: String) -> Finding {
+    private func warning(
+        _ url: URL,
+        ruleId: String,
+        _ message: String,
+        suggestion: String? = nil
+    ) -> Finding {
         Finding(
+            ruleId: ruleId,
             severity: strict ? .error : .warning,
             path: relativePath(for: url),
-            message: message
+            absolutePath: url.standardizedFileURL.path,
+            line: nil,
+            message: message,
+            suggestion: suggestion
         )
     }
 
@@ -991,12 +1103,19 @@ struct FSDLinter {
         let symbol: String
         let file: SourceFile
     }
+
+    private struct DependencyViolation {
+        let ruleId: String
+        let message: String
+        let suggestion: String
+    }
 }
 
 func parseArguments(_ arguments: [String]) -> ArgumentConfiguration? {
     var rootPath: String?
     var strict: Bool?
     var architecture: Bool?
+    var format: ReportFormat?
     var configPath: String?
     var index = 0
 
@@ -1015,6 +1134,17 @@ func parseArguments(_ arguments: [String]) -> ArgumentConfiguration? {
             architecture = true
         case "--no-architecture":
             architecture = false
+        case "--format":
+            index += 1
+            guard index < arguments.count, !arguments[index].hasPrefix("-") else {
+                print("error: --format requires one of: text, json, xcode")
+                exit(2)
+            }
+            guard let parsedFormat = ReportFormat(rawValue: arguments[index]) else {
+                print("error: unsupported --format `\(arguments[index])`; expected one of: text, json, xcode")
+                exit(2)
+            }
+            format = parsedFormat
         case "--root":
             index += 1
             guard index < arguments.count else {
@@ -1044,6 +1174,7 @@ func parseArguments(_ arguments: [String]) -> ArgumentConfiguration? {
         rootPath: rootPath,
         strict: strict,
         architecture: architecture,
+        format: format,
         configPath: configPath
     )
 }
@@ -1068,6 +1199,7 @@ func makeConfiguration(from arguments: ArgumentConfiguration) throws -> Configur
         rootPath: rootPath,
         strict: arguments.strict ?? fileConfiguration?.strict ?? false,
         architecture: arguments.architecture ?? fileConfiguration?.architecture ?? false,
+        format: arguments.format ?? .text,
         ignoredPaths: fileConfiguration?.ignoredPaths ?? [],
         layers: try (fileConfiguration?.layers ?? .defaults).validated(),
         rules: fileConfiguration?.rules ?? .defaults
@@ -1395,7 +1527,7 @@ func printUsage() {
     print(
         """
         Usage:
-          swift tools/fsd-lint.swift [--root <path>] [--config <path>] [--strict|--no-strict] [--architecture|--no-architecture]
+          swift tools/fsd-lint.swift [--root <path>] [--config <path>] [--strict|--no-strict] [--architecture|--no-architecture] [--format text|json|xcode]
           swift tools/fsd-lint.swift FSDDemoApp
 
         Checks baseline Feature-Sliced Design folder structure:
@@ -1417,8 +1549,106 @@ func printUsage() {
           --architecture   Enable Swift symbol dependency checks.
           --no-architecture
                            Disable architecture checks even when config enables them.
+          --format <value> Output format: text, json, or xcode. Defaults to text.
         """
     )
+}
+
+func findingCounts(_ findings: [Finding]) -> (errors: Int, warnings: Int) {
+    (
+        errors: findings.filter { $0.severity == .error }.count,
+        warnings: findings.filter { $0.severity == .warning }.count
+    )
+}
+
+func printReport(_ findings: [Finding], format: ReportFormat, rootURL: URL) {
+    switch format {
+    case .text:
+        printTextReport(findings)
+    case .json:
+        printJSONReport(findings, rootURL: rootURL)
+    case .xcode:
+        printXcodeReport(findings)
+    }
+}
+
+func printTextReport(_ findings: [Finding]) {
+    for finding in findings {
+        print("\(finding.severity.rawValue): \(finding.path): \(finding.message)")
+    }
+
+    let counts = findingCounts(findings)
+
+    if counts.errors == 0, counts.warnings == 0 {
+        print("FSD lint passed: 0 errors, 0 warnings")
+    } else {
+        print("FSD lint finished: \(counts.errors) errors, \(counts.warnings) warnings")
+    }
+}
+
+func printJSONReport(_ findings: [Finding], rootURL: URL) {
+    let findingPayloads: [[String: Any]] = findings.map { finding in
+        var payload: [String: Any] = [
+            "ruleId": finding.ruleId,
+            "severity": finding.severity.rawValue,
+            "path": finding.path,
+            "absolutePath": finding.absolutePath,
+            "message": finding.message,
+        ]
+
+        if let line = finding.line {
+            payload["line"] = line
+        }
+
+        if let suggestion = finding.suggestion {
+            payload["suggestion"] = suggestion
+        }
+
+        return payload
+    }
+
+    let counts = findingCounts(findings)
+    let payload: [String: Any] = [
+        "tool": "fsd-lint",
+        "schemaVersion": 1,
+        "format": ReportFormat.json.rawValue,
+        "root": rootURL.path,
+        "summary": [
+            "errors": counts.errors,
+            "warnings": counts.warnings,
+        ],
+        "findings": findingPayloads,
+    ]
+
+    guard let data = try? JSONSerialization.data(withJSONObject: payload, options: [.prettyPrinted, .sortedKeys]),
+          let output = String(data: data, encoding: .utf8)
+    else {
+        print("{\"tool\":\"fsd-lint\",\"schemaVersion\":1,\"format\":\"json\",\"summary\":{\"errors\":0,\"warnings\":0},\"findings\":[]}")
+        return
+    }
+
+    print(output)
+}
+
+func printXcodeReport(_ findings: [Finding]) {
+    for finding in findings {
+        let line = finding.line ?? 1
+        var message = "[\(finding.ruleId)] \(finding.message)"
+
+        if let suggestion = finding.suggestion {
+            message += " Suggestion: \(suggestion)"
+        }
+
+        print("\(finding.absolutePath):\(line): \(finding.severity.rawValue): \(message)")
+    }
+
+    let counts = findingCounts(findings)
+
+    if counts.errors == 0, counts.warnings == 0 {
+        print("FSD lint passed: 0 errors, 0 warnings")
+    } else {
+        print("FSD lint finished: \(counts.errors) errors, \(counts.warnings) warnings")
+    }
 }
 
 func currentDirectoryURL() -> URL {
@@ -1462,17 +1692,6 @@ let findings = FSDLinter(
     rules: configuration.rules
 ).run()
 
-for finding in findings {
-    print("\(finding.severity.rawValue): \(finding.path): \(finding.message)")
-}
+printReport(findings, format: configuration.format, rootURL: rootURL)
 
-let errorCount = findings.filter { $0.severity == .error }.count
-let warningCount = findings.filter { $0.severity == .warning }.count
-
-if errorCount == 0, warningCount == 0 {
-    print("FSD lint passed: 0 errors, 0 warnings")
-} else {
-    print("FSD lint finished: \(errorCount) errors, \(warningCount) warnings")
-}
-
-exit(errorCount == 0 ? 0 : 1)
+exit(findingCounts(findings).errors == 0 ? 0 : 1)
