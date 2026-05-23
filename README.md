@@ -131,6 +131,14 @@ make install
 fsd-ios doctor
 ```
 
+Install Xcode File Templates (Page, Feature Action, Entity Model, Widget)
+under `~/Library/Developer/Xcode/Templates/File Templates/FSD iOS/`:
+
+```bash
+make install-xcode-templates
+make uninstall-xcode-templates
+```
+
 Details: [docs/cli.md](docs/cli.md).
 
 ## Running

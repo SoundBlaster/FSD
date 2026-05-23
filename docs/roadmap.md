@@ -100,6 +100,11 @@ Success metrics:
 Goal: expose the generator and diagnostics through familiar Xcode entry points
 without making Xcode the source of truth for the core tooling.
 
+Status: Xcode File Templates for FSD page, feature action, entity model, and
+widget shipped together with `make install-xcode-templates` /
+`make uninstall-xcode-templates`. A SwiftPM command plugin wrapper is still
+under evaluation.
+
 Scope:
 
 - add installable Xcode File Templates for common FSD files and small slice

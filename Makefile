@@ -11,8 +11,11 @@ SWIFT ?= swift
 INSTALL_PREFIX ?= $(HOME)/.local
 INSTALL_BIN_DIR := $(INSTALL_PREFIX)/bin
 INSTALL_SMOKE_PREFIX := $(DERIVED_DATA_PATH)/LocalInstall
+XCODE_TEMPLATES_SRC := templates/xcode/file-templates/FSD iOS
+XCODE_TEMPLATES_DIR ?= $(HOME)/Library/Developer/Xcode/Templates/File Templates/FSD iOS
+XCODE_TEMPLATES_SMOKE_DIR := $(DERIVED_DATA_PATH)/XcodeTemplatesSmoke/FSD iOS
 
-.PHONY: help open install uninstall install-smoke cli-help cli-smoke cli-doctor config-smoke report-smoke action-smoke lint lint-strict lint-architecture harmonize harmonize-fixture template-create-dry-run template-create-fixture slice-create-fixture module-create-fixture template-validate template-validate-negative spm-template-test spm-template-create-fixture build test demo template-demo ci clean
+.PHONY: help open install uninstall install-smoke install-xcode-templates uninstall-xcode-templates xcode-templates-smoke cli-help cli-smoke cli-doctor config-smoke report-smoke action-smoke lint lint-strict lint-architecture harmonize harmonize-fixture template-create-dry-run template-create-fixture slice-create-fixture module-create-fixture template-validate template-validate-negative spm-template-test spm-template-create-fixture build test demo template-demo ci clean
 
 help:
 	@printf '%s\n' \
@@ -21,6 +24,9 @@ help:
 		'  make install      Install fsd-ios into INSTALL_PREFIX/bin' \
 		'  make uninstall    Remove fsd-ios from INSTALL_PREFIX/bin' \
 		'  make install-smoke  Verify local fsd-ios installation wrapper' \
+		'  make install-xcode-templates  Install Xcode File Templates for FSD iOS' \
+		'  make uninstall-xcode-templates  Remove the Xcode File Templates for FSD iOS' \
+		'  make xcode-templates-smoke  Verify the Xcode File Templates install/uninstall flow' \
 		'  make cli-help     Print the unified fsd-ios CLI help' \
 		'  make cli-smoke    Smoke-test the unified fsd-ios CLI' \
 		'  make cli-doctor   Check local FSD iOS tooling prerequisites' \
@@ -49,7 +55,8 @@ help:
 		'' \
 		'Variables:' \
 		'  SIMULATOR="iPhone 17 Pro"' \
-		'  INSTALL_PREFIX="$(HOME)/.local"'
+		'  INSTALL_PREFIX="$(HOME)/.local"' \
+		'  XCODE_TEMPLATES_DIR="$(HOME)/Library/Developer/Xcode/Templates/File Templates/FSD iOS"'
 
 open:
 	open "$(PROJECT)"
@@ -65,6 +72,54 @@ install:
 
 uninstall:
 	rm -f "$(INSTALL_BIN_DIR)/fsd-ios"
+
+install-xcode-templates:
+	@test -d "$(XCODE_TEMPLATES_SRC)" || { printf '%s\n' 'Missing source: $(XCODE_TEMPLATES_SRC)'; exit 1; }
+	@test -n "$(XCODE_TEMPLATES_DIR)" || { printf '%s\n' 'XCODE_TEMPLATES_DIR must not be empty'; exit 1; }
+	@case "$(XCODE_TEMPLATES_DIR)" in \
+		/|/usr|/usr/local|/System|/Applications|$(HOME)|$(HOME)/Library|$(HOME)/Library/Developer|$(HOME)/Library/Developer/Xcode|$(HOME)/Library/Developer/Xcode/Templates|$(HOME)/Library/Developer/Xcode/Templates/File\ Templates) \
+			printf '%s\n' 'Refusing unsafe XCODE_TEMPLATES_DIR: $(XCODE_TEMPLATES_DIR)'; exit 1;; \
+	esac
+	@rm -rf "$(XCODE_TEMPLATES_DIR)"
+	@mkdir -p "$(XCODE_TEMPLATES_DIR)"
+	@cp -R "$(XCODE_TEMPLATES_SRC)/." "$(XCODE_TEMPLATES_DIR)/"
+	@printf '%s\n' "Installed Xcode File Templates to $(XCODE_TEMPLATES_DIR)"
+	@printf '%s\n' "Restart Xcode and use File > New > File… > FSD iOS"
+
+uninstall-xcode-templates:
+	@test -n "$(XCODE_TEMPLATES_DIR)" || { printf '%s\n' 'XCODE_TEMPLATES_DIR must not be empty'; exit 1; }
+	@case "$(XCODE_TEMPLATES_DIR)" in \
+		/|/usr|/usr/local|/System|/Applications|$(HOME)|$(HOME)/Library|$(HOME)/Library/Developer|$(HOME)/Library/Developer/Xcode|$(HOME)/Library/Developer/Xcode/Templates|$(HOME)/Library/Developer/Xcode/Templates/File\ Templates) \
+			printf '%s\n' 'Refusing unsafe XCODE_TEMPLATES_DIR: $(XCODE_TEMPLATES_DIR)'; exit 1;; \
+	esac
+	@case "$$(basename "$(XCODE_TEMPLATES_DIR)")" in \
+		FSD\ iOS) ;; \
+		*) printf '%s\n' 'Refusing to remove: path must end with "FSD iOS"'; exit 1;; \
+	esac
+	rm -rf "$(XCODE_TEMPLATES_DIR)"
+	@printf '%s\n' "Removed $(XCODE_TEMPLATES_DIR)"
+
+xcode-templates-smoke:
+	rm -rf "$(XCODE_TEMPLATES_SMOKE_DIR)"
+	$(MAKE) install-xcode-templates XCODE_TEMPLATES_DIR="$(XCODE_TEMPLATES_SMOKE_DIR)"
+	@test -f "$(XCODE_TEMPLATES_SMOKE_DIR)/FSD Page.xctemplate/TemplateInfo.plist"
+	@test -f "$(XCODE_TEMPLATES_SMOKE_DIR)/FSD Page.xctemplate/___FILEBASENAME___.swift"
+	@test -f "$(XCODE_TEMPLATES_SMOKE_DIR)/FSD Feature Action.xctemplate/TemplateInfo.plist"
+	@test -f "$(XCODE_TEMPLATES_SMOKE_DIR)/FSD Feature Action.xctemplate/___FILEBASENAME___.swift"
+	@test -f "$(XCODE_TEMPLATES_SMOKE_DIR)/FSD Entity Model.xctemplate/TemplateInfo.plist"
+	@test -f "$(XCODE_TEMPLATES_SMOKE_DIR)/FSD Entity Model.xctemplate/___FILEBASENAME___.swift"
+	@test -f "$(XCODE_TEMPLATES_SMOKE_DIR)/FSD Widget.xctemplate/TemplateInfo.plist"
+	@test -f "$(XCODE_TEMPLATES_SMOKE_DIR)/FSD Widget.xctemplate/___FILEBASENAME___.swift"
+	@for plist in "$(XCODE_TEMPLATES_SMOKE_DIR)"/*.xctemplate/TemplateInfo.plist; do \
+		plutil -lint "$$plist" > /dev/null || { printf '%s\n' "Invalid plist: $$plist"; exit 1; }; \
+	done
+	@for swift in "$(XCODE_TEMPLATES_SMOKE_DIR)"/*.xctemplate/___FILEBASENAME___.swift; do \
+		grep -q '___FILEBASENAMEASIDENTIFIER___' "$$swift" || { printf '%s\n' "Missing identifier macro: $$swift"; exit 1; }; \
+		grep -q '___FILEHEADER___' "$$swift" || { printf '%s\n' "Missing header macro: $$swift"; exit 1; }; \
+		grep -q '<#.*#>' "$$swift" || { printf '%s\n' "Missing Xcode placeholder hint: $$swift"; exit 1; }; \
+	done
+	$(MAKE) uninstall-xcode-templates XCODE_TEMPLATES_DIR="$(XCODE_TEMPLATES_SMOKE_DIR)"
+	@test ! -e "$(XCODE_TEMPLATES_SMOKE_DIR)"
 
 install-smoke:
 	rm -rf "$(INSTALL_SMOKE_PREFIX)"
@@ -372,7 +427,7 @@ test:
 		test \
 		CODE_SIGNING_ALLOWED=NO
 
-ci: lint lint-strict lint-architecture harmonize-fixture template-create-dry-run template-create-fixture slice-create-fixture module-create-fixture template-validate template-validate-negative spm-template-test spm-template-create-fixture cli-smoke cli-doctor config-smoke report-smoke install-smoke action-smoke test
+ci: lint lint-strict lint-architecture harmonize-fixture template-create-dry-run template-create-fixture slice-create-fixture module-create-fixture template-validate template-validate-negative spm-template-test spm-template-create-fixture cli-smoke cli-doctor config-smoke report-smoke install-smoke xcode-templates-smoke action-smoke test
 
 clean:
 	rm -rf $(DERIVED_DATA_PATH)
