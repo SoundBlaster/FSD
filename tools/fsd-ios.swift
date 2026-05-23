@@ -705,7 +705,7 @@ func validateGeneratedPlan(_ plan: GeneratedPlan) throws {
         var parentIsDirectory: ObjCBool = false
 
         guard fileManager.fileExists(atPath: parent.path, isDirectory: &parentIsDirectory) else {
-            throw GeneratedCreateError.conflict("No existing parent directory for output path: \(plan.outputURL.path)")
+            throw GeneratedCreateError.conflict("Output parent directory does not exist: \(parent.path)")
         }
 
         guard parentIsDirectory.boolValue else {
@@ -726,7 +726,7 @@ func validateGeneratedPlan(_ plan: GeneratedPlan) throws {
         let destinationPath = destinationURL.standardizedFileURL.path
 
         guard destinations.insert(destinationPath).inserted else {
-            throw GeneratedCreateError.conflict("Duplicate destination file in generated plan: \(destinationPath)")
+            throw GeneratedCreateError.conflict("Duplicate destination file within generated plan: \(destinationPath)")
         }
     }
 
