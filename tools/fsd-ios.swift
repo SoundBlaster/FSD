@@ -187,8 +187,11 @@ func runProcess(
         let outputFileURL = temporaryDirectory.appendingPathComponent("fsd-ios-\(UUID().uuidString).stdout")
         let errorFileURL = temporaryDirectory.appendingPathComponent("fsd-ios-\(UUID().uuidString).stderr")
 
-        fileManager.createFile(atPath: outputFileURL.path, contents: nil)
-        fileManager.createFile(atPath: errorFileURL.path, contents: nil)
+        guard fileManager.createFile(atPath: outputFileURL.path, contents: nil),
+              fileManager.createFile(atPath: errorFileURL.path, contents: nil)
+        else {
+            throw CLIError.launchFailed("Could not create temporary output files")
+        }
 
         guard let writableOutput = FileHandle(forWritingAtPath: outputFileURL.path),
               let writableError = FileHandle(forWritingAtPath: errorFileURL.path)
@@ -371,16 +374,6 @@ enum SliceKind: String {
         }
     }
 
-    var typeSuffix: String {
-        switch self {
-        case .page:
-            return "Page"
-        case .feature:
-            return "Action"
-        case .entity:
-            return ""
-        }
-    }
 }
 
 func titleCaseWords(from kebabName: String) -> String {
