@@ -41,6 +41,7 @@ jobs:
           make template-validate-negative
           make spm-template-test
           make spm-template-create-fixture
+          make spm-plugin-smoke
           make cli-smoke
           make cli-doctor
           make config-smoke

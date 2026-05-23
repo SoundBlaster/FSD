@@ -112,6 +112,7 @@ swift tools/fsd-ios.swift lint --config .fsd-ios.yml
 swift tools/fsd-ios.swift lint --root FSDDemoApp --strict --architecture
 swift tools/fsd-ios.swift create slice feature export-report --root FSDDemoApp
 swift tools/fsd-ios.swift create module Reporting --output ../ReportingModule
+swift package --allow-writing-to-package-directory fsd-generate slice feature export-report --root FSDDemoApp
 ```
 
 Make targets for CLI validation:
@@ -121,6 +122,7 @@ make install-smoke
 make cli-smoke
 make cli-doctor
 make config-smoke
+make spm-plugin-smoke
 make action-smoke
 ```
 
