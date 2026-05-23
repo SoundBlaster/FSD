@@ -497,7 +497,7 @@ func isValidSwiftIdentifier(_ value: String) -> Bool {
 func createSlicePlan(kind: SliceKind, name: String, rootPath: String) throws -> GeneratedPlan {
     guard isValidSliceName(name) else {
         throw GeneratedCreateError.invalidUsage(
-            "slice name must be kebab-case business language, for example `item-details`"
+            "slice name `\(name)` must be kebab-case business language, for example `item-details`"
         )
     }
 
@@ -611,7 +611,7 @@ func createSlicePlan(kind: SliceKind, name: String, rootPath: String) throws -> 
 
 func createModulePlan(name: String, outputPath: String) throws -> GeneratedPlan {
     guard isValidSwiftIdentifier(name) else {
-        throw GeneratedCreateError.invalidUsage("module name must be a valid Swift identifier")
+        throw GeneratedCreateError.invalidUsage("module name `\(name)` must be a valid Swift identifier")
     }
 
     let outputURL = URL(fileURLWithPath: outputPath).standardizedFileURL
