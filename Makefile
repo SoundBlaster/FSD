@@ -75,14 +75,22 @@ uninstall:
 
 install-xcode-templates:
 	@test -d "$(XCODE_TEMPLATES_SRC)" || { printf '%s\n' 'Missing source: $(XCODE_TEMPLATES_SRC)'; exit 1; }
-	@mkdir -p "$(XCODE_TEMPLATES_DIR)"
-	@rm -rf "$(XCODE_TEMPLATES_DIR)"
+	@test -n "$(XCODE_TEMPLATES_DIR)" || { printf '%s\n' 'XCODE_TEMPLATES_DIR must not be empty'; exit 1; }
+	@case "$(XCODE_TEMPLATES_DIR)" in \
+		/|/usr|/usr/local|/System|/Applications|$(HOME)|$(HOME)/Library) \
+			printf '%s\n' 'Refusing unsafe XCODE_TEMPLATES_DIR: $(XCODE_TEMPLATES_DIR)'; exit 1;; \
+	esac
 	@mkdir -p "$(XCODE_TEMPLATES_DIR)"
 	@cp -R "$(XCODE_TEMPLATES_SRC)/." "$(XCODE_TEMPLATES_DIR)/"
 	@printf '%s\n' "Installed Xcode File Templates to $(XCODE_TEMPLATES_DIR)"
 	@printf '%s\n' "Restart Xcode and use File > New > File… > FSD iOS"
 
 uninstall-xcode-templates:
+	@test -n "$(XCODE_TEMPLATES_DIR)" || { printf '%s\n' 'XCODE_TEMPLATES_DIR must not be empty'; exit 1; }
+	@case "$(XCODE_TEMPLATES_DIR)" in \
+		/|/usr|/usr/local|/System|/Applications|$(HOME)|$(HOME)/Library) \
+			printf '%s\n' 'Refusing unsafe XCODE_TEMPLATES_DIR: $(XCODE_TEMPLATES_DIR)'; exit 1;; \
+	esac
 	rm -rf "$(XCODE_TEMPLATES_DIR)"
 	@printf '%s\n' "Removed $(XCODE_TEMPLATES_DIR)"
 

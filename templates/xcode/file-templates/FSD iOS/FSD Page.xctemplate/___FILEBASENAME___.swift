@@ -10,6 +10,9 @@ struct ___FILEBASENAMEASIDENTIFIER___: View {
     }
 }
 
+#if DEBUG
+@available(iOS 17, *)
 #Preview {
     ___FILEBASENAMEASIDENTIFIER___()
 }
+#endif
