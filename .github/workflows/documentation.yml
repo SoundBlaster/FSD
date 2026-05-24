@@ -26,6 +26,9 @@ jobs:
       - name: Show Swift version
         run: swift --version
 
+      - name: Check documentation mirror
+        run: make docc-mirror-check
+
       - name: Build documentation
         run: make docc-pages
 

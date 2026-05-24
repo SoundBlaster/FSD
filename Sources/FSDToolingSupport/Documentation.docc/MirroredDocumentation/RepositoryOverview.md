@@ -1,4 +1,6 @@
-# FSD iOS Reference Template
+# Repository Overview
+
+> Source: `README.md`
 
 [![iOS CI](https://github.com/SoundBlaster/FSD/actions/workflows/ios-ci.yml/badge.svg)](https://github.com/SoundBlaster/FSD/actions/workflows/ios-ci.yml)
 
@@ -16,23 +18,23 @@ Feature-Sliced Design as a clear set of rules, checks, and good practices.
 - Local developer workflow through `make`.
 - Copyable template bundle for starting a new FSD iOS project.
 
-Detailed capability map: [docs/showcase.md](docs/showcase.md).
+Detailed capability map: [docs/showcase.md](<doc:RepositoryShowcase>).
 
 ## Template Rules
 
-- [ARCHITECTURE.md](ARCHITECTURE.md) - the main architecture contract.
-- [CONTRIBUTING.md](CONTRIBUTING.md) - workflow for changes and review.
-- [docs/checklist.md](docs/checklist.md) - practical checklist for new PRs.
-- [docs/cli.md](docs/cli.md) - unified CLI, doctor, and template generation workflow.
-- [docs/configuration.md](docs/configuration.md) - `.fsd-ios.yml` configuration contract.
-- [docs/release.md](docs/release.md) - release process and compatibility policy.
-- [docs/roadmap.md](docs/roadmap.md) - planned CLI, lint, generator, and release DX work.
-- [docs/adoption/external-project.md](docs/adoption/external-project.md) - using FSD tooling in an external iOS project.
-- [docs/rules/fsd-layers.md](docs/rules/fsd-layers.md) - FSD layer responsibilities.
-- [docs/rules/fsd-imports.md](docs/rules/fsd-imports.md) - dependency direction and slice isolation.
-- [docs/rules/fsd-slices.md](docs/rules/fsd-slices.md) - slice extraction rules.
-- [docs/rules/fsd-swiftui.md](docs/rules/fsd-swiftui.md) - SwiftUI-specific conventions.
-- [docs/rules/fsd-testing.md](docs/rules/fsd-testing.md) - testing expectations.
+- [ARCHITECTURE.md](<doc:ArchitectureContract>) - the main architecture contract.
+- [CONTRIBUTING.md](<doc:ContributionGuide>) - workflow for changes and review.
+- [docs/checklist.md](<doc:ReviewChecklist>) - practical checklist for new PRs.
+- [docs/cli.md](<doc:CLIGuide>) - unified CLI, doctor, and template generation workflow.
+- [docs/configuration.md](<doc:ConfigurationContract>) - `.fsd-ios.yml` configuration contract.
+- [docs/release.md](<doc:ReleaseProcess>) - release process and compatibility policy.
+- [docs/roadmap.md](<doc:Roadmap>) - planned CLI, lint, generator, and release DX work.
+- [docs/adoption/external-project.md](<doc:ExternalProjectAdoption>) - using FSD tooling in an external iOS project.
+- [docs/rules/fsd-layers.md](<doc:FSDLayerRules>) - FSD layer responsibilities.
+- [docs/rules/fsd-imports.md](<doc:FSDImportRules>) - dependency direction and slice isolation.
+- [docs/rules/fsd-slices.md](<doc:FSDSliceRules>) - slice extraction rules.
+- [docs/rules/fsd-swiftui.md](<doc:SwiftUIFSDRules>) - SwiftUI-specific conventions.
+- [docs/rules/fsd-testing.md](<doc:FSDTestingRules>) - testing expectations.
 
 ## Structure
 
@@ -48,14 +50,14 @@ LocalPackages/
   ItemExportFeature/ # feature-level SwiftPM package used by the app
 ```
 
-Detailed architecture recommendations: [specs/fsd.md](specs/fsd.md).
+Detailed architecture recommendations: [specs/fsd.md](<doc:FeatureSlicedDesignSpecification>).
 
 Additional notes on mapping FSD boundaries to Swift Package Manager:
-[specs/fsd-with-spm.md](specs/fsd-with-spm.md).
+[specs/fsd-with-spm.md](<doc:FSDWithSwiftPackageManager>).
 
 ## Template Bundle
 
-The copyable starter package lives in [templates/fsd-ios](templates/fsd-ios).
+The copyable starter package lives in [templates/fsd-ios](https://github.com/SoundBlaster/FSD/tree/main/templates/fsd-ios).
 It contains a minimal SwiftUI/FSD skeleton, `Makefile`, CI workflow, PR template,
 and checklist for a new project.
 
@@ -69,7 +71,7 @@ swift tools/fsd-ios.swift create app --name MyApp --output ../MyApp
 
 For legacy projects, a local Swift Package with compile-time module boundaries is
 usually more important than a new app skeleton. That template lives in
-[templates/fsd-ios-spm](templates/fsd-ios-spm).
+[templates/fsd-ios-spm](https://github.com/SoundBlaster/FSD/tree/main/templates/fsd-ios-spm).
 
 ```bash
 swift tools/fsd-ios.swift create spm \
@@ -108,10 +110,10 @@ swift .fsd-ios-tooling/tools/fsd-ios.swift lint \
   --architecture
 ```
 
-CI baseline: [examples/github-actions/external-project-fsd-ios.yml](examples/github-actions/external-project-fsd-ios.yml).
+CI baseline: [examples/github-actions/external-project-fsd-ios.yml](https://github.com/SoundBlaster/FSD/blob/main/examples/github-actions/external-project-fsd-ios.yml).
 Reusable Action baseline:
-[examples/github-actions/external-project-fsd-ios-action.yml](examples/github-actions/external-project-fsd-ios-action.yml).
-Details: [docs/adoption/external-project.md](docs/adoption/external-project.md).
+[examples/github-actions/external-project-fsd-ios-action.yml](https://github.com/SoundBlaster/FSD/blob/main/examples/github-actions/external-project-fsd-ios-action.yml).
+Details: [docs/adoption/external-project.md](<doc:ExternalProjectAdoption>).
 
 ## Unified CLI
 
@@ -156,7 +158,7 @@ make install-xcode-templates
 make uninstall-xcode-templates
 ```
 
-Details: [docs/cli.md](docs/cli.md).
+Details: [docs/cli.md](<doc:CLIGuide>).
 
 ## Documentation Site
 
@@ -180,8 +182,8 @@ the source/mirror pair was changed.
 
 The repository is moving toward installable `fsd-ios` releases for external
 projects. The release process, versioning policy, and compatibility expectations
-are documented in [docs/release.md](docs/release.md). User-facing changes should
-also be recorded in [CHANGELOG.md](CHANGELOG.md).
+are documented in [docs/release.md](<doc:ReleaseProcess>). User-facing changes should
+also be recorded in [CHANGELOG.md](<doc:Changelog>).
 
 ## Running
 
@@ -226,8 +228,8 @@ brew install swiftlint
 make swiftlint
 ```
 
-Repository-level lint defaults live in [.fsd-ios.yml](.fsd-ios.yml). The config
-contract is documented in [docs/configuration.md](docs/configuration.md).
+Repository-level lint defaults live in [.fsd-ios.yml](https://github.com/SoundBlaster/FSD/blob/main/.fsd-ios.yml). The config
+contract is documented in [docs/configuration.md](<doc:ConfigurationContract>).
 Lint reports can also be emitted as JSON for CI tooling or as Xcode diagnostics:
 
 ```bash

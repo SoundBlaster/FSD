@@ -18,7 +18,7 @@ XCODE_TEMPLATES_SMOKE_DIR := $(DERIVED_DATA_PATH)/XcodeTemplatesSmoke/FSD iOS
 DOCC_OUTPUT_PATH := $(DERIVED_DATA_PATH)/DocCPages
 DOCC_HOSTING_BASE_PATH ?= FSD
 
-.PHONY: help open install uninstall install-smoke install-xcode-templates uninstall-xcode-templates xcode-templates-smoke cli-help cli-smoke cli-doctor config-smoke report-smoke action-smoke docc-pages docc-smoke release-docs lint lint-strict lint-architecture swiftlint harmonize harmonize-fixture template-create-dry-run template-create-fixture slice-create-fixture module-create-fixture template-validate template-validate-negative spm-template-test item-export-feature-test spm-template-create-fixture spm-plugin-smoke build test demo template-demo ci clean
+.PHONY: help open install uninstall install-smoke install-xcode-templates uninstall-xcode-templates xcode-templates-smoke cli-help cli-smoke cli-doctor config-smoke report-smoke action-smoke docc-mirror docc-mirror-check docc-pages docc-smoke release-docs lint lint-strict lint-architecture swiftlint harmonize harmonize-fixture template-create-dry-run template-create-fixture slice-create-fixture module-create-fixture template-validate template-validate-negative spm-template-test item-export-feature-test spm-template-create-fixture spm-plugin-smoke build test demo template-demo ci clean
 
 help:
 	@printf '%s\n' \
@@ -36,6 +36,8 @@ help:
 		'  make config-smoke  Verify .fsd-ios.yml config loading' \
 		'  make report-smoke  Verify lint text/json/xcode report formats' \
 		'  make action-smoke  Smoke-test the reusable GitHub Action contract' \
+		'  make docc-mirror  Generate DocC articles from repository Markdown docs' \
+		'  make docc-mirror-check  Verify DocC mirror articles are synchronized' \
 		'  make docc-pages   Build static DocC pages into DerivedData/DocCPages' \
 		'  make docc-smoke   Verify the static DocC output contract' \
 		'  make release-docs  Verify release process documentation links' \
@@ -240,7 +242,13 @@ action-smoke:
 	@grep -q -- '--format' action.yml
 	$(SWIFT) tools/fsd-ios.swift lint --root $(APP_ROOT) --strict --architecture
 
-docc-pages:
+docc-mirror:
+	$(SWIFT) tools/fsd-docc-mirror.swift
+
+docc-mirror-check:
+	$(SWIFT) tools/fsd-docc-mirror.swift --check
+
+docc-pages: docc-mirror
 	rm -rf "$(DOCC_OUTPUT_PATH)"
 	@mkdir -p "$$(dirname "$(DOCC_OUTPUT_PATH)")"
 	$(SWIFT) package --allow-writing-to-directory "$(DOCC_OUTPUT_PATH)" \
@@ -271,6 +279,14 @@ docc-smoke: docc-pages
 	@test -f "$(DOCC_OUTPUT_PATH)/index.html"
 	@test -d "$(DOCC_OUTPUT_PATH)/documentation/fsdtoolingsupport"
 	@grep -q 'documentation/fsdtoolingsupport' "$(DOCC_OUTPUT_PATH)/index.html"
+	@test -f "Sources/FSDToolingSupport/Documentation.docc/MirroredDocumentation/DocumentationMirror.md"
+	@test -f "Sources/FSDToolingSupport/Documentation.docc/MirroredDocumentation/RepositoryOverview.md"
+	@test -f "Sources/FSDToolingSupport/Documentation.docc/MirroredDocumentation/FeatureSlicedDesignSpecification.md"
+	@test -f "Sources/FSDToolingSupport/Documentation.docc/MirroredDocumentation/FSDWithSwiftPackageManager.md"
+	@test -f "$(DOCC_OUTPUT_PATH)/documentation/fsdtoolingsupport/documentationmirror/index.html"
+	@test -f "$(DOCC_OUTPUT_PATH)/documentation/fsdtoolingsupport/repositoryoverview/index.html"
+	@test -f "$(DOCC_OUTPUT_PATH)/documentation/fsdtoolingsupport/featuresliceddesignspecification/index.html"
+	@test -f "$(DOCC_OUTPUT_PATH)/documentation/fsdtoolingsupport/fsdwithswiftpackagemanager/index.html"
 
 release-docs:
 	@test -f CHANGELOG.md
@@ -517,7 +533,7 @@ test:
 		test \
 		CODE_SIGNING_ALLOWED=NO
 
-ci: lint lint-strict lint-architecture swiftlint harmonize-fixture template-create-dry-run template-create-fixture slice-create-fixture module-create-fixture template-validate template-validate-negative spm-template-test item-export-feature-test spm-template-create-fixture spm-plugin-smoke cli-smoke cli-doctor config-smoke report-smoke install-smoke xcode-templates-smoke action-smoke docc-smoke release-docs test
+ci: lint lint-strict lint-architecture swiftlint harmonize-fixture template-create-dry-run template-create-fixture slice-create-fixture module-create-fixture template-validate template-validate-negative spm-template-test item-export-feature-test spm-template-create-fixture spm-plugin-smoke cli-smoke cli-doctor config-smoke report-smoke install-smoke xcode-templates-smoke action-smoke docc-mirror-check docc-smoke release-docs test
 
 clean:
 	rm -rf $(DERIVED_DATA_PATH)
