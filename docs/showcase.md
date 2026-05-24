@@ -23,7 +23,8 @@ depending on active `codex/*` work branches.
    - `FSDDemoApp/widgets` demonstrates large reusable UI blocks;
    - `FSDDemoApp/features` demonstrates user actions with business value;
    - `FSDDemoApp/entities` demonstrates domain model and entity UI;
-   - `FSDDemoApp/shared` demonstrates generic reusable UI.
+   - `LocalPackages/SharedUI` demonstrates generic reusable UI;
+   - `LocalPackages/ItemExportFeature` demonstrates a feature-level SwiftPM boundary.
 
 ## Capability Map
 
@@ -33,7 +34,8 @@ depending on active `codex/*` work branches.
 | Page-level composition | `FSDDemoApp/pages/items`, `pages/item-details`, `pages/item-edit` | `demo/fsd-showcase` |
 | Reusable feature actions | `FSDDemoApp/features/add-item`, `edit-item`, `delete-items`, `toggle-item-completion`, `change-item-priority`, `filter-items` | `demo/fsd-showcase` |
 | Domain entity reuse | `FSDDemoApp/entities/item` | `demo/fsd-showcase` |
-| Shared generic UI | `FSDDemoApp/shared/ui` | `demo/fsd-showcase` |
+| Shared generic UI package | `LocalPackages/SharedUI` | `main` |
+| Local SwiftPM feature package | `LocalPackages/ItemExportFeature`, `make item-export-feature-test` | `main` |
 | Reference template rules | `ARCHITECTURE.md`, `CONTRIBUTING.md`, `docs/rules`, `docs/checklist.md` | `main` |
 | Copyable template package | `templates/fsd-ios` | `main` |
 | Template generator | `tools/fsd-template-create.swift`, `make template-create-fixture` | `main` |
