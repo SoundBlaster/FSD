@@ -33,7 +33,7 @@ jobs:
         run: |
           brew install swiftlint
 
-      - name: Run FSD lint
+      - name: Run lint checks
         run: |
           make lint
           make lint-strict
