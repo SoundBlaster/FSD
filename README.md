@@ -12,6 +12,7 @@ Feature-Sliced Design as a clear set of rules, checks, and good practices.
 - Reusable feature actions: add, edit, delete, toggle completion, change priority.
 - Architecture lint implemented as Swift CLI tooling and GitHub Actions validation.
 - SwiftLint baseline for Swift style checks in the demo app and local packages.
+- DocC documentation deployment through GitHub Pages.
 - Local developer workflow through `make`.
 - Copyable template bundle for starting a new FSD iOS project.
 
@@ -155,6 +156,16 @@ make uninstall-xcode-templates
 ```
 
 Details: [docs/cli.md](docs/cli.md).
+
+## Documentation Site
+
+The SwiftPM tooling support module has a DocC catalog under
+`Sources/FSDToolingSupport/Documentation.docc`. GitHub Actions builds the site
+for pull requests and deploys it to GitHub Pages from `main`.
+
+```bash
+make docc-smoke
+```
 
 ## Running
 
