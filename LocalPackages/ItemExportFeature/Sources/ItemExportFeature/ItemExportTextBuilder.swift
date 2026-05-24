@@ -8,6 +8,12 @@
 import Foundation
 
 public struct ItemExportTextBuilder {
+    private static let iso8601DateFormatter: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime]
+        return formatter
+    }()
+
     private let formatDate: (Date) -> String
 
     public init(formatDate: @escaping (Date) -> String = Self.defaultDateFormatter) {
@@ -49,8 +55,6 @@ public struct ItemExportTextBuilder {
     }
 
     public static func defaultDateFormatter(_ date: Date) -> String {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime]
-        return formatter.string(from: date)
+        iso8601DateFormatter.string(from: date)
     }
 }

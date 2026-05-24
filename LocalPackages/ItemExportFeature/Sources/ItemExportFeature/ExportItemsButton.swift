@@ -5,6 +5,7 @@
 //  Created by Egor Merkushev on 5/24/26.
 //
 
+#if canImport(SwiftUI)
 import SwiftUI
 
 public struct ExportItemsButton: View {
@@ -32,3 +33,4 @@ public struct ExportItemsButton: View {
         .disabled(items.isEmpty)
     }
 }
+#endif
