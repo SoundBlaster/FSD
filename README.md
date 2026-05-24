@@ -11,6 +11,7 @@ Feature-Sliced Design as a clear set of rules, checks, and good practices.
 - Separation between screen-level composition and reusable user actions.
 - Reusable feature actions: add, edit, delete, toggle completion, change priority.
 - Architecture lint implemented as Swift CLI tooling and GitHub Actions validation.
+- SwiftLint baseline for Swift style checks in the demo app and local packages.
 - Local developer workflow through `make`.
 - Copyable template bundle for starting a new FSD iOS project.
 
@@ -188,6 +189,14 @@ FSD dependency direction between layers and slices:
 
 ```bash
 make lint-architecture
+```
+
+Swift style checks use [SwiftLint](https://github.com/realm/SwiftLint). Install
+it locally with Homebrew before running the target:
+
+```bash
+brew install swiftlint
+make swiftlint
 ```
 
 Repository-level lint defaults live in [.fsd-ios.yml](.fsd-ios.yml). The config
