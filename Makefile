@@ -15,8 +15,10 @@ INSTALL_SMOKE_PREFIX := $(DERIVED_DATA_PATH)/LocalInstall
 XCODE_TEMPLATES_SRC := templates/xcode/file-templates/FSD iOS
 XCODE_TEMPLATES_DIR ?= $(HOME)/Library/Developer/Xcode/Templates/File Templates/FSD iOS
 XCODE_TEMPLATES_SMOKE_DIR := $(DERIVED_DATA_PATH)/XcodeTemplatesSmoke/FSD iOS
+DOCC_OUTPUT_PATH := $(DERIVED_DATA_PATH)/DocCPages
+DOCC_HOSTING_BASE_PATH ?= FSD
 
-.PHONY: help open install uninstall install-smoke install-xcode-templates uninstall-xcode-templates xcode-templates-smoke cli-help cli-smoke cli-doctor config-smoke report-smoke action-smoke lint lint-strict lint-architecture swiftlint harmonize harmonize-fixture template-create-dry-run template-create-fixture slice-create-fixture module-create-fixture template-validate template-validate-negative spm-template-test item-export-feature-test spm-template-create-fixture spm-plugin-smoke build test demo template-demo ci clean
+.PHONY: help open install uninstall install-smoke install-xcode-templates uninstall-xcode-templates xcode-templates-smoke cli-help cli-smoke cli-doctor config-smoke report-smoke action-smoke docc-pages docc-smoke lint lint-strict lint-architecture swiftlint harmonize harmonize-fixture template-create-dry-run template-create-fixture slice-create-fixture module-create-fixture template-validate template-validate-negative spm-template-test item-export-feature-test spm-template-create-fixture spm-plugin-smoke build test demo template-demo ci clean
 
 help:
 	@printf '%s\n' \
@@ -34,6 +36,8 @@ help:
 		'  make config-smoke  Verify .fsd-ios.yml config loading' \
 		'  make report-smoke  Verify lint text/json/xcode report formats' \
 		'  make action-smoke  Smoke-test the reusable GitHub Action contract' \
+		'  make docc-pages   Build static DocC pages into DerivedData/DocCPages' \
+		'  make docc-smoke   Verify the static DocC output contract' \
 		'  make lint         Run the baseline FSD lint' \
 		'  make lint-strict  Run the strict FSD lint' \
 		'  make lint-architecture  Run the Swift symbol dependency lint' \
@@ -60,6 +64,7 @@ help:
 		'Variables:' \
 		'  SIMULATOR="iPhone 17 Pro"' \
 		'  SWIFTLINT="swiftlint"' \
+		'  DOCC_HOSTING_BASE_PATH="FSD"' \
 		'  INSTALL_PREFIX="$(HOME)/.local"' \
 		'  XCODE_TEMPLATES_DIR="$(HOME)/Library/Developer/Xcode/Templates/File Templates/FSD iOS"'
 
@@ -233,6 +238,38 @@ action-smoke:
 	@grep -q 'INPUT_FORMAT' action.yml
 	@grep -q -- '--format' action.yml
 	$(SWIFT) tools/fsd-ios.swift lint --root $(APP_ROOT) --strict --architecture
+
+docc-pages:
+	rm -rf "$(DOCC_OUTPUT_PATH)"
+	@mkdir -p "$$(dirname "$(DOCC_OUTPUT_PATH)")"
+	$(SWIFT) package --allow-writing-to-directory "$(DOCC_OUTPUT_PATH)" \
+		generate-documentation \
+		--target FSDToolingSupport \
+		--output-path "$(DOCC_OUTPUT_PATH)" \
+		--transform-for-static-hosting \
+		--hosting-base-path "$(DOCC_HOSTING_BASE_PATH)"
+	@touch "$(DOCC_OUTPUT_PATH)/.nojekyll"
+	@{ \
+		printf '%s\n' '<!DOCTYPE html>'; \
+		printf '%s\n' '<html>'; \
+		printf '%s\n' '<head>'; \
+		printf '%s\n' '  <meta charset="utf-8">'; \
+		printf '%s\n' '  <title>Redirecting to FSD iOS Documentation</title>'; \
+		printf '%s\n' '  <meta http-equiv="refresh" content="0; url=./documentation/fsdtoolingsupport/">'; \
+		printf '%s\n' '  <link rel="canonical" href="./documentation/fsdtoolingsupport/">'; \
+		printf '%s\n' '</head>'; \
+		printf '%s\n' '<body>'; \
+		printf '%s\n' '  <p>Redirecting to <a href="./documentation/fsdtoolingsupport/">FSD iOS Documentation</a>...</p>'; \
+		printf '%s\n' '  <script>window.location.href = "./documentation/fsdtoolingsupport/";</script>'; \
+		printf '%s\n' '</body>'; \
+		printf '%s\n' '</html>'; \
+	} > "$(DOCC_OUTPUT_PATH)/index.html"
+
+docc-smoke: docc-pages
+	@test -f "$(DOCC_OUTPUT_PATH)/.nojekyll"
+	@test -f "$(DOCC_OUTPUT_PATH)/index.html"
+	@test -d "$(DOCC_OUTPUT_PATH)/documentation/fsdtoolingsupport"
+	@grep -q 'documentation/fsdtoolingsupport' "$(DOCC_OUTPUT_PATH)/index.html"
 
 lint:
 	$(SWIFT) tools/fsd-lint.swift $(APP_ROOT)
@@ -469,7 +506,7 @@ test:
 		test \
 		CODE_SIGNING_ALLOWED=NO
 
-ci: lint lint-strict lint-architecture swiftlint harmonize-fixture template-create-dry-run template-create-fixture slice-create-fixture module-create-fixture template-validate template-validate-negative spm-template-test item-export-feature-test spm-template-create-fixture spm-plugin-smoke cli-smoke cli-doctor config-smoke report-smoke install-smoke xcode-templates-smoke action-smoke test
+ci: lint lint-strict lint-architecture swiftlint harmonize-fixture template-create-dry-run template-create-fixture slice-create-fixture module-create-fixture template-validate template-validate-negative spm-template-test item-export-feature-test spm-template-create-fixture spm-plugin-smoke cli-smoke cli-doctor config-smoke report-smoke install-smoke xcode-templates-smoke action-smoke docc-smoke test
 
 clean:
 	rm -rf $(DERIVED_DATA_PATH)
