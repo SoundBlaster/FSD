@@ -51,7 +51,8 @@ let repoRootURL = toolsDirectoryURL.lastPathComponent == "tools"
 let catalogURL = repoRootURL
     .appendingPathComponent("Sources/FSDToolingSupport/Documentation.docc", isDirectory: true)
 let mirrorURL = catalogURL.appendingPathComponent("MirroredDocumentation", isDirectory: true)
-let repositoryBaseURL = "https://github.com/SoundBlaster/FSD/blob/main"
+let repositoryBlobBaseURL = "https://github.com/SoundBlaster/FSD/blob/main"
+let repositoryTreeBaseURL = "https://github.com/SoundBlaster/FSD/tree/main"
 
 let articleByPath = Dictionary(uniqueKeysWithValues: documents.map { ($0.path, $0.articleName) })
 
@@ -136,6 +137,12 @@ func rewrittenDestination(_ rawDestination: String, relativeTo sourcePath: Strin
             String(segment).addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? String(segment)
         }
         .joined(separator: "/")
+    var isDirectory: ObjCBool = false
+    let targetURL = repoRootURL.appendingPathComponent(repositoryPath)
+    let repositoryBaseURL = fileManager.fileExists(atPath: targetURL.path, isDirectory: &isDirectory)
+        && isDirectory.boolValue
+        ? repositoryTreeBaseURL
+        : repositoryBlobBaseURL
     return "\(repositoryBaseURL)/\(encodedPath)"
 }
 

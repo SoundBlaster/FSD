@@ -87,7 +87,7 @@ instead of moving existing legacy files first. This creates a module island wher
 new code has compile-time dependency direction, while the old app can adopt it
 screen by screen.
 
-The starter package lives in [templates/fsd-ios-spm](https://github.com/SoundBlaster/FSD/blob/main/templates/fsd-ios-spm):
+The starter package lives in [templates/fsd-ios-spm](https://github.com/SoundBlaster/FSD/tree/main/templates/fsd-ios-spm):
 
 ```bash
 swift tools/fsd-template-create.swift \

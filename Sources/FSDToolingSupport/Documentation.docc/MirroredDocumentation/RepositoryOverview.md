@@ -57,7 +57,7 @@ Additional notes on mapping FSD boundaries to Swift Package Manager:
 
 ## Template Bundle
 
-The copyable starter package lives in [templates/fsd-ios](https://github.com/SoundBlaster/FSD/blob/main/templates/fsd-ios).
+The copyable starter package lives in [templates/fsd-ios](https://github.com/SoundBlaster/FSD/tree/main/templates/fsd-ios).
 It contains a minimal SwiftUI/FSD skeleton, `Makefile`, CI workflow, PR template,
 and checklist for a new project.
 
@@ -71,7 +71,7 @@ swift tools/fsd-ios.swift create app --name MyApp --output ../MyApp
 
 For legacy projects, a local Swift Package with compile-time module boundaries is
 usually more important than a new app skeleton. That template lives in
-[templates/fsd-ios-spm](https://github.com/SoundBlaster/FSD/blob/main/templates/fsd-ios-spm).
+[templates/fsd-ios-spm](https://github.com/SoundBlaster/FSD/tree/main/templates/fsd-ios-spm).
 
 ```bash
 swift tools/fsd-ios.swift create spm \
