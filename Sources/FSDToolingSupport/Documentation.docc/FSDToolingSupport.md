@@ -13,8 +13,14 @@ The implementation-heavy tooling currently lives in script entry points under
 - `fsd-ios` CLI for linting, diagnostics, and template generation.
 - `fsd-generate` SwiftPM command plugin for slice and module generation.
 - FSD templates for app-first and SwiftPM module-island adoption.
+- <doc:DocumentationMirror> for the repository Markdown documentation mirrored
+  into the DocC site.
 
 ## Topics
+
+### Documentation
+
+- <doc:DocumentationMirror>
 
 ### Package Metadata
 
