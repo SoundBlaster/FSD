@@ -8,6 +8,7 @@ SIMULATOR ?= iPhone 17 Pro
 DESTINATION := platform=iOS Simulator,name=$(SIMULATOR)
 XCODEBUILD ?= xcodebuild
 SWIFT ?= swift
+SWIFTLINT ?= swiftlint
 INSTALL_PREFIX ?= $(HOME)/.local
 INSTALL_BIN_DIR := $(INSTALL_PREFIX)/bin
 INSTALL_SMOKE_PREFIX := $(DERIVED_DATA_PATH)/LocalInstall
@@ -15,7 +16,7 @@ XCODE_TEMPLATES_SRC := templates/xcode/file-templates/FSD iOS
 XCODE_TEMPLATES_DIR ?= $(HOME)/Library/Developer/Xcode/Templates/File Templates/FSD iOS
 XCODE_TEMPLATES_SMOKE_DIR := $(DERIVED_DATA_PATH)/XcodeTemplatesSmoke/FSD iOS
 
-.PHONY: help open install uninstall install-smoke install-xcode-templates uninstall-xcode-templates xcode-templates-smoke cli-help cli-smoke cli-doctor config-smoke report-smoke action-smoke lint lint-strict lint-architecture harmonize harmonize-fixture template-create-dry-run template-create-fixture slice-create-fixture module-create-fixture template-validate template-validate-negative spm-template-test item-export-feature-test spm-template-create-fixture spm-plugin-smoke build test demo template-demo ci clean
+.PHONY: help open install uninstall install-smoke install-xcode-templates uninstall-xcode-templates xcode-templates-smoke cli-help cli-smoke cli-doctor config-smoke report-smoke action-smoke lint lint-strict lint-architecture swiftlint harmonize harmonize-fixture template-create-dry-run template-create-fixture slice-create-fixture module-create-fixture template-validate template-validate-negative spm-template-test item-export-feature-test spm-template-create-fixture spm-plugin-smoke build test demo template-demo ci clean
 
 help:
 	@printf '%s\n' \
@@ -36,6 +37,7 @@ help:
 		'  make lint         Run the baseline FSD lint' \
 		'  make lint-strict  Run the strict FSD lint' \
 		'  make lint-architecture  Run the Swift symbol dependency lint' \
+		'  make swiftlint    Run SwiftLint style checks' \
 		'  make harmonize    Print read-only FSD refactoring suggestions' \
 		'  make harmonize-fixture  Verify harmonize suggestions on a fixture' \
 		'  make template-create-dry-run  Preview template materialization' \
@@ -57,6 +59,7 @@ help:
 		'' \
 		'Variables:' \
 		'  SIMULATOR="iPhone 17 Pro"' \
+		'  SWIFTLINT="swiftlint"' \
 		'  INSTALL_PREFIX="$(HOME)/.local"' \
 		'  XCODE_TEMPLATES_DIR="$(HOME)/Library/Developer/Xcode/Templates/File Templates/FSD iOS"'
 
@@ -239,6 +242,13 @@ lint-strict:
 
 lint-architecture:
 	$(SWIFT) tools/fsd-lint.swift --root $(APP_ROOT) --strict --architecture
+
+swiftlint:
+	@command -v "$(SWIFTLINT)" > /dev/null || { \
+		printf '%s\n' 'SwiftLint is not installed. Install it with `brew install swiftlint`.'; \
+		exit 1; \
+	}
+	$(SWIFTLINT) lint --strict
 
 harmonize:
 	$(SWIFT) tools/fsd-harmonize.swift --root $(APP_ROOT)
@@ -459,7 +469,7 @@ test:
 		test \
 		CODE_SIGNING_ALLOWED=NO
 
-ci: lint lint-strict lint-architecture harmonize-fixture template-create-dry-run template-create-fixture slice-create-fixture module-create-fixture template-validate template-validate-negative spm-template-test item-export-feature-test spm-template-create-fixture spm-plugin-smoke cli-smoke cli-doctor config-smoke report-smoke install-smoke xcode-templates-smoke action-smoke test
+ci: lint lint-strict lint-architecture swiftlint harmonize-fixture template-create-dry-run template-create-fixture slice-create-fixture module-create-fixture template-validate template-validate-negative spm-template-test item-export-feature-test spm-template-create-fixture spm-plugin-smoke cli-smoke cli-doctor config-smoke report-smoke install-smoke xcode-templates-smoke action-smoke test
 
 clean:
 	rm -rf $(DERIVED_DATA_PATH)

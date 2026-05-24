@@ -29,11 +29,16 @@ jobs:
           xcodebuild -version
           xcrun simctl list runtimes available
 
-      - name: Run FSD lint
+      - name: Install SwiftLint
+        run: |
+          brew install swiftlint
+
+      - name: Run lint checks
         run: |
           make lint
           make lint-strict
           make lint-architecture
+          make swiftlint
           make harmonize-fixture
           make template-create-dry-run
           make template-create-fixture
