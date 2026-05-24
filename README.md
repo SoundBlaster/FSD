@@ -168,8 +168,13 @@ also mirrors the repository Markdown documentation, including `README.md`,
 
 ```bash
 make docc-mirror
+make docc-mirror-check
 make docc-smoke
 ```
+
+Use `make docc-mirror-check` as a local quality gate before committing changes
+to source Markdown or generated mirror articles. It fails when only one side of
+the source/mirror pair was changed.
 
 ## Release DX
 

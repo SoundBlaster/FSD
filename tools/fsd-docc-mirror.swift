@@ -14,6 +14,11 @@ struct SourceDocument {
     let articleName: String
 }
 
+enum Mode {
+    case write
+    case check
+}
+
 let documents: [SourceDocument] = [
     SourceDocument(path: "README.md", title: "Repository Overview", articleName: "RepositoryOverview"),
     SourceDocument(path: "ARCHITECTURE.md", title: "Architecture Contract", articleName: "ArchitectureContract"),
@@ -49,6 +54,39 @@ let mirrorURL = catalogURL.appendingPathComponent("MirroredDocumentation", isDir
 let repositoryBaseURL = "https://github.com/SoundBlaster/FSD/blob/main"
 
 let articleByPath = Dictionary(uniqueKeysWithValues: documents.map { ($0.path, $0.articleName) })
+
+func printUsage() {
+    print(
+        """
+        Usage:
+          swift tools/fsd-docc-mirror.swift [--check]
+
+        Modes:
+          default   Regenerate DocC mirror articles from repository Markdown docs.
+          --check   Verify committed DocC mirror articles match source docs.
+        """
+    )
+}
+
+func parseMode() -> Mode {
+    let arguments = Array(CommandLine.arguments.dropFirst())
+    if arguments.isEmpty {
+        return .write
+    }
+    if arguments == ["--check"] {
+        return .check
+    }
+    if arguments == ["--help"] || arguments == ["-h"] {
+        printUsage()
+        exit(0)
+    }
+
+    fputs("error: unsupported arguments: \(arguments.joined(separator: " "))\n", stderr)
+    printUsage()
+    exit(2)
+}
+
+let mode = parseMode()
 
 func repositoryRelativePath(for url: URL) -> String {
     let rootPath = repoRootURL.path
@@ -172,24 +210,85 @@ func mirrorIndex() -> String {
     """ + "\n"
 }
 
-if fileManager.fileExists(atPath: mirrorURL.path) {
-    try fileManager.removeItem(at: mirrorURL)
-}
-try fileManager.createDirectory(at: mirrorURL, withIntermediateDirectories: true)
-
-try mirrorIndex().write(
-    to: mirrorURL.appendingPathComponent("DocumentationMirror.md"),
-    atomically: true,
-    encoding: .utf8
-)
-
-for document in documents {
-    let article = try mirroredArticle(for: document)
-    try article.write(
-        to: mirrorURL.appendingPathComponent("\(document.articleName).md"),
-        atomically: true,
-        encoding: .utf8
-    )
+func expectedArticles() throws -> [String: String] {
+    var articles = ["DocumentationMirror.md": mirrorIndex()]
+    for document in documents {
+        articles["\(document.articleName).md"] = try mirroredArticle(for: document)
+    }
+    return articles
 }
 
-print("Generated DocC documentation mirror: \(documents.count) source files")
+func writeMirror() throws {
+    if fileManager.fileExists(atPath: mirrorURL.path) {
+        try fileManager.removeItem(at: mirrorURL)
+    }
+    try fileManager.createDirectory(at: mirrorURL, withIntermediateDirectories: true)
+
+    for (fileName, content) in try expectedArticles() {
+        try content.write(
+            to: mirrorURL.appendingPathComponent(fileName),
+            atomically: true,
+            encoding: .utf8
+        )
+    }
+
+    print("Generated DocC documentation mirror: \(documents.count) source files")
+}
+
+func checkMirror() throws -> Bool {
+    let expected = try expectedArticles()
+    var failures: [String] = []
+
+    for (fileName, expectedContent) in expected.sorted(by: { $0.key < $1.key }) {
+        let fileURL = mirrorURL.appendingPathComponent(fileName)
+        guard fileManager.fileExists(atPath: fileURL.path) else {
+            failures.append("missing: \(repositoryRelativePath(for: fileURL))")
+            continue
+        }
+
+        let currentContent = try String(contentsOf: fileURL, encoding: .utf8)
+        if currentContent != expectedContent {
+            failures.append("stale: \(repositoryRelativePath(for: fileURL))")
+        }
+    }
+
+    if let enumerator = fileManager.enumerator(
+        at: mirrorURL,
+        includingPropertiesForKeys: [.isRegularFileKey],
+        options: [.skipsHiddenFiles]
+    ) {
+        for case let fileURL as URL in enumerator {
+            let values = try fileURL.resourceValues(forKeys: [.isRegularFileKey])
+            guard values.isRegularFile == true,
+                  fileURL.pathExtension == "md" else {
+                continue
+            }
+
+            let fileName = fileURL.lastPathComponent
+            if expected[fileName] == nil {
+                failures.append("extra: \(repositoryRelativePath(for: fileURL))")
+            }
+        }
+    }
+
+    if failures.isEmpty {
+        print("DocC documentation mirror is up to date: \(documents.count) source files")
+        return true
+    }
+
+    fputs("DocC documentation mirror is out of date.\n", stderr)
+    for failure in failures {
+        fputs("- \(failure)\n", stderr)
+    }
+    fputs("Run `make docc-mirror` and commit the generated files.\n", stderr)
+    return false
+}
+
+switch mode {
+case .write:
+    try writeMirror()
+case .check:
+    if try !checkMirror() {
+        exit(1)
+    }
+}

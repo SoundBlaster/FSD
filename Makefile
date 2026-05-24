@@ -18,7 +18,7 @@ XCODE_TEMPLATES_SMOKE_DIR := $(DERIVED_DATA_PATH)/XcodeTemplatesSmoke/FSD iOS
 DOCC_OUTPUT_PATH := $(DERIVED_DATA_PATH)/DocCPages
 DOCC_HOSTING_BASE_PATH ?= FSD
 
-.PHONY: help open install uninstall install-smoke install-xcode-templates uninstall-xcode-templates xcode-templates-smoke cli-help cli-smoke cli-doctor config-smoke report-smoke action-smoke docc-mirror docc-pages docc-smoke release-docs lint lint-strict lint-architecture swiftlint harmonize harmonize-fixture template-create-dry-run template-create-fixture slice-create-fixture module-create-fixture template-validate template-validate-negative spm-template-test item-export-feature-test spm-template-create-fixture spm-plugin-smoke build test demo template-demo ci clean
+.PHONY: help open install uninstall install-smoke install-xcode-templates uninstall-xcode-templates xcode-templates-smoke cli-help cli-smoke cli-doctor config-smoke report-smoke action-smoke docc-mirror docc-mirror-check docc-pages docc-smoke release-docs lint lint-strict lint-architecture swiftlint harmonize harmonize-fixture template-create-dry-run template-create-fixture slice-create-fixture module-create-fixture template-validate template-validate-negative spm-template-test item-export-feature-test spm-template-create-fixture spm-plugin-smoke build test demo template-demo ci clean
 
 help:
 	@printf '%s\n' \
@@ -37,6 +37,7 @@ help:
 		'  make report-smoke  Verify lint text/json/xcode report formats' \
 		'  make action-smoke  Smoke-test the reusable GitHub Action contract' \
 		'  make docc-mirror  Generate DocC articles from repository Markdown docs' \
+		'  make docc-mirror-check  Verify DocC mirror articles are synchronized' \
 		'  make docc-pages   Build static DocC pages into DerivedData/DocCPages' \
 		'  make docc-smoke   Verify the static DocC output contract' \
 		'  make release-docs  Verify release process documentation links' \
@@ -243,6 +244,9 @@ action-smoke:
 
 docc-mirror:
 	$(SWIFT) tools/fsd-docc-mirror.swift
+
+docc-mirror-check:
+	$(SWIFT) tools/fsd-docc-mirror.swift --check
 
 docc-pages: docc-mirror
 	rm -rf "$(DOCC_OUTPUT_PATH)"
@@ -529,7 +533,7 @@ test:
 		test \
 		CODE_SIGNING_ALLOWED=NO
 
-ci: lint lint-strict lint-architecture swiftlint harmonize-fixture template-create-dry-run template-create-fixture slice-create-fixture module-create-fixture template-validate template-validate-negative spm-template-test item-export-feature-test spm-template-create-fixture spm-plugin-smoke cli-smoke cli-doctor config-smoke report-smoke install-smoke xcode-templates-smoke action-smoke docc-smoke release-docs test
+ci: lint lint-strict lint-architecture swiftlint harmonize-fixture template-create-dry-run template-create-fixture slice-create-fixture module-create-fixture template-validate template-validate-negative spm-template-test item-export-feature-test spm-template-create-fixture spm-plugin-smoke cli-smoke cli-doctor config-smoke report-smoke install-smoke xcode-templates-smoke action-smoke docc-mirror-check docc-smoke release-docs test
 
 clean:
 	rm -rf $(DERIVED_DATA_PATH)
