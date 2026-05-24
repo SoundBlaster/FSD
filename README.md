@@ -25,6 +25,7 @@ Detailed capability map: [docs/showcase.md](docs/showcase.md).
 - [docs/checklist.md](docs/checklist.md) - practical checklist for new PRs.
 - [docs/cli.md](docs/cli.md) - unified CLI, doctor, and template generation workflow.
 - [docs/configuration.md](docs/configuration.md) - `.fsd-ios.yml` configuration contract.
+- [docs/release.md](docs/release.md) - release process and compatibility policy.
 - [docs/roadmap.md](docs/roadmap.md) - planned CLI, lint, generator, and release DX work.
 - [docs/adoption/external-project.md](docs/adoption/external-project.md) - using FSD tooling in an external iOS project.
 - [docs/rules/fsd-layers.md](docs/rules/fsd-layers.md) - FSD layer responsibilities.
@@ -166,6 +167,13 @@ for pull requests and deploys it to GitHub Pages from `main`.
 ```bash
 make docc-smoke
 ```
+
+## Release DX
+
+The repository is moving toward installable `fsd-ios` releases for external
+projects. The release process, versioning policy, and compatibility expectations
+are documented in [docs/release.md](docs/release.md). User-facing changes should
+also be recorded in [CHANGELOG.md](CHANGELOG.md).
 
 ## Running
 

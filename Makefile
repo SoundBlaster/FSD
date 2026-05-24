@@ -18,7 +18,7 @@ XCODE_TEMPLATES_SMOKE_DIR := $(DERIVED_DATA_PATH)/XcodeTemplatesSmoke/FSD iOS
 DOCC_OUTPUT_PATH := $(DERIVED_DATA_PATH)/DocCPages
 DOCC_HOSTING_BASE_PATH ?= FSD
 
-.PHONY: help open install uninstall install-smoke install-xcode-templates uninstall-xcode-templates xcode-templates-smoke cli-help cli-smoke cli-doctor config-smoke report-smoke action-smoke docc-pages docc-smoke lint lint-strict lint-architecture swiftlint harmonize harmonize-fixture template-create-dry-run template-create-fixture slice-create-fixture module-create-fixture template-validate template-validate-negative spm-template-test item-export-feature-test spm-template-create-fixture spm-plugin-smoke build test demo template-demo ci clean
+.PHONY: help open install uninstall install-smoke install-xcode-templates uninstall-xcode-templates xcode-templates-smoke cli-help cli-smoke cli-doctor config-smoke report-smoke action-smoke docc-pages docc-smoke release-docs lint lint-strict lint-architecture swiftlint harmonize harmonize-fixture template-create-dry-run template-create-fixture slice-create-fixture module-create-fixture template-validate template-validate-negative spm-template-test item-export-feature-test spm-template-create-fixture spm-plugin-smoke build test demo template-demo ci clean
 
 help:
 	@printf '%s\n' \
@@ -38,6 +38,7 @@ help:
 		'  make action-smoke  Smoke-test the reusable GitHub Action contract' \
 		'  make docc-pages   Build static DocC pages into DerivedData/DocCPages' \
 		'  make docc-smoke   Verify the static DocC output contract' \
+		'  make release-docs  Verify release process documentation links' \
 		'  make lint         Run the baseline FSD lint' \
 		'  make lint-strict  Run the strict FSD lint' \
 		'  make lint-architecture  Run the Swift symbol dependency lint' \
@@ -270,6 +271,16 @@ docc-smoke: docc-pages
 	@test -f "$(DOCC_OUTPUT_PATH)/index.html"
 	@test -d "$(DOCC_OUTPUT_PATH)/documentation/fsdtoolingsupport"
 	@grep -q 'documentation/fsdtoolingsupport' "$(DOCC_OUTPUT_PATH)/index.html"
+
+release-docs:
+	@test -f CHANGELOG.md
+	@test -f docs/release.md
+	@grep -q '## Unreleased' CHANGELOG.md
+	@grep -q '## Versioning Policy' docs/release.md
+	@grep -q '## Compatibility Contract' docs/release.md
+	@grep -q 'docs/release.md' README.md
+	@grep -q 'CHANGELOG.md' README.md
+	@grep -q 'docs/release.md' docs/roadmap.md
 
 lint:
 	$(SWIFT) tools/fsd-lint.swift $(APP_ROOT)
@@ -506,7 +517,7 @@ test:
 		test \
 		CODE_SIGNING_ALLOWED=NO
 
-ci: lint lint-strict lint-architecture swiftlint harmonize-fixture template-create-dry-run template-create-fixture slice-create-fixture module-create-fixture template-validate template-validate-negative spm-template-test item-export-feature-test spm-template-create-fixture spm-plugin-smoke cli-smoke cli-doctor config-smoke report-smoke install-smoke xcode-templates-smoke action-smoke docc-smoke test
+ci: lint lint-strict lint-architecture swiftlint harmonize-fixture template-create-dry-run template-create-fixture slice-create-fixture module-create-fixture template-validate template-validate-negative spm-template-test item-export-feature-test spm-template-create-fixture spm-plugin-smoke cli-smoke cli-doctor config-smoke report-smoke install-smoke xcode-templates-smoke action-smoke docc-smoke release-docs test
 
 clean:
 	rm -rf $(DERIVED_DATA_PATH)

@@ -130,6 +130,10 @@ Success metrics:
 
 Goal: make the toolkit easy to install and update outside the repository.
 
+Status: release process and compatibility policy are documented in
+[`docs/release.md`](release.md). Artifact packaging and Homebrew distribution
+are planned follow-ups.
+
 Scope:
 
 - stabilize `fsd-ios --version`;
