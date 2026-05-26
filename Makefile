@@ -17,17 +17,26 @@ XCODE_TEMPLATES_DIR ?= $(HOME)/Library/Developer/Xcode/Templates/File Templates/
 XCODE_TEMPLATES_SMOKE_DIR := $(DERIVED_DATA_PATH)/XcodeTemplatesSmoke/FSD iOS
 DOCC_OUTPUT_PATH := $(DERIVED_DATA_PATH)/DocCPages
 DOCC_HOSTING_BASE_PATH ?= FSD
+RELEASE_GOALS := release-artifact release-artifact-smoke ci
+RELEASE_GOAL_REQUESTED := $(filter $(RELEASE_GOALS),$(MAKECMDGOALS))
 ifeq ($(origin RELEASE_VERSION), undefined)
-ifneq ($(filter release-artifact release-artifact-smoke ci,$(MAKECMDGOALS)),)
-RELEASE_VERSION := $(shell $(SWIFT) tools/fsd-ios.swift --version | awk '{print $$2}')
+ifneq ($(RELEASE_GOAL_REQUESTED),)
+RELEASE_VERSION := $(shell $(SWIFT) tools/fsd-ios.swift --version 2>/dev/null | awk '/^fsd-ios [0-9]+[.][0-9]+[.][0-9]+$$/ { print $$2 }')
 else
 RELEASE_VERSION := 0.0.0
+endif
+endif
+ifneq ($(RELEASE_GOAL_REQUESTED),)
+RELEASE_VERSION_VALID := $(shell printf '%s\n' '$(RELEASE_VERSION)' | awk '/^[0-9]+[.][0-9]+[.][0-9]+$$/ { print "ok" }')
+ifeq ($(RELEASE_VERSION_VALID),)
+$(error Unable to resolve RELEASE_VERSION; expected MAJOR.MINOR.PATCH, got `$(RELEASE_VERSION)`)
 endif
 endif
 RELEASE_PACKAGE_NAME := fsd-ios-$(RELEASE_VERSION)
 RELEASE_ROOT := $(DERIVED_DATA_PATH)/Release
 RELEASE_STAGING_DIR := $(RELEASE_ROOT)/$(RELEASE_PACKAGE_NAME)
 RELEASE_LIBEXEC_DIR := $(RELEASE_STAGING_DIR)/libexec/fsd-ios
+RELEASE_TAR := $(RELEASE_ROOT)/$(RELEASE_PACKAGE_NAME).tar
 RELEASE_ARCHIVE := $(RELEASE_ROOT)/$(RELEASE_PACKAGE_NAME).tar.gz
 RELEASE_CHECKSUM := $(RELEASE_ARCHIVE).sha256
 RELEASE_FILE_LIST := $(RELEASE_ROOT)/$(RELEASE_PACKAGE_NAME).files
@@ -189,13 +198,13 @@ install-smoke:
 	@test ! -e "$(INSTALL_SMOKE_PREFIX)/bin/fsd-ios"
 
 release-artifact:
-	rm -rf "$(RELEASE_STAGING_DIR)" "$(RELEASE_ARCHIVE)" "$(RELEASE_CHECKSUM)" "$(RELEASE_FILE_LIST)"
+	rm -rf "$(RELEASE_STAGING_DIR)" "$(RELEASE_TAR)" "$(RELEASE_ARCHIVE)" "$(RELEASE_CHECKSUM)" "$(RELEASE_FILE_LIST)"
 	@mkdir -p "$(RELEASE_STAGING_DIR)/bin" "$(RELEASE_LIBEXEC_DIR)"
 	@{ \
 		printf '%s\n' '#!/bin/sh'; \
 		printf '%s\n' 'set -eu'; \
 		printf '%s\n' 'SCRIPT_DIR="$$(cd "$$(dirname "$$0")" && pwd)"'; \
-		printf '%s\n' 'exec swift "$$SCRIPT_DIR/../libexec/fsd-ios/tools/fsd-ios.swift" "$$@"'; \
+		printf '%s\n' 'exec "$${SWIFT:-swift}" "$$SCRIPT_DIR/../libexec/fsd-ios/tools/fsd-ios.swift" "$$@"'; \
 	} > "$(RELEASE_STAGING_DIR)/bin/fsd-ios"
 	@chmod +x "$(RELEASE_STAGING_DIR)/bin/fsd-ios"
 	@set -e; for path in $(RELEASE_PATHS); do \
@@ -207,7 +216,9 @@ release-artifact:
 	done
 	@find "$(RELEASE_STAGING_DIR)" -exec touch -t "$(RELEASE_TIMESTAMP)" {} +
 	@find "$(RELEASE_STAGING_DIR)" -type f -print | sed 's#^$(RELEASE_ROOT)/##' | LC_ALL=C sort > "$(RELEASE_FILE_LIST)"
-	@cd "$(RELEASE_ROOT)" && COPYFILE_DISABLE=1 tar --format ustar --uid 0 --gid 0 --uname root --gname wheel -cf - -T "$(notdir $(RELEASE_FILE_LIST))" | gzip -n > "$(notdir $(RELEASE_ARCHIVE))"
+	@cd "$(RELEASE_ROOT)" && COPYFILE_DISABLE=1 tar --format ustar --uid 0 --gid 0 --uname root --gname wheel -cf "$(notdir $(RELEASE_TAR))" -T "$(notdir $(RELEASE_FILE_LIST))"
+	@cd "$(RELEASE_ROOT)" && gzip -n -c "$(notdir $(RELEASE_TAR))" > "$(notdir $(RELEASE_ARCHIVE))"
+	@rm -f "$(RELEASE_TAR)"
 	@cd "$(RELEASE_ROOT)" && shasum -a 256 "$(notdir $(RELEASE_ARCHIVE))" > "$(notdir $(RELEASE_CHECKSUM))"
 	@printf '%s\n' "Built $(RELEASE_ARCHIVE)"
 	@printf '%s\n' "Wrote $(RELEASE_CHECKSUM)"
@@ -218,7 +229,7 @@ release-artifact-smoke: release-artifact
 	@cd "$(RELEASE_ROOT)" && shasum -a 256 -c "$(notdir $(RELEASE_CHECKSUM))"
 	@tar -xzf "$(RELEASE_ARCHIVE)" -C "$(RELEASE_SMOKE_DIR)"
 	@test -x "$(RELEASE_SMOKE_DIR)/$(RELEASE_PACKAGE_NAME)/bin/fsd-ios"
-	@"$(RELEASE_SMOKE_DIR)/$(RELEASE_PACKAGE_NAME)/bin/fsd-ios" --version
+	@SWIFT="$$(command -v swift)" "$(RELEASE_SMOKE_DIR)/$(RELEASE_PACKAGE_NAME)/bin/fsd-ios" --version
 	@"$(RELEASE_SMOKE_DIR)/$(RELEASE_PACKAGE_NAME)/bin/fsd-ios" doctor --json > "$(RELEASE_SMOKE_DIR)/doctor.json"
 	@$(SWIFT) -e 'import Foundation; _ = try JSONSerialization.jsonObject(with: Data(contentsOf: URL(fileURLWithPath: CommandLine.arguments[1])))' "$(RELEASE_SMOKE_DIR)/doctor.json"
 	@"$(RELEASE_SMOKE_DIR)/$(RELEASE_PACKAGE_NAME)/bin/fsd-ios" create app \
