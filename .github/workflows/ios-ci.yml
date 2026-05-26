@@ -53,6 +53,7 @@ jobs:
           make report-smoke
           make action-smoke
           make xcode-templates-smoke
+          make release-artifact-smoke
 
       - name: Select iOS simulator
         id: simulator

@@ -200,6 +200,21 @@ The wrapper points back to this checkout's `tools/fsd-ios.swift`, so update the
 repository to update the local command. Run `make install-smoke` to verify the
 wrapper behavior without touching your real `~/.local/bin`.
 
+## Release Artifact Install
+
+Use the release artifact when you want a pinned, self-contained toolkit without
+depending on a mutable checkout path:
+
+```bash
+make release-artifact-smoke
+tar -xzf DerivedData/Release/fsd-ios-0.4.0.tar.gz -C /tmp
+/tmp/fsd-ios-0.4.0/bin/fsd-ios doctor
+```
+
+The artifact wrapper resolves its embedded `libexec/fsd-ios` directory, so
+commands such as `doctor`, `lint`, `create app`, and `create spm` keep working
+after the archive is moved or unpacked in CI.
+
 ## App Template Flow
 
 Use this when starting a new project from the full SwiftUI template:

@@ -178,10 +178,22 @@ the source/mirror pair was changed.
 
 ## Release DX
 
-The repository is moving toward installable `fsd-ios` releases for external
-projects. The release process, versioning policy, and compatibility expectations
-are documented in [docs/release.md](docs/release.md). User-facing changes should
-also be recorded in [CHANGELOG.md](CHANGELOG.md).
+The repository can build a self-contained `fsd-ios` release artifact for
+external projects. The tarball includes a stable `bin/fsd-ios` wrapper, embedded
+tool scripts, templates, docs, examples, and the demo sources needed by
+`fsd-ios doctor`.
+
+```bash
+make release-artifact
+make release-artifact-smoke
+tar -xzf DerivedData/Release/fsd-ios-0.4.0.tar.gz -C /tmp
+/tmp/fsd-ios-0.4.0/bin/fsd-ios doctor
+```
+
+Tagged releases are built by GitHub Actions and publish the tarball plus a
+SHA-256 checksum. The release process, versioning policy, and compatibility
+expectations are documented in [docs/release.md](docs/release.md). User-facing
+changes should also be recorded in [CHANGELOG.md](CHANGELOG.md).
 
 ## Running
 

@@ -131,8 +131,9 @@ Success metrics:
 Goal: make the toolkit easy to install and update outside the repository.
 
 Status: release process and compatibility policy are documented in
-[`docs/release.md`](release.md). Artifact packaging and Homebrew distribution
-are planned follow-ups.
+[`docs/release.md`](release.md). Artifact packaging, checksum generation, smoke
+validation, and tag-triggered GitHub Release publishing are implemented.
+Homebrew distribution remains a planned follow-up.
 
 Scope:
 
