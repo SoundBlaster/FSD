@@ -3,10 +3,28 @@
 All notable changes to this project are documented here.
 
 This project follows semantic versioning for the public `fsd-ios` CLI and
-template contracts once the first release tag is cut. Until then, entries live
-under `Unreleased`.
+template contracts. Entries under `Unreleased` are not part of a tagged release
+yet.
 
 ## Unreleased
+
+### Added
+
+- None.
+
+### Changed
+
+- None.
+
+### Fixed
+
+- None.
+
+### Removed
+
+- None.
+
+## 0.4.0 - 2026-05-27
 
 ### Added
 
