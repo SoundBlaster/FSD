@@ -13,6 +13,9 @@ under `Unreleased`.
 ### Added
 
 - Release process documentation for the `fsd-ios` toolkit.
+- Self-contained `fsd-ios` release tarball with checksum generation and smoke
+  validation.
+- Tag-triggered GitHub Actions workflow for publishing release artifacts.
 - Initial changelog baseline for future GitHub Releases.
 
 ### Changed

@@ -2,11 +2,13 @@
 
 ## TL;DR
 
-Release work should make `fsd-ios` installable, pin-compatible, and predictable
-for projects that use this repository as an external FSD toolkit.
+Release work makes `fsd-ios` installable, pin-compatible, and predictable for
+projects that use this repository as an external FSD toolkit.
 
-The current baseline is documentation-first. A future PR can add release
-artifacts and Homebrew automation without changing the compatibility contract.
+The current baseline includes a self-contained tarball artifact, checksum
+generation, local smoke validation, and a tag-triggered GitHub Actions release
+workflow. Homebrew automation remains a follow-up after the artifact contract is
+stable.
 
 ## Versioning Policy
 
@@ -45,20 +47,38 @@ versions as potentially compatibility-affecting.
    make ci
    ```
 
-   `make ci` includes `make release-docs`, so the release documentation smoke
-   check runs as part of the full gate.
+   `make ci` includes `make release-docs` and `make release-artifact-smoke`, so
+   the release documentation and artifact contracts run as part of the full
+   gate.
 
-4. Create and push a signed or annotated tag:
+4. Build the release artifact locally when you need to inspect it before
+   tagging:
+
+   ```bash
+   make release-artifact-smoke
+   cd DerivedData/Release
+   shasum -a 256 -c fsd-ios-0.4.0.tar.gz.sha256
+   ```
+
+5. Create and push a signed or annotated tag:
 
    ```bash
    git tag -a v0.4.0 -m "FSD iOS v0.4.0"
    git push origin v0.4.0
    ```
 
-5. Create a GitHub Release from the tag.
-6. Copy the matching `CHANGELOG.md` section into release notes.
-7. Attach release artifacts when artifact packaging exists.
-8. Verify external-project instructions still work from a clean checkout.
+6. Let the `Release Artifacts` GitHub Actions workflow build and smoke-test the
+   tarball.
+7. Verify the GitHub Release contains:
+
+   ```text
+   fsd-ios-0.4.0.tar.gz
+   fsd-ios-0.4.0.tar.gz.sha256
+   ```
+
+8. Copy or compare the matching `CHANGELOG.md` section against generated release
+   notes.
+9. Verify external-project instructions still work from a clean checkout.
 
 ## Compatibility Contract
 
@@ -85,17 +105,47 @@ Breaking changes:
 - changing default lint severity in a way that can fail previously passing
   external projects.
 
-## Artifact Direction
+## Release Artifact
 
-The first artifact target should be a packaged `fsd-ios` executable or wrapper
-that can be downloaded from GitHub Releases and smoke-tested in CI.
+Build the local artifact:
 
-Future artifact PRs should add:
+```bash
+make release-artifact
+```
 
-- a deterministic `make release-artifact` target;
-- checksum generation;
-- a GitHub Actions release job triggered by tags;
-- an install smoke test against the produced artifact.
+This writes:
+
+```text
+DerivedData/Release/fsd-ios-0.4.0.tar.gz
+DerivedData/Release/fsd-ios-0.4.0.tar.gz.sha256
+```
+
+Smoke-test the packaged workflow:
+
+```bash
+make release-artifact-smoke
+```
+
+The smoke target verifies the checksum, extracts the tarball, runs
+`bin/fsd-ios --version`, runs `bin/fsd-ios doctor --json`, and checks app/SPM
+template dry-runs from the extracted artifact.
+
+The artifact layout is:
+
+```text
+fsd-ios-0.4.0/
+  bin/fsd-ios
+  libexec/fsd-ios/
+    tools/
+    templates/
+    docs/
+    examples/
+    FSDDemoApp/
+```
+
+The tarball is built from a sorted file list, normalized timestamps, normalized
+archive owners, and `gzip -n`. The `RELEASE_TIMESTAMP` Make variable can be
+overridden for a release rebuild if needed.
 
 ## Homebrew Direction
 

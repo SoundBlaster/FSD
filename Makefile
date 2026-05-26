@@ -17,8 +17,59 @@ XCODE_TEMPLATES_DIR ?= $(HOME)/Library/Developer/Xcode/Templates/File Templates/
 XCODE_TEMPLATES_SMOKE_DIR := $(DERIVED_DATA_PATH)/XcodeTemplatesSmoke/FSD iOS
 DOCC_OUTPUT_PATH := $(DERIVED_DATA_PATH)/DocCPages
 DOCC_HOSTING_BASE_PATH ?= FSD
+RELEASE_GOALS := release-artifact release-artifact-smoke ci
+RELEASE_GOAL_REQUESTED := $(filter $(RELEASE_GOALS),$(MAKECMDGOALS))
+ifeq ($(origin RELEASE_VERSION), undefined)
+ifneq ($(RELEASE_GOAL_REQUESTED),)
+RELEASE_VERSION := $(shell $(SWIFT) tools/fsd-ios.swift --version 2>/dev/null | awk '/^fsd-ios [0-9]+[.][0-9]+[.][0-9]+$$/ { print $$2 }')
+else
+RELEASE_VERSION := 0.0.0
+endif
+endif
+ifneq ($(RELEASE_GOAL_REQUESTED),)
+RELEASE_VERSION_VALID := $(shell printf '%s\n' '$(RELEASE_VERSION)' | awk '/^[0-9]+[.][0-9]+[.][0-9]+$$/ { print "ok" }')
+ifeq ($(RELEASE_VERSION_VALID),)
+$(error Unable to resolve RELEASE_VERSION; expected MAJOR.MINOR.PATCH, got `$(RELEASE_VERSION)`)
+endif
+endif
+RELEASE_PACKAGE_NAME := fsd-ios-$(RELEASE_VERSION)
+RELEASE_ROOT := $(DERIVED_DATA_PATH)/Release
+RELEASE_STAGING_DIR := $(RELEASE_ROOT)/$(RELEASE_PACKAGE_NAME)
+RELEASE_LIBEXEC_DIR := $(RELEASE_STAGING_DIR)/libexec/fsd-ios
+RELEASE_TAR := $(RELEASE_ROOT)/$(RELEASE_PACKAGE_NAME).tar
+RELEASE_ARCHIVE := $(RELEASE_ROOT)/$(RELEASE_PACKAGE_NAME).tar.gz
+RELEASE_CHECKSUM := $(RELEASE_ARCHIVE).sha256
+RELEASE_FILE_LIST := $(RELEASE_ROOT)/$(RELEASE_PACKAGE_NAME).files
+RELEASE_SMOKE_DIR := $(DERIVED_DATA_PATH)/ReleaseSmoke
+RELEASE_TIMESTAMP ?= 202001010000
+RELEASE_SYNC_EXCLUDES := --exclude .DS_Store --exclude .git --exclude .build --exclude .swiftpm --exclude DerivedData --exclude xcuserdata
+RELEASE_PATHS := \
+	README.md \
+	CHANGELOG.md \
+	LICENSE \
+	ARCHITECTURE.md \
+	CONTRIBUTING.md \
+	Makefile \
+	Package.swift \
+	Package.resolved \
+	.fsd-ios.yml \
+	.swiftlint.yml \
+	action.yml \
+	FSDDemoApp \
+	FSDDemoApp.xcodeproj \
+	FSDDemoAppTests \
+	FSDDemoAppUITests \
+	LocalPackages \
+	Plugins \
+	Sources \
+	docs \
+	examples \
+	specs \
+	templates \
+	tests \
+	tools
 
-.PHONY: help open install uninstall install-smoke install-xcode-templates uninstall-xcode-templates xcode-templates-smoke cli-help cli-smoke cli-doctor config-smoke report-smoke action-smoke docc-mirror docc-mirror-check docc-pages docc-smoke release-docs lint lint-strict lint-architecture swiftlint harmonize harmonize-fixture template-create-dry-run template-create-fixture slice-create-fixture module-create-fixture template-validate template-validate-negative spm-template-test item-export-feature-test spm-template-create-fixture spm-plugin-smoke build test demo template-demo ci clean
+.PHONY: help open install uninstall install-smoke install-xcode-templates uninstall-xcode-templates xcode-templates-smoke cli-help cli-smoke cli-doctor config-smoke report-smoke action-smoke docc-mirror docc-mirror-check docc-pages docc-smoke release-docs release-artifact release-artifact-smoke lint lint-strict lint-architecture swiftlint harmonize harmonize-fixture template-create-dry-run template-create-fixture slice-create-fixture module-create-fixture template-validate template-validate-negative spm-template-test item-export-feature-test spm-template-create-fixture spm-plugin-smoke build test demo template-demo ci clean
 
 help:
 	@printf '%s\n' \
@@ -41,6 +92,8 @@ help:
 		'  make docc-pages   Build static DocC pages into DerivedData/DocCPages' \
 		'  make docc-smoke   Verify the static DocC output contract' \
 		'  make release-docs  Verify release process documentation links' \
+		'  make release-artifact  Build a self-contained fsd-ios release tarball' \
+		'  make release-artifact-smoke  Verify the release tarball and checksum' \
 		'  make lint         Run the baseline FSD lint' \
 		'  make lint-strict  Run the strict FSD lint' \
 		'  make lint-architecture  Run the Swift symbol dependency lint' \
@@ -68,6 +121,7 @@ help:
 		'  SIMULATOR="iPhone 17 Pro"' \
 		'  SWIFTLINT="swiftlint"' \
 		'  DOCC_HOSTING_BASE_PATH="FSD"' \
+		'  RELEASE_TIMESTAMP="202001010000"' \
 		'  INSTALL_PREFIX="$(HOME)/.local"' \
 		'  XCODE_TEMPLATES_DIR="$(HOME)/Library/Developer/Xcode/Templates/File Templates/FSD iOS"'
 
@@ -142,6 +196,58 @@ install-smoke:
 	"$(INSTALL_SMOKE_PREFIX)/bin/fsd-ios" doctor --help
 	$(MAKE) uninstall INSTALL_PREFIX="$(INSTALL_SMOKE_PREFIX)"
 	@test ! -e "$(INSTALL_SMOKE_PREFIX)/bin/fsd-ios"
+
+release-artifact:
+	rm -rf "$(RELEASE_STAGING_DIR)" "$(RELEASE_TAR)" "$(RELEASE_ARCHIVE)" "$(RELEASE_CHECKSUM)" "$(RELEASE_FILE_LIST)"
+	@mkdir -p "$(RELEASE_STAGING_DIR)/bin" "$(RELEASE_LIBEXEC_DIR)"
+	@{ \
+		printf '%s\n' '#!/bin/sh'; \
+		printf '%s\n' 'set -eu'; \
+		printf '%s\n' 'SCRIPT_DIR="$$(cd "$$(dirname "$$0")" && pwd)"'; \
+		printf '%s\n' 'exec "$${SWIFT:-swift}" "$$SCRIPT_DIR/../libexec/fsd-ios/tools/fsd-ios.swift" "$$@"'; \
+	} > "$(RELEASE_STAGING_DIR)/bin/fsd-ios"
+	@chmod +x "$(RELEASE_STAGING_DIR)/bin/fsd-ios"
+	@set -e; for path in $(RELEASE_PATHS); do \
+		if [ ! -e "$$path" ]; then \
+			printf '%s\n' "Missing release path: $$path"; \
+			exit 1; \
+		fi; \
+		rsync -a $(RELEASE_SYNC_EXCLUDES) "$$path" "$(RELEASE_LIBEXEC_DIR)/"; \
+	done
+	@find "$(RELEASE_STAGING_DIR)" -exec touch -t "$(RELEASE_TIMESTAMP)" {} +
+	@find "$(RELEASE_STAGING_DIR)" -type f -print | sed 's#^$(RELEASE_ROOT)/##' | LC_ALL=C sort > "$(RELEASE_FILE_LIST)"
+	@cd "$(RELEASE_ROOT)" && COPYFILE_DISABLE=1 tar --format ustar --uid 0 --gid 0 --uname root --gname wheel -cf "$(notdir $(RELEASE_TAR))" -T "$(notdir $(RELEASE_FILE_LIST))"
+	@cd "$(RELEASE_ROOT)" && gzip -n -c "$(notdir $(RELEASE_TAR))" > "$(notdir $(RELEASE_ARCHIVE))"
+	@rm -f "$(RELEASE_TAR)"
+	@cd "$(RELEASE_ROOT)" && shasum -a 256 "$(notdir $(RELEASE_ARCHIVE))" > "$(notdir $(RELEASE_CHECKSUM))"
+	@printf '%s\n' "Built $(RELEASE_ARCHIVE)"
+	@printf '%s\n' "Wrote $(RELEASE_CHECKSUM)"
+
+release-artifact-smoke: release-artifact
+	rm -rf "$(RELEASE_SMOKE_DIR)"
+	@mkdir -p "$(RELEASE_SMOKE_DIR)"
+	@cd "$(RELEASE_ROOT)" && shasum -a 256 -c "$(notdir $(RELEASE_CHECKSUM))"
+	@tar -xzf "$(RELEASE_ARCHIVE)" -C "$(RELEASE_SMOKE_DIR)"
+	@test -x "$(RELEASE_SMOKE_DIR)/$(RELEASE_PACKAGE_NAME)/bin/fsd-ios"
+	@SWIFT="$$(command -v swift)" "$(RELEASE_SMOKE_DIR)/$(RELEASE_PACKAGE_NAME)/bin/fsd-ios" --version
+	@"$(RELEASE_SMOKE_DIR)/$(RELEASE_PACKAGE_NAME)/bin/fsd-ios" doctor --json > "$(RELEASE_SMOKE_DIR)/doctor.json"
+	@$(SWIFT) -e 'import Foundation; _ = try JSONSerialization.jsonObject(with: Data(contentsOf: URL(fileURLWithPath: CommandLine.arguments[1])))' "$(RELEASE_SMOKE_DIR)/doctor.json"
+	@"$(RELEASE_SMOKE_DIR)/$(RELEASE_PACKAGE_NAME)/bin/fsd-ios" create app \
+		--name ReleaseSmokeApp \
+		--output "$(RELEASE_SMOKE_DIR)/AppDryRun" \
+		--dry-run
+	@test ! -e "$(RELEASE_SMOKE_DIR)/AppDryRun"
+	@"$(RELEASE_SMOKE_DIR)/$(RELEASE_PACKAGE_NAME)/bin/fsd-ios" create spm \
+		--name ReleaseSmokeSPM \
+		--output "$(RELEASE_SMOKE_DIR)/SPMDryRun" \
+		--dry-run
+	@test ! -e "$(RELEASE_SMOKE_DIR)/SPMDryRun"
+	@bad="$$(tar -tzf "$(RELEASE_ARCHIVE)" | grep -E '(^|/)(\.DS_Store|\.build|\.swiftpm|DerivedData|xcuserdata)(/|$$)' || true)"; \
+		if [ -n "$$bad" ]; then \
+			printf '%s\n' "Release artifact contains ignored files:"; \
+			printf '%s\n' "$$bad"; \
+			exit 1; \
+		fi
 
 cli-help:
 	$(SWIFT) tools/fsd-ios.swift --help
@@ -294,6 +400,8 @@ release-docs:
 	@grep -q '## Unreleased' CHANGELOG.md
 	@grep -q '## Versioning Policy' docs/release.md
 	@grep -q '## Compatibility Contract' docs/release.md
+	@grep -q 'make release-artifact' docs/release.md
+	@grep -q 'make release-artifact-smoke' README.md
 	@grep -q 'docs/release.md' README.md
 	@grep -q 'CHANGELOG.md' README.md
 	@grep -q 'docs/release.md' docs/roadmap.md
@@ -533,7 +641,7 @@ test:
 		test \
 		CODE_SIGNING_ALLOWED=NO
 
-ci: lint lint-strict lint-architecture swiftlint harmonize-fixture template-create-dry-run template-create-fixture slice-create-fixture module-create-fixture template-validate template-validate-negative spm-template-test item-export-feature-test spm-template-create-fixture spm-plugin-smoke cli-smoke cli-doctor config-smoke report-smoke install-smoke xcode-templates-smoke action-smoke docc-mirror-check docc-smoke release-docs test
+ci: lint lint-strict lint-architecture swiftlint harmonize-fixture template-create-dry-run template-create-fixture slice-create-fixture module-create-fixture template-validate template-validate-negative spm-template-test item-export-feature-test spm-template-create-fixture spm-plugin-smoke cli-smoke cli-doctor config-smoke report-smoke install-smoke xcode-templates-smoke action-smoke docc-mirror-check docc-smoke release-docs release-artifact-smoke test
 
 clean:
 	rm -rf $(DERIVED_DATA_PATH)
