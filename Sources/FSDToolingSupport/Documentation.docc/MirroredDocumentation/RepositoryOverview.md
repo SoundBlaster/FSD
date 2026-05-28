@@ -197,6 +197,9 @@ SHA-256 checksum. The release process, versioning policy, and compatibility
 expectations are documented in [docs/release.md](<doc:ReleaseProcess>). User-facing
 changes should also be recorded in [CHANGELOG.md](<doc:Changelog>).
 
+Homebrew distribution should pin the same GitHub Release artifact and checksum;
+the formula contract is documented in [docs/release.md](<doc:ReleaseProcess>).
+
 ## Running
 
 Open `FSDDemoApp.xcodeproj` in Xcode and run the `FSDDemoApp` scheme.
