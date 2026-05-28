@@ -133,8 +133,8 @@ Goal: make the toolkit easy to install and update outside the repository.
 Status: release process and compatibility policy are documented in
 [`docs/release.md`](release.md). Artifact packaging, checksum generation, smoke
 validation, and tag-triggered GitHub Release publishing are implemented.
-The Homebrew artifact contract is documented; a reference formula remains a
-planned follow-up.
+The Homebrew artifact contract is documented, and a reference formula is kept in
+`Formula/fsd-ios.rb`.
 
 Scope:
 
@@ -142,6 +142,7 @@ Scope:
 - document release process and compatibility expectations;
 - prepare GitHub Release artifacts;
 - document Homebrew formula requirements after the artifact contract is stable;
+- keep the reference formula smoke-tested before copying it into a tap;
 - keep local wrapper installation as the lowest-friction development path.
 
 Success metrics:

@@ -13,6 +13,7 @@ yet.
 ### Added
 
 - Homebrew distribution contract for the published `fsd-ios` release artifact.
+- Reference Homebrew formula and local formula smoke target.
 
 ### Changed
 

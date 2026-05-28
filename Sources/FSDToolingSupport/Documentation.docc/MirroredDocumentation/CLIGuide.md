@@ -473,6 +473,15 @@ fsd-ios doctor
 
 The reference formula contract is documented in [Release Process](<doc:ReleaseProcess>).
 It must pin a GitHub Release tarball and checksum instead of using `main`.
+The repository keeps a reference formula at `Formula/fsd-ios.rb`:
+
+```bash
+make homebrew-formula-smoke
+```
+
+Treat the checked-in formula as tap-ready source. The final `brew install`
+flow should copy it into a Homebrew tap repository.
+
 The intended path is:
 
 1. stabilize `tools/fsd-ios.swift`;

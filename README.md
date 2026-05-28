@@ -197,6 +197,8 @@ changes should also be recorded in [CHANGELOG.md](CHANGELOG.md).
 
 Homebrew distribution should pin the same GitHub Release artifact and checksum;
 the formula contract is documented in [docs/release.md](docs/release.md).
+The reference formula lives in [Formula/fsd-ios.rb](Formula/fsd-ios.rb) and is
+checked with `make homebrew-formula-smoke`.
 
 ## Running
 
