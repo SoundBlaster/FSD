@@ -162,7 +162,7 @@ sha256: c1cccb45bbf2cad5d336a639a4c63996aa79b2d33b67f3a7a5eb3b124b692823
 binary: fsd-ios-0.4.0/bin/fsd-ios
 ```
 
-Expected user workflow:
+Expected user workflow after the tap formula exists:
 
 ```bash
 brew tap SoundBlaster/fsd-ios
@@ -174,9 +174,15 @@ Formula requirements:
 
 - pin the GitHub Release tarball URL for the selected version;
 - verify the release tarball SHA-256 before installation;
-- install the packaged `bin/fsd-ios` wrapper onto `PATH`;
-- preserve the packaged `libexec/fsd-ios` tree next to the wrapper target;
-- run `fsd-ios --version` and `fsd-ios doctor --json` as the smoke test.
+- preserve the packaged `libexec/fsd-ios` tree in the formula cellar;
+- generate an executable Homebrew-specific `bin/fsd-ios` wrapper that invokes
+  the formula-private `libexec/fsd-ios/tools/fsd-ios.swift` path;
+- keep the generated wrapper compatible with the `SWIFT` environment override;
+- do not expose the archive's packaged `bin/fsd-ios` wrapper through Homebrew's
+  linked `bin`, because its relative `../libexec` lookup only matches the
+  extracted archive layout;
+- run `fsd-ios --version` and `fsd-ios doctor --json` against the installed
+  formula command as the smoke test.
 
 Formula updates should happen only after a new release tag and artifact checksum
 exist.
