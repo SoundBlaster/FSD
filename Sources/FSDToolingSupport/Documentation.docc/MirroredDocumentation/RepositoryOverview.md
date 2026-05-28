@@ -200,7 +200,8 @@ changes should also be recorded in [CHANGELOG.md](<doc:Changelog>).
 Homebrew distribution should pin the same GitHub Release artifact and checksum;
 the formula contract is documented in [docs/release.md](<doc:ReleaseProcess>).
 The reference formula lives in [Formula/fsd-ios.rb](https://github.com/SoundBlaster/FSD/blob/main/Formula/fsd-ios.rb) and is
-checked with `make homebrew-formula-smoke`.
+checked with `make homebrew-formula-smoke`, which installs it through a
+temporary local tap before running the installed command.
 
 ## Running
 

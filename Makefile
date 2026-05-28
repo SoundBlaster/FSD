@@ -14,6 +14,7 @@ INSTALL_BIN_DIR := $(INSTALL_PREFIX)/bin
 INSTALL_SMOKE_PREFIX := $(DERIVED_DATA_PATH)/LocalInstall
 HOMEBREW_FORMULA := Formula/fsd-ios.rb
 HOMEBREW_SMOKE_DIR := $(DERIVED_DATA_PATH)/HomebrewFormulaSmoke
+HOMEBREW_SMOKE_TAP := fsd-ios/smoke
 HOMEBREW_RELEASE_URL := https://github.com/SoundBlaster/FSD/releases/download/v0.4.0/fsd-ios-0.4.0.tar.gz
 HOMEBREW_RELEASE_SHA256 := c1cccb45bbf2cad5d336a639a4c63996aa79b2d33b67f3a7a5eb3b124b692823
 XCODE_TEMPLATES_SRC := templates/xcode/file-templates/FSD iOS
@@ -212,16 +213,24 @@ homebrew-formula-smoke:
 	@grep -q 'sha256 "$(HOMEBREW_RELEASE_SHA256)"' "$(HOMEBREW_FORMULA)"
 	ruby -c "$(HOMEBREW_FORMULA)"
 	brew style "$(HOMEBREW_FORMULA)"
-	rm -rf "$(HOMEBREW_SMOKE_DIR)"
-	@mkdir -p "$(HOMEBREW_SMOKE_DIR)"
-	curl --fail --location --silent --show-error \
-		--output "$(HOMEBREW_SMOKE_DIR)/fsd-ios-0.4.0.tar.gz" \
-		"$(HOMEBREW_RELEASE_URL)"
-	@printf '%s  %s\n' "$(HOMEBREW_RELEASE_SHA256)" "fsd-ios-0.4.0.tar.gz" > "$(HOMEBREW_SMOKE_DIR)/fsd-ios-0.4.0.tar.gz.sha256"
-	@cd "$(HOMEBREW_SMOKE_DIR)" && shasum -a 256 -c fsd-ios-0.4.0.tar.gz.sha256
-	@tar -xzf "$(HOMEBREW_SMOKE_DIR)/fsd-ios-0.4.0.tar.gz" -C "$(HOMEBREW_SMOKE_DIR)"
-	@"$(HOMEBREW_SMOKE_DIR)/fsd-ios-0.4.0/bin/fsd-ios" --version
-	@"$(HOMEBREW_SMOKE_DIR)/fsd-ios-0.4.0/bin/fsd-ios" doctor --json > "$(HOMEBREW_SMOKE_DIR)/doctor.json"
+	@set -e; \
+		export HOMEBREW_NO_AUTO_UPDATE=1; \
+		export HOMEBREW_NO_ENV_HINTS=1; \
+		export HOMEBREW_NO_INSTALL_CLEANUP=1; \
+		brew uninstall --force "$(HOMEBREW_SMOKE_TAP)/fsd-ios" > /dev/null 2>&1 || true; \
+		brew untap "$(HOMEBREW_SMOKE_TAP)" > /dev/null 2>&1 || true; \
+		rm -rf "$(HOMEBREW_SMOKE_DIR)"; \
+		mkdir -p "$(HOMEBREW_SMOKE_DIR)"; \
+		brew tap-new --no-git "$(HOMEBREW_SMOKE_TAP)" > /dev/null; \
+		trap 'brew uninstall --force "$(HOMEBREW_SMOKE_TAP)/fsd-ios" > /dev/null 2>&1 || true; brew untap "$(HOMEBREW_SMOKE_TAP)" > /dev/null 2>&1 || true' EXIT; \
+		tap_dir="$$(brew --repository "$(HOMEBREW_SMOKE_TAP)")"; \
+		cp "$(HOMEBREW_FORMULA)" "$$tap_dir/Formula/fsd-ios.rb"; \
+		brew install --formula "$(HOMEBREW_SMOKE_TAP)/fsd-ios"; \
+		installed_bin="$$(brew --prefix "$(HOMEBREW_SMOKE_TAP)/fsd-ios")/bin/fsd-ios"; \
+		test -x "$$installed_bin"; \
+		"$$installed_bin" --version; \
+		brew test "$(HOMEBREW_SMOKE_TAP)/fsd-ios"; \
+		"$$installed_bin" doctor --json > "$(HOMEBREW_SMOKE_DIR)/doctor.json"
 	@$(SWIFT) -e 'import Foundation; let data = try Data(contentsOf: URL(fileURLWithPath: CommandLine.arguments[1])); let payload = try JSONSerialization.jsonObject(with: data) as! [String: Any]; precondition(payload["tool"] as? String == "fsd-ios"); precondition(payload["version"] as? String == "0.4.0"); precondition(payload["passed"] as? Bool == true)' "$(HOMEBREW_SMOKE_DIR)/doctor.json"
 
 release-artifact:

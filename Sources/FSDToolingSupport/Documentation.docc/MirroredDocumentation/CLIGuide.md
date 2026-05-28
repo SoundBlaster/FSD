@@ -480,7 +480,9 @@ make homebrew-formula-smoke
 ```
 
 Treat the checked-in formula as tap-ready source. The final `brew install`
-flow should copy it into a Homebrew tap repository.
+flow should copy it into a Homebrew tap repository. The smoke target creates a
+temporary local tap, installs the formula, runs `brew test`, and verifies the
+installed wrapper.
 
 The intended path is:
 

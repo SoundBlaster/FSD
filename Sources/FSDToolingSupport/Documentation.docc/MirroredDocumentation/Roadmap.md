@@ -144,7 +144,8 @@ Scope:
 - document release process and compatibility expectations;
 - prepare GitHub Release artifacts;
 - document Homebrew formula requirements after the artifact contract is stable;
-- keep the reference formula smoke-tested before copying it into a tap;
+- keep the reference formula smoke-tested through a temporary local tap before
+  copying it into a public tap;
 - keep local wrapper installation as the lowest-friction development path.
 
 Success metrics:

@@ -190,7 +190,9 @@ Formula requirements:
 The reference formula lives at [`Formula/fsd-ios.rb`](https://github.com/SoundBlaster/FSD/blob/main/Formula/fsd-ios.rb).
 It is a tap-ready source file, not a direct install path; Homebrew expects
 formulae used with `brew install` or `brew info` to live inside a tap. Run
-`make homebrew-formula-smoke` before copying it into a tap repository.
+`make homebrew-formula-smoke` before copying it into a tap repository. The smoke
+target creates a temporary local tap, installs the formula, runs `brew test`,
+and invokes the installed `fsd-ios` wrapper.
 
 Formula updates should happen only after a new release tag and artifact checksum
 exist.

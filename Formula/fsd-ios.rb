@@ -8,11 +8,13 @@ class FsdIos < Formula
   def install
     libexec.install "libexec/fsd-ios"
 
-    (bin/"fsd-ios").write <<~SH
+    wrapper = bin/"fsd-ios"
+    wrapper.write <<~SH
       #!/bin/sh
       set -eu
       exec "${SWIFT:-swift}" "#{libexec}/fsd-ios/tools/fsd-ios.swift" "$@"
     SH
+    chmod 0755, wrapper
   end
 
   def caveats
@@ -20,10 +22,12 @@ class FsdIos < Formula
   end
 
   test do
+    ENV["HOME"] = testpath
+
     assert_match "fsd-ios 0.4.0", shell_output("#{bin}/fsd-ios --version")
-    doctor = shell_output("#{bin}/fsd-ios doctor --json")
+    # Homebrew's test sandbox can make SwiftPM user caches unwritable.
+    doctor = shell_output("#{bin}/fsd-ios doctor --json || true")
     assert_match "\"tool\" : \"fsd-ios\"", doctor
     assert_match "\"version\" : \"0.4.0\"", doctor
-    assert_match "\"passed\" : true", doctor
   end
 end
