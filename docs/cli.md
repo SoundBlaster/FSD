@@ -459,32 +459,34 @@ same strict architecture lint path that the Action dispatches.
 CI runs the CLI smoke and doctor checks. That means command names, help-visible
 flows, and documented usage cannot silently drift away from implementation.
 
-## Homebrew Roadmap
+## Homebrew Install
 
 Homebrew should package the same versioned artifact that GitHub Releases publish:
 
 ```bash
-brew tap SoundBlaster/fsd-ios
+brew tap SoundBlaster/tap
 brew install fsd-ios
 fsd-ios doctor
 ```
 
 The reference formula contract is documented in [Release Process](release.md).
 It must pin a GitHub Release tarball and checksum instead of using `main`.
-The repository keeps a reference formula at `Formula/fsd-ios.rb`:
+The public tap lives in
+[`SoundBlaster/homebrew-tap`](https://github.com/SoundBlaster/homebrew-tap),
+and this repository keeps a synchronized reference formula at
+`Formula/fsd-ios.rb`:
 
 ```bash
 make homebrew-formula-smoke
 ```
 
-Treat the checked-in formula as tap-ready source. The final `brew install`
-flow should copy it into a Homebrew tap repository. The smoke target creates a
-temporary local tap, installs the formula, runs `brew test`, and verifies the
-installed wrapper.
+Treat the checked-in formula as tap-ready source for
+`SoundBlaster/homebrew-tap`. The smoke target creates a temporary local tap,
+installs the formula, runs `brew test`, and verifies the installed wrapper.
 
 The intended path is:
 
 1. stabilize `tools/fsd-ios.swift`;
 2. add local install/uninstall targets;
 3. publish versioned release artifacts;
-4. package the same artifact contract for Homebrew.
+4. package the same artifact contract in `SoundBlaster/homebrew-tap`.

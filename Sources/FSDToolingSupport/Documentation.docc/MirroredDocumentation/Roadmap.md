@@ -135,17 +135,18 @@ Goal: make the toolkit easy to install and update outside the repository.
 Status: release process and compatibility policy are documented in
 [`docs/release.md`](<doc:ReleaseProcess>). Artifact packaging, checksum generation, smoke
 validation, and tag-triggered GitHub Release publishing are implemented.
-The Homebrew artifact contract is documented, and a reference formula is kept in
-`Formula/fsd-ios.rb`.
+The Homebrew artifact contract is documented, a reference formula is kept in
+`Formula/fsd-ios.rb`, and the public tap lives in `SoundBlaster/homebrew-tap`.
 
 Scope:
 
 - stabilize `fsd-ios --version`;
 - document release process and compatibility expectations;
 - prepare GitHub Release artifacts;
-- document Homebrew formula requirements after the artifact contract is stable;
+- document Homebrew formula requirements and the public `SoundBlaster/tap`
+  install flow;
 - keep the reference formula smoke-tested through a temporary local tap before
-  copying it into a public tap;
+  syncing it into `SoundBlaster/homebrew-tap`;
 - keep local wrapper installation as the lowest-friction development path.
 
 Success metrics:

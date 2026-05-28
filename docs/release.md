@@ -6,9 +6,9 @@ Release work makes `fsd-ios` installable, pin-compatible, and predictable for
 projects that use this repository as an external FSD toolkit.
 
 The current baseline includes a self-contained tarball artifact, checksum
-generation, local smoke validation, and a tag-triggered GitHub Actions release
-workflow. Homebrew automation remains a follow-up after the artifact contract is
-stable.
+generation, local smoke validation, a tag-triggered GitHub Actions release
+workflow, and Homebrew installation through the `SoundBlaster/homebrew-tap`
+repository.
 
 ## Versioning Policy
 
@@ -78,7 +78,10 @@ versions as potentially compatibility-affecting.
 
 8. Copy or compare the matching `CHANGELOG.md` section against generated release
    notes.
-9. Verify external-project instructions still work from a clean checkout.
+9. Update `Formula/fsd-ios.rb` and `SoundBlaster/homebrew-tap` with the new
+   release URL and SHA-256 checksum.
+10. Run the formula smoke checks in both repositories.
+11. Verify external-project instructions still work from a clean checkout.
 
 ## Compatibility Contract
 
@@ -162,10 +165,10 @@ sha256: c1cccb45bbf2cad5d336a639a4c63996aa79b2d33b67f3a7a5eb3b124b692823
 binary: fsd-ios-0.4.0/bin/fsd-ios
 ```
 
-Expected user workflow after the tap formula exists:
+Expected user workflow:
 
 ```bash
-brew tap SoundBlaster/fsd-ios
+brew tap SoundBlaster/tap
 brew install fsd-ios
 fsd-ios doctor
 ```
@@ -185,12 +188,19 @@ Formula requirements:
 - run `fsd-ios --version` and `fsd-ios doctor --json` against the installed
   formula command as the smoke test.
 
-The reference formula lives at [`Formula/fsd-ios.rb`](../Formula/fsd-ios.rb).
-It is a tap-ready source file, not a direct install path; Homebrew expects
-formulae used with `brew install` or `brew info` to live inside a tap. Run
-`make homebrew-formula-smoke` before copying it into a tap repository. The smoke
-target creates a temporary local tap, installs the formula, runs `brew test`,
-and invokes the installed `fsd-ios` wrapper.
+The public tap lives in
+[`SoundBlaster/homebrew-tap`](https://github.com/SoundBlaster/homebrew-tap).
+The reference formula in this repository lives at
+[`Formula/fsd-ios.rb`](../Formula/fsd-ios.rb) and should stay synchronized with
+the tap formula. Run `make homebrew-formula-smoke` before copying changes into
+the tap repository. The smoke target creates a temporary local tap, installs the
+formula, runs `brew test`, and invokes the installed `fsd-ios` wrapper.
 
 Formula updates should happen only after a new release tag and artifact checksum
-exist.
+exist. After updating the tap, validate the public install path:
+
+```bash
+brew tap SoundBlaster/tap
+brew install fsd-ios
+fsd-ios doctor
+```

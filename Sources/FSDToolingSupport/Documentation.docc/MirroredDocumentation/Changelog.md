@@ -17,7 +17,8 @@ yet.
 
 ### Changed
 
-- None.
+- Documented the `SoundBlaster/tap` Homebrew install flow and tap maintenance
+  path.
 
 ### Fixed
 
