@@ -461,18 +461,19 @@ flows, and documented usage cannot silently drift away from implementation.
 
 ## Homebrew Roadmap
 
-Homebrew should come after the CLI interface stays stable:
+Homebrew should package the same versioned artifact that GitHub Releases publish:
 
 ```bash
-brew tap SoundBlaster/fsd
+brew tap SoundBlaster/fsd-ios
 brew install fsd-ios
+fsd-ios doctor
 ```
 
-Before that, the repository should keep the script entry point documented and
-tested. See [FSD iOS Roadmap](roadmap.md) for the current implementation plan.
+The reference formula contract is documented in [Release Process](release.md).
+It must pin a GitHub Release tarball and checksum instead of using `main`.
 The intended path is:
 
 1. stabilize `tools/fsd-ios.swift`;
 2. add local install/uninstall targets;
-3. package the same interface for Homebrew;
-4. publish versioned installation instructions for external projects.
+3. publish versioned release artifacts;
+4. package the same artifact contract for Homebrew.

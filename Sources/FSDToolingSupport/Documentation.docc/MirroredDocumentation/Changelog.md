@@ -12,7 +12,7 @@ yet.
 
 ### Added
 
-- None.
+- Homebrew distribution contract for the published `fsd-ios` release artifact.
 
 ### Changed
 

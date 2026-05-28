@@ -147,11 +147,22 @@ The tarball is built from a sorted file list, normalized timestamps, normalized
 archive owners, and `gzip -n`. The `RELEASE_TIMESTAMP` Make variable can be
 overridden for a release rebuild if needed.
 
-## Homebrew Direction
+## Homebrew Contract
 
-Homebrew should come after the release artifact contract is stable.
+Homebrew distribution must install the same versioned release artifact that
+GitHub Releases publish and local release smoke tests validate. Do not package
+`main`, a branch archive, or a mutable checkout.
 
-Expected workflow:
+Current reference artifact:
+
+```text
+version: 0.4.0
+url: https://github.com/SoundBlaster/FSD/releases/download/v0.4.0/fsd-ios-0.4.0.tar.gz
+sha256: c1cccb45bbf2cad5d336a639a4c63996aa79b2d33b67f3a7a5eb3b124b692823
+binary: fsd-ios-0.4.0/bin/fsd-ios
+```
+
+Expected user workflow:
 
 ```bash
 brew tap SoundBlaster/fsd-ios
@@ -159,5 +170,13 @@ brew install fsd-ios
 fsd-ios doctor
 ```
 
-The formula should pin a GitHub Release artifact and verify its checksum. Avoid
-using `main` as an install source.
+Formula requirements:
+
+- pin the GitHub Release tarball URL for the selected version;
+- verify the release tarball SHA-256 before installation;
+- install the packaged `bin/fsd-ios` wrapper onto `PATH`;
+- preserve the packaged `libexec/fsd-ios` tree next to the wrapper target;
+- run `fsd-ios --version` and `fsd-ios doctor --json` as the smoke test.
+
+Formula updates should happen only after a new release tag and artifact checksum
+exist.
