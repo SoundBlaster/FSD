@@ -197,9 +197,18 @@ SHA-256 checksum. The release process, versioning policy, and compatibility
 expectations are documented in [docs/release.md](<doc:ReleaseProcess>). User-facing
 changes should also be recorded in [CHANGELOG.md](<doc:Changelog>).
 
-Homebrew distribution should pin the same GitHub Release artifact and checksum;
-the formula contract is documented in [docs/release.md](<doc:ReleaseProcess>).
-The reference formula lives in [Formula/fsd-ios.rb](https://github.com/SoundBlaster/FSD/blob/main/Formula/fsd-ios.rb) and is
+Homebrew distribution uses the
+[`SoundBlaster/homebrew-tap`](https://github.com/SoundBlaster/homebrew-tap)
+tap and pins the same GitHub Release artifact and checksum:
+
+```bash
+brew tap SoundBlaster/tap
+brew install fsd-ios
+fsd-ios doctor
+```
+
+The formula contract is documented in [docs/release.md](<doc:ReleaseProcess>). The
+reference formula lives in [Formula/fsd-ios.rb](https://github.com/SoundBlaster/FSD/blob/main/Formula/fsd-ios.rb) and is
 checked with `make homebrew-formula-smoke`, which installs it through a
 temporary local tap before running the installed command.
 
