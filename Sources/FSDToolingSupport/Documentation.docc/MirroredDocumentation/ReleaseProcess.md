@@ -176,6 +176,7 @@ Formula requirements:
 
 - pin the GitHub Release tarball URL for the selected version;
 - verify the release tarball SHA-256 before installation;
+- expose `fsd-ios` on `PATH`;
 - preserve the packaged `libexec/fsd-ios` tree in the formula cellar;
 - generate an executable Homebrew-specific `bin/fsd-ios` wrapper that invokes
   the formula-private `libexec/fsd-ios/tools/fsd-ios.swift` path;
@@ -185,6 +186,13 @@ Formula requirements:
   extracted archive layout;
 - run `fsd-ios --version` and `fsd-ios doctor --json` against the installed
   formula command as the smoke test.
+
+The reference formula lives at [`Formula/fsd-ios.rb`](https://github.com/SoundBlaster/FSD/blob/main/Formula/fsd-ios.rb).
+It is a tap-ready source file, not a direct install path; Homebrew expects
+formulae used with `brew install` or `brew info` to live inside a tap. Run
+`make homebrew-formula-smoke` before copying it into a tap repository. The smoke
+target creates a temporary local tap, installs the formula, runs `brew test`,
+and invokes the installed `fsd-ios` wrapper.
 
 Formula updates should happen only after a new release tag and artifact checksum
 exist.

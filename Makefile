@@ -12,6 +12,11 @@ SWIFTLINT ?= swiftlint
 INSTALL_PREFIX ?= $(HOME)/.local
 INSTALL_BIN_DIR := $(INSTALL_PREFIX)/bin
 INSTALL_SMOKE_PREFIX := $(DERIVED_DATA_PATH)/LocalInstall
+HOMEBREW_FORMULA := Formula/fsd-ios.rb
+HOMEBREW_SMOKE_DIR := $(DERIVED_DATA_PATH)/HomebrewFormulaSmoke
+HOMEBREW_SMOKE_TAP := fsd-ios/smoke
+HOMEBREW_RELEASE_URL := https://github.com/SoundBlaster/FSD/releases/download/v0.4.0/fsd-ios-0.4.0.tar.gz
+HOMEBREW_RELEASE_SHA256 := c1cccb45bbf2cad5d336a639a4c63996aa79b2d33b67f3a7a5eb3b124b692823
 XCODE_TEMPLATES_SRC := templates/xcode/file-templates/FSD iOS
 XCODE_TEMPLATES_DIR ?= $(HOME)/Library/Developer/Xcode/Templates/File Templates/FSD iOS
 XCODE_TEMPLATES_SMOKE_DIR := $(DERIVED_DATA_PATH)/XcodeTemplatesSmoke/FSD iOS
@@ -69,7 +74,7 @@ RELEASE_PATHS := \
 	tests \
 	tools
 
-.PHONY: help open install uninstall install-smoke install-xcode-templates uninstall-xcode-templates xcode-templates-smoke cli-help cli-smoke cli-doctor config-smoke report-smoke action-smoke docc-mirror docc-mirror-check docc-pages docc-smoke release-docs release-artifact release-artifact-smoke lint lint-strict lint-architecture swiftlint harmonize harmonize-fixture template-create-dry-run template-create-fixture slice-create-fixture module-create-fixture template-validate template-validate-negative spm-template-test item-export-feature-test spm-template-create-fixture spm-plugin-smoke build test demo template-demo ci clean
+.PHONY: help open install uninstall install-smoke install-xcode-templates uninstall-xcode-templates xcode-templates-smoke homebrew-formula-smoke cli-help cli-smoke cli-doctor config-smoke report-smoke action-smoke docc-mirror docc-mirror-check docc-pages docc-smoke release-docs release-artifact release-artifact-smoke lint lint-strict lint-architecture swiftlint harmonize harmonize-fixture template-create-dry-run template-create-fixture slice-create-fixture module-create-fixture template-validate template-validate-negative spm-template-test item-export-feature-test spm-template-create-fixture spm-plugin-smoke build test demo template-demo ci clean
 
 help:
 	@printf '%s\n' \
@@ -81,6 +86,7 @@ help:
 		'  make install-xcode-templates  Install Xcode File Templates for FSD iOS' \
 		'  make uninstall-xcode-templates  Remove the Xcode File Templates for FSD iOS' \
 		'  make xcode-templates-smoke  Verify the Xcode File Templates install/uninstall flow' \
+		'  make homebrew-formula-smoke  Verify the reference Homebrew formula contract' \
 		'  make cli-help     Print the unified fsd-ios CLI help' \
 		'  make cli-smoke    Smoke-test the unified fsd-ios CLI' \
 		'  make cli-doctor   Check local FSD iOS tooling prerequisites' \
@@ -196,6 +202,36 @@ install-smoke:
 	"$(INSTALL_SMOKE_PREFIX)/bin/fsd-ios" doctor --help
 	$(MAKE) uninstall INSTALL_PREFIX="$(INSTALL_SMOKE_PREFIX)"
 	@test ! -e "$(INSTALL_SMOKE_PREFIX)/bin/fsd-ios"
+
+homebrew-formula-smoke:
+	@command -v brew > /dev/null || { \
+		printf '%s\n' 'Homebrew is not installed. Install it from https://brew.sh/.'; \
+		exit 1; \
+	}
+	@test -f "$(HOMEBREW_FORMULA)"
+	@grep -q 'url "$(HOMEBREW_RELEASE_URL)"' "$(HOMEBREW_FORMULA)"
+	@grep -q 'sha256 "$(HOMEBREW_RELEASE_SHA256)"' "$(HOMEBREW_FORMULA)"
+	ruby -c "$(HOMEBREW_FORMULA)"
+	brew style "$(HOMEBREW_FORMULA)"
+	@set -e; \
+		export HOMEBREW_NO_AUTO_UPDATE=1; \
+		export HOMEBREW_NO_ENV_HINTS=1; \
+		export HOMEBREW_NO_INSTALL_CLEANUP=1; \
+		brew uninstall --force "$(HOMEBREW_SMOKE_TAP)/fsd-ios" > /dev/null 2>&1 || true; \
+		brew untap "$(HOMEBREW_SMOKE_TAP)" > /dev/null 2>&1 || true; \
+		rm -rf "$(HOMEBREW_SMOKE_DIR)"; \
+		mkdir -p "$(HOMEBREW_SMOKE_DIR)"; \
+		brew tap-new --no-git "$(HOMEBREW_SMOKE_TAP)" > /dev/null; \
+		trap 'brew uninstall --force "$(HOMEBREW_SMOKE_TAP)/fsd-ios" > /dev/null 2>&1 || true; brew untap "$(HOMEBREW_SMOKE_TAP)" > /dev/null 2>&1 || true' EXIT; \
+		tap_dir="$$(brew --repository "$(HOMEBREW_SMOKE_TAP)")"; \
+		cp "$(HOMEBREW_FORMULA)" "$$tap_dir/Formula/fsd-ios.rb"; \
+		brew install --formula "$(HOMEBREW_SMOKE_TAP)/fsd-ios"; \
+		installed_bin="$$(brew --prefix "$(HOMEBREW_SMOKE_TAP)/fsd-ios")/bin/fsd-ios"; \
+		test -x "$$installed_bin"; \
+		"$$installed_bin" --version; \
+		brew test "$(HOMEBREW_SMOKE_TAP)/fsd-ios"; \
+		"$$installed_bin" doctor --json > "$(HOMEBREW_SMOKE_DIR)/doctor.json"
+	@$(SWIFT) -e 'import Foundation; let data = try Data(contentsOf: URL(fileURLWithPath: CommandLine.arguments[1])); let payload = try JSONSerialization.jsonObject(with: data) as! [String: Any]; precondition(payload["tool"] as? String == "fsd-ios"); precondition(payload["version"] as? String == "0.4.0"); precondition(payload["passed"] as? Bool == true)' "$(HOMEBREW_SMOKE_DIR)/doctor.json"
 
 release-artifact:
 	rm -rf "$(RELEASE_STAGING_DIR)" "$(RELEASE_TAR)" "$(RELEASE_ARCHIVE)" "$(RELEASE_CHECKSUM)" "$(RELEASE_FILE_LIST)"
@@ -402,6 +438,9 @@ release-docs:
 	@grep -q '## Compatibility Contract' docs/release.md
 	@grep -q 'make release-artifact' docs/release.md
 	@grep -q 'make release-artifact-smoke' README.md
+	@test -f "$(HOMEBREW_FORMULA)"
+	@grep -q '## Homebrew Contract' docs/release.md
+	@grep -q 'Formula/fsd-ios.rb' docs/release.md
 	@grep -q 'docs/release.md' README.md
 	@grep -q 'CHANGELOG.md' README.md
 	@grep -q 'docs/release.md' docs/roadmap.md
