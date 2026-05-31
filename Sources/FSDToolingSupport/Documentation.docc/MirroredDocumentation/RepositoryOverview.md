@@ -127,6 +127,7 @@ swift tools/fsd-ios.swift doctor
 swift tools/fsd-ios.swift doctor --json
 swift tools/fsd-ios.swift lint --config .fsd-ios.yml
 swift tools/fsd-ios.swift lint --root FSDDemoApp --strict --architecture
+swift tools/fsd-ios.swift lint --config .fsd-ios.yml --format sarif > fsd-ios.sarif
 swift tools/fsd-ios.swift create slice feature export-report --root FSDDemoApp
 swift tools/fsd-ios.swift create module Reporting --output ../ReportingModule
 swift package --allow-writing-to-package-directory fsd-generate slice feature export-report --root FSDDemoApp
@@ -257,10 +258,12 @@ make swiftlint
 
 Repository-level lint defaults live in [.fsd-ios.yml](https://github.com/SoundBlaster/FSD/blob/main/.fsd-ios.yml). The config
 contract is documented in [docs/configuration.md](<doc:ConfigurationContract>).
-Lint reports can also be emitted as JSON for CI tooling or as Xcode diagnostics:
+Lint reports can also be emitted as JSON for CI tooling, SARIF for GitHub Code
+Scanning, or Xcode diagnostics:
 
 ```bash
 swift tools/fsd-ios.swift lint --config .fsd-ios.yml --format json
+swift tools/fsd-ios.swift lint --config .fsd-ios.yml --format sarif
 swift tools/fsd-ios.swift lint --config .fsd-ios.yml --format xcode
 ```
 

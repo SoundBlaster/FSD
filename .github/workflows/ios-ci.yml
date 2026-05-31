@@ -13,6 +13,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+  security-events: write
+
 jobs:
   validate:
     name: Validate FSD demo
@@ -28,6 +32,16 @@ jobs:
           swift --version
           xcodebuild -version
           xcrun simctl list runtimes available
+
+      - name: Generate FSD SARIF report
+        run: |
+          mkdir -p DerivedData
+          swift tools/fsd-ios.swift lint --config .fsd-ios.yml --format sarif > DerivedData/fsd-ios.sarif
+
+      - name: Upload FSD SARIF report
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: DerivedData/fsd-ios.sarif
 
       - name: Install SwiftLint
         run: |

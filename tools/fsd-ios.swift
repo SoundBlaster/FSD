@@ -59,7 +59,7 @@ func printUsage() {
           version, --version
               Print the fsd-ios CLI version.
 
-          lint [--root <path>] [--config <path>] [--strict|--no-strict] [--architecture|--no-architecture] [--format text|json|xcode]
+          lint [--root <path>] [--config <path>] [--strict|--no-strict] [--architecture|--no-architecture] [--format text|json|xcode|sarif]
               Run the FSD structure and optional architecture lint.
 
           harmonize [--root <path>]
@@ -87,6 +87,7 @@ func printUsage() {
           swift tools/fsd-ios.swift lint --root FSDDemoApp --strict --architecture
           swift tools/fsd-ios.swift lint --config .fsd-ios.yml
           swift tools/fsd-ios.swift lint --config .fsd-ios.yml --format xcode
+          swift tools/fsd-ios.swift lint --config .fsd-ios.yml --format sarif
           swift tools/fsd-ios.swift create app --name MyApp --output ../MyApp
           swift tools/fsd-ios.swift create spm --name LegacyFSD --output ../LegacyFSDModules
           swift tools/fsd-ios.swift create slice feature export-report --root Sources/App

@@ -23,6 +23,7 @@ enum ReportFormat: String {
     case text
     case json
     case xcode
+    case sarif
 }
 
 struct Finding {
@@ -1137,11 +1138,11 @@ func parseArguments(_ arguments: [String]) -> ArgumentConfiguration? {
         case "--format":
             index += 1
             guard index < arguments.count, !arguments[index].hasPrefix("-") else {
-                print("error: --format requires one of: text, json, xcode")
+                print("error: --format requires one of: text, json, xcode, sarif")
                 exit(2)
             }
             guard let parsedFormat = ReportFormat(rawValue: arguments[index]) else {
-                print("error: unsupported --format `\(arguments[index])`; expected one of: text, json, xcode")
+                print("error: unsupported --format `\(arguments[index])`; expected one of: text, json, xcode, sarif")
                 exit(2)
             }
             format = parsedFormat
@@ -1527,7 +1528,7 @@ func printUsage() {
     print(
         """
         Usage:
-          swift tools/fsd-lint.swift [--root <path>] [--config <path>] [--strict|--no-strict] [--architecture|--no-architecture] [--format text|json|xcode]
+          swift tools/fsd-lint.swift [--root <path>] [--config <path>] [--strict|--no-strict] [--architecture|--no-architecture] [--format text|json|xcode|sarif]
           swift tools/fsd-lint.swift FSDDemoApp
 
         Checks baseline Feature-Sliced Design folder structure:
@@ -1549,7 +1550,7 @@ func printUsage() {
           --architecture   Enable Swift symbol dependency checks.
           --no-architecture
                            Disable architecture checks even when config enables them.
-          --format <value> Output format: text, json, or xcode. Defaults to text.
+          --format <value> Output format: text, json, xcode, or sarif. Defaults to text.
         """
     )
 }
@@ -1569,6 +1570,8 @@ func printReport(_ findings: [Finding], format: ReportFormat, rootURL: URL) {
         printJSONReport(findings, rootURL: rootURL)
     case .xcode:
         printXcodeReport(findings)
+    case .sarif:
+        printSARIFReport(findings)
     }
 }
 
@@ -1648,6 +1651,112 @@ func printXcodeReport(_ findings: [Finding]) {
         print("FSD lint passed: 0 errors, 0 warnings")
     } else {
         print("FSD lint finished: \(counts.errors) errors, \(counts.warnings) warnings")
+    }
+}
+
+func printSARIFReport(_ findings: [Finding]) {
+    let rules: [[String: Any]] = Dictionary(grouping: findings, by: { $0.ruleId })
+        .keys
+        .sorted()
+        .map { ruleId in
+            [
+                "id": ruleId,
+                "shortDescription": [
+                    "text": ruleId,
+                ],
+            ]
+        }
+
+    let results: [[String: Any]] = findings.map { finding in
+        var message = finding.message
+
+        if let suggestion = finding.suggestion {
+            message += " Suggestion: \(suggestion)"
+        }
+
+        var region: [String: Any] = [
+            "startLine": finding.line ?? 1,
+        ]
+
+        if finding.line == nil {
+            region["startColumn"] = 1
+        }
+
+        return [
+            "ruleId": finding.ruleId,
+            "level": finding.severity.sarifLevel,
+            "message": [
+                "text": message,
+            ],
+            "locations": [
+                [
+                    "physicalLocation": [
+                        "artifactLocation": [
+                            "uri": sarifURI(for: finding),
+                        ],
+                        "region": region,
+                    ],
+                ],
+            ],
+        ]
+    }
+
+    let payload: [String: Any] = [
+        "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+        "version": "2.1.0",
+        "runs": [
+            [
+                "tool": [
+                    "driver": [
+                        "name": "fsd-lint",
+                        "informationUri": "https://github.com/SoundBlaster/FSD",
+                        "rules": rules,
+                    ],
+                ],
+                "results": results,
+            ],
+        ],
+    ]
+
+    guard let data = try? JSONSerialization.data(withJSONObject: payload, options: [.prettyPrinted, .sortedKeys]),
+          let output = String(data: data, encoding: .utf8)
+    else {
+        print("{\"version\":\"2.1.0\",\"runs\":[{\"tool\":{\"driver\":{\"name\":\"fsd-lint\",\"rules\":[]}},\"results\":[]}]}")
+        return
+    }
+
+    print(output)
+}
+
+func sarifURI(for finding: Finding) -> String {
+    let currentPath = currentDirectoryURL().path
+    let absolutePath = URL(fileURLWithPath: finding.absolutePath).standardizedFileURL.path
+    let path: String
+
+    if absolutePath == currentPath {
+        path = URL(fileURLWithPath: absolutePath).lastPathComponent
+    } else if absolutePath.hasPrefix("\(currentPath)/") {
+        path = String(absolutePath.dropFirst(currentPath.count + 1))
+    } else {
+        path = finding.path
+    }
+
+    return path
+        .split(separator: "/")
+        .map { component in
+            String(component).addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? String(component)
+        }
+        .joined(separator: "/")
+}
+
+extension Severity {
+    var sarifLevel: String {
+        switch self {
+        case .error:
+            return "error"
+        case .warning:
+            return "warning"
+        }
     }
 }
 

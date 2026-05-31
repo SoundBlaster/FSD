@@ -141,6 +141,14 @@ swift .fsd-ios-tooling/tools/fsd-ios.swift lint \
   --format json
 ```
 
+Use SARIF when GitHub Code Scanning should ingest the results:
+
+```bash
+swift .fsd-ios-tooling/tools/fsd-ios.swift lint \
+  --config .fsd-ios.yml \
+  --format sarif > fsd-ios.sarif
+```
+
 For refactoring planning, use the read-only advisor:
 
 ```bash
@@ -176,6 +184,13 @@ The baseline workflow intentionally uses the Swift script directly. The reusable
 GitHub Action can be added later as a thinner wrapper once the CLI contract is
 accepted by reviewers.
 
+For GitHub Code Scanning annotations, copy
+[examples/github-actions/external-project-fsd-ios-sarif.yml](https://github.com/SoundBlaster/FSD/blob/main/examples/github-actions/external-project-fsd-ios-sarif.yml).
+The SARIF workflow grants `security-events: write`, generates `fsd-ios.sarif`,
+uploads it with `github/codeql-action/upload-sarif`, and then fails the job if
+the lint command failed. The upload step is intentionally guarded with
+`if: always()` so findings are uploaded even when lint detects violations.
+
 ## Reusable GitHub Action
 
 After the direct-script baseline is accepted, the external project can switch to
@@ -195,6 +210,11 @@ the reusable Action wrapper:
 Copy [examples/github-actions/external-project-fsd-ios-action.yml](https://github.com/SoundBlaster/FSD/blob/main/examples/github-actions/external-project-fsd-ios-action.yml)
 for a complete workflow. In production, replace `@main` with a pinned tag or
 commit.
+
+For the reusable Action plus SARIF upload flow, copy
+[examples/github-actions/external-project-fsd-ios-action-sarif.yml](https://github.com/SoundBlaster/FSD/blob/main/examples/github-actions/external-project-fsd-ios-action-sarif.yml).
+The Action accepts `format: sarif` and `output: fsd-ios.sarif`, which lets the
+next workflow step upload the report to GitHub Code Scanning.
 
 ## SwiftPM Module-Island Option
 
@@ -225,7 +245,8 @@ For production CI:
 1. Pin the tooling checkout to a tag or commit.
 2. Run `version` before lint so logs show the exact contract.
 3. Run `doctor --json` when machine-readable environment diagnostics are useful.
-4. Use `--format json` for machine parsing and `--format xcode` for Xcode build phases.
+4. Use `--format json` for machine parsing, `--format sarif` for GitHub Code
+   Scanning, and `--format xcode` for Xcode build phases.
 5. Pass `--root` explicitly; do not rely on the demo app default.
 6. Keep host-project build/test steps separate from FSD lint checks.
 

@@ -14,6 +14,7 @@ yet.
 
 - Homebrew distribution contract for the published `fsd-ios` release artifact.
 - Reference Homebrew formula and local formula smoke target.
+- SARIF lint report output and GitHub Code Scanning workflow examples.
 
 ### Changed
 

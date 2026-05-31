@@ -16,6 +16,7 @@ swift tools/fsd-ios.swift doctor
 swift tools/fsd-ios.swift doctor --json
 swift tools/fsd-ios.swift lint --config .fsd-ios.yml
 swift tools/fsd-ios.swift lint --root FSDDemoApp --strict --architecture
+swift tools/fsd-ios.swift lint --config .fsd-ios.yml --format sarif
 swift tools/fsd-ios.swift lint --config .fsd-ios.yml --format xcode
 swift tools/fsd-ios.swift create spm --name LegacyFSD --output ../LegacyFSDModules
 swift tools/fsd-ios.swift create slice feature export-report --root Sources/App
@@ -140,6 +141,18 @@ JSON reports use this shape:
   ]
 }
 ```
+
+Use SARIF when GitHub Code Scanning should turn FSD lint results into repository
+security/code scanning annotations:
+
+```bash
+swift tools/fsd-ios.swift lint --config .fsd-ios.yml --format sarif > fsd-ios.sarif
+```
+
+SARIF output uses version `2.1.0`, includes `fsd-lint` rule ids, and maps FSD
+errors and warnings to SARIF `error` and `warning` levels. See
+[External Project Adoption](<doc:ExternalProjectAdoption>) for a GitHub Actions
+upload example.
 
 Use Xcode format from a Run Script Build Phase so diagnostics become clickable
 in the build log and issue navigator:
