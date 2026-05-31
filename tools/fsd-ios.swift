@@ -59,7 +59,7 @@ func printUsage() {
           version, --version
               Print the fsd-ios CLI version.
 
-          lint [--root <path>] [--config <path>] [--strict|--no-strict] [--architecture|--no-architecture] [--format text|json|xcode|sarif]
+          lint [--root <path>] [--config <path>] [--strict|--no-strict] [--architecture|--no-architecture] [--format text|json|xcode|sarif] [--report-root <path>]
               Run the FSD structure and optional architecture lint.
 
           harmonize [--root <path>]
@@ -318,7 +318,7 @@ func hasOption(_ option: String, in arguments: [String]) -> Bool {
 }
 
 func hasPositionalLintRoot(in arguments: [String]) -> Bool {
-    let optionsWithValues: Set<String> = ["--root", "--config", "--format"]
+    let optionsWithValues: Set<String> = ["--root", "--config", "--format", "--report-root"]
     var index = 0
 
     while index < arguments.count {
@@ -785,11 +785,12 @@ func discoverDefaultConfigPath() -> String? {
 func normalizeLintArguments(_ arguments: [String]) -> [String] {
     var normalized = normalizePathOptions(
         in: arguments,
-        options: ["--root", "--config"]
+        options: ["--root", "--config", "--report-root"]
     )
 
     let hasConfig = hasOption("--config", in: arguments)
     let hasRoot = hasOption("--root", in: arguments) || hasPositionalLintRoot(in: arguments)
+    let hasReportRoot = hasOption("--report-root", in: arguments)
 
     if !hasConfig, let configPath = discoverDefaultConfigPath() {
         normalized.append("--config")
@@ -799,6 +800,11 @@ func normalizeLintArguments(_ arguments: [String]) -> [String] {
     if !hasRoot, !hasConfig, discoverDefaultConfigPath() == nil {
         normalized.append("--root")
         normalized.append(repoPath("FSDDemoApp"))
+    }
+
+    if !hasReportRoot {
+        normalized.append("--report-root")
+        normalized.append(originalWorkingDirectoryURL.path)
     }
 
     return normalized

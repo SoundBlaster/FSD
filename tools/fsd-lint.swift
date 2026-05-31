@@ -151,6 +151,7 @@ struct RuleConfiguration {
 
 struct Configuration {
     let rootPath: String
+    let reportRootPath: String?
     let strict: Bool
     let architecture: Bool
     let format: ReportFormat
@@ -161,6 +162,7 @@ struct Configuration {
 
 struct ArgumentConfiguration {
     let rootPath: String?
+    let reportRootPath: String?
     let strict: Bool?
     let architecture: Bool?
     let format: ReportFormat?
@@ -1114,6 +1116,7 @@ struct FSDLinter {
 
 func parseArguments(_ arguments: [String]) -> ArgumentConfiguration? {
     var rootPath: String?
+    var reportRootPath: String?
     var strict: Bool?
     var architecture: Bool?
     var format: ReportFormat?
@@ -1153,6 +1156,13 @@ func parseArguments(_ arguments: [String]) -> ArgumentConfiguration? {
                 exit(2)
             }
             rootPath = arguments[index]
+        case "--report-root":
+            index += 1
+            guard index < arguments.count else {
+                print("error: --report-root requires a path")
+                exit(2)
+            }
+            reportRootPath = arguments[index]
         case "--config":
             index += 1
             guard index < arguments.count else {
@@ -1173,6 +1183,7 @@ func parseArguments(_ arguments: [String]) -> ArgumentConfiguration? {
 
     return ArgumentConfiguration(
         rootPath: rootPath,
+        reportRootPath: reportRootPath,
         strict: strict,
         architecture: architecture,
         format: format,
@@ -1198,6 +1209,7 @@ func makeConfiguration(from arguments: ArgumentConfiguration) throws -> Configur
 
     return Configuration(
         rootPath: rootPath,
+        reportRootPath: arguments.reportRootPath.map { makeURL(from: $0).path },
         strict: arguments.strict ?? fileConfiguration?.strict ?? false,
         architecture: arguments.architecture ?? fileConfiguration?.architecture ?? false,
         format: arguments.format ?? .text,
@@ -1528,7 +1540,7 @@ func printUsage() {
     print(
         """
         Usage:
-          swift tools/fsd-lint.swift [--root <path>] [--config <path>] [--strict|--no-strict] [--architecture|--no-architecture] [--format text|json|xcode|sarif]
+          swift tools/fsd-lint.swift [--root <path>] [--config <path>] [--strict|--no-strict] [--architecture|--no-architecture] [--format text|json|xcode|sarif] [--report-root <path>]
           swift tools/fsd-lint.swift FSDDemoApp
 
         Checks baseline Feature-Sliced Design folder structure:
@@ -1545,6 +1557,8 @@ func printUsage() {
         Options:
           --root <path>    Source root to inspect. Overrides config root.
           --config <path>  Config file. Defaults to `.fsd-ios.yml` when present.
+          --report-root <path>
+                           Workspace root used to relativize SARIF file URIs.
           --strict         Treat warnings as errors.
           --no-strict      Disable strict mode even when config enables it.
           --architecture   Enable Swift symbol dependency checks.
@@ -1562,7 +1576,7 @@ func findingCounts(_ findings: [Finding]) -> (errors: Int, warnings: Int) {
     )
 }
 
-func printReport(_ findings: [Finding], format: ReportFormat, rootURL: URL) {
+func printReport(_ findings: [Finding], format: ReportFormat, rootURL: URL, reportRootURL: URL) {
     switch format {
     case .text:
         printTextReport(findings)
@@ -1571,7 +1585,7 @@ func printReport(_ findings: [Finding], format: ReportFormat, rootURL: URL) {
     case .xcode:
         printXcodeReport(findings)
     case .sarif:
-        printSARIFReport(findings)
+        printSARIFReport(findings, reportRootURL: reportRootURL)
     }
 }
 
@@ -1654,7 +1668,7 @@ func printXcodeReport(_ findings: [Finding]) {
     }
 }
 
-func printSARIFReport(_ findings: [Finding]) {
+func printSARIFReport(_ findings: [Finding], reportRootURL: URL) {
     let rules: [[String: Any]] = Dictionary(grouping: findings, by: { $0.ruleId })
         .keys
         .sorted()
@@ -1692,7 +1706,7 @@ func printSARIFReport(_ findings: [Finding]) {
                 [
                     "physicalLocation": [
                         "artifactLocation": [
-                            "uri": sarifURI(for: finding),
+                            "uri": sarifURI(for: finding, reportRootURL: reportRootURL),
                         ],
                         "region": region,
                     ],
@@ -1728,12 +1742,17 @@ func printSARIFReport(_ findings: [Finding]) {
     print(output)
 }
 
-func sarifURI(for finding: Finding) -> String {
+func sarifURI(for finding: Finding, reportRootURL: URL) -> String {
     let currentPath = currentDirectoryURL().path
+    let reportRootPath = reportRootURL.standardizedFileURL.path
     let absolutePath = URL(fileURLWithPath: finding.absolutePath).standardizedFileURL.path
     let path: String
 
-    if absolutePath == currentPath {
+    if absolutePath == reportRootPath {
+        path = URL(fileURLWithPath: absolutePath).lastPathComponent
+    } else if absolutePath.hasPrefix("\(reportRootPath)/") {
+        path = String(absolutePath.dropFirst(reportRootPath.count + 1))
+    } else if absolutePath == currentPath {
         path = URL(fileURLWithPath: absolutePath).lastPathComponent
     } else if absolutePath.hasPrefix("\(currentPath)/") {
         path = String(absolutePath.dropFirst(currentPath.count + 1))
@@ -1792,6 +1811,7 @@ do {
 }
 
 let rootURL = makeURL(from: configuration.rootPath)
+let reportRootURL = configuration.reportRootPath.map { makeURL(from: $0) } ?? currentDirectoryURL()
 let findings = FSDLinter(
     rootURL: rootURL,
     strict: configuration.strict,
@@ -1801,6 +1821,6 @@ let findings = FSDLinter(
     rules: configuration.rules
 ).run()
 
-printReport(findings, format: configuration.format, rootURL: rootURL)
+printReport(findings, format: configuration.format, rootURL: rootURL, reportRootURL: reportRootURL)
 
 exit(findingCounts(findings).errors == 0 ? 0 : 1)

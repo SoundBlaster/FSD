@@ -91,7 +91,7 @@ help:
 		'  make cli-smoke    Smoke-test the unified fsd-ios CLI' \
 		'  make cli-doctor   Check local FSD iOS tooling prerequisites' \
 		'  make config-smoke  Verify .fsd-ios.yml config loading' \
-		'  make report-smoke  Verify lint text/json/xcode report formats' \
+		'  make report-smoke  Verify lint text/json/xcode/sarif report formats' \
 		'  make action-smoke  Smoke-test the reusable GitHub Action contract' \
 		'  make docc-mirror  Generate DocC articles from repository Markdown docs' \
 		'  make docc-mirror-check  Verify DocC mirror articles are synchronized' \
@@ -366,6 +366,13 @@ report-smoke:
 		printf '%s\n' 'SARIF report violation fixture failed as expected'; \
 	fi
 	$(SWIFT) -e 'import Foundation; let data = try Data(contentsOf: URL(fileURLWithPath: CommandLine.arguments[1])); let payload = try JSONSerialization.jsonObject(with: data) as! [String: Any]; let runs = payload["runs"] as! [[String: Any]]; let results = runs[0]["results"] as! [[String: Any]]; let result = results[0]; precondition(result["ruleId"] as? String == "fsd/root-swift-file"); precondition(result["level"] as? String == "error"); let locations = result["locations"] as! [[String: Any]]; let physical = locations[0]["physicalLocation"] as! [String: Any]; let artifact = physical["artifactLocation"] as! [String: Any]; precondition(artifact["uri"] as? String == "tests/fixtures/report-violations/App/Loose.swift"); let region = physical["region"] as! [String: Any]; precondition(region["startLine"] as? Int == 1)' $(DERIVED_DATA_PATH)/LintReportFailing.sarif
+	@if $(SWIFT) tools/fsd-lint.swift --root tests/fixtures/report-violations/App --format sarif --report-root tests/fixtures > $(DERIVED_DATA_PATH)/LintReportReportRoot.sarif; then \
+		printf '%s\n' 'Expected SARIF report-root fixture to fail'; \
+		exit 1; \
+	else \
+		printf '%s\n' 'SARIF report-root fixture failed as expected'; \
+	fi
+	$(SWIFT) -e 'import Foundation; let data = try Data(contentsOf: URL(fileURLWithPath: CommandLine.arguments[1])); let payload = try JSONSerialization.jsonObject(with: data) as! [String: Any]; let runs = payload["runs"] as! [[String: Any]]; let results = runs[0]["results"] as! [[String: Any]]; let locations = results[0]["locations"] as! [[String: Any]]; let physical = locations[0]["physicalLocation"] as! [String: Any]; let artifact = physical["artifactLocation"] as! [String: Any]; precondition(artifact["uri"] as? String == "report-violations/App/Loose.swift")' $(DERIVED_DATA_PATH)/LintReportReportRoot.sarif
 	@if $(SWIFT) tools/fsd-ios.swift lint --root tests/fixtures/report-violations/App --format xcode > $(DERIVED_DATA_PATH)/LintReportXcode.txt; then \
 		printf '%s\n' 'Expected Xcode report violation fixture to fail'; \
 		exit 1; \

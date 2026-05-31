@@ -34,14 +34,21 @@ jobs:
           xcrun simctl list runtimes available
 
       - name: Generate FSD SARIF report
+        id: fsd_sarif
+        continue-on-error: true
         run: |
           mkdir -p DerivedData
           swift tools/fsd-ios.swift lint --config .fsd-ios.yml --format sarif > DerivedData/fsd-ios.sarif
 
       - name: Upload FSD SARIF report
+        if: always()
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: DerivedData/fsd-ios.sarif
+
+      - name: Fail on FSD SARIF errors
+        if: steps.fsd_sarif.outcome == 'failure'
+        run: exit 1
 
       - name: Install SwiftLint
         run: |

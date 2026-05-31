@@ -148,7 +148,11 @@ swift tools/fsd-ios.swift lint --config .fsd-ios.yml --format sarif > fsd-ios.sa
 ```
 
 SARIF output uses version `2.1.0`, includes `fsd-lint` rule ids, and maps FSD
-errors and warnings to SARIF `error` and `warning` levels. See
+errors and warnings to SARIF `error` and `warning` levels. The `fsd-ios`
+wrapper automatically relativizes SARIF locations against the project checkout
+where it was invoked, so GitHub can attach annotations even when the tooling is
+checked out elsewhere. Direct `fsd-lint.swift` integrations can pass
+`--report-root <path>` to set that repository-relative base explicitly. See
 [External Project Adoption](adoption/external-project.md) for a GitHub Actions
 upload example.
 
@@ -461,8 +465,9 @@ for the generated module island.
 `make config-smoke` verifies explicit config loading, default config discovery,
 direct linter config support, and invalid config diagnostics.
 
-`make report-smoke` verifies `text`, `json`, and `xcode` lint output contracts
-on a targeted violation fixture.
+`make report-smoke` verifies `text`, `json`, `xcode`, and `sarif` lint output
+contracts on a targeted violation fixture, including SARIF repo-relative file
+URIs.
 
 `make action-smoke` verifies the reusable GitHub Action metadata and runs the
 same strict architecture lint path that the Action dispatches.
