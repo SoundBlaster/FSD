@@ -90,7 +90,7 @@ versions as potentially compatibility-affecting.
 Stable behavior:
 
 - existing documented commands should keep working within a major version;
-- `text`, `json`, and `xcode` lint formats should remain parseable;
+- `text`, `json`, `xcode`, and `sarif` lint formats should remain parseable;
 - generated templates should continue to pass repository lint checks;
 - CI examples should pin a released version once binary artifacts exist.
 

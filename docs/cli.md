@@ -14,6 +14,7 @@ swift tools/fsd-ios.swift doctor
 swift tools/fsd-ios.swift doctor --json
 swift tools/fsd-ios.swift lint --config .fsd-ios.yml
 swift tools/fsd-ios.swift lint --root FSDDemoApp --strict --architecture
+swift tools/fsd-ios.swift lint --config .fsd-ios.yml --format sarif
 swift tools/fsd-ios.swift lint --config .fsd-ios.yml --format xcode
 swift tools/fsd-ios.swift create spm --name LegacyFSD --output ../LegacyFSDModules
 swift tools/fsd-ios.swift create slice feature export-report --root Sources/App
@@ -138,6 +139,22 @@ JSON reports use this shape:
   ]
 }
 ```
+
+Use SARIF when GitHub Code Scanning should turn FSD lint results into repository
+security/code scanning annotations:
+
+```bash
+swift tools/fsd-ios.swift lint --config .fsd-ios.yml --format sarif > fsd-ios.sarif
+```
+
+SARIF output uses version `2.1.0`, includes `fsd-lint` rule ids, and maps FSD
+errors and warnings to SARIF `error` and `warning` levels. The `fsd-ios`
+wrapper automatically relativizes SARIF locations against the project checkout
+where it was invoked, so GitHub can attach annotations even when the tooling is
+checked out elsewhere. Direct `fsd-lint.swift` integrations can pass
+`--report-root <path>` to set that repository-relative base explicitly. See
+[External Project Adoption](adoption/external-project.md) for a GitHub Actions
+upload example.
 
 Use Xcode format from a Run Script Build Phase so diagnostics become clickable
 in the build log and issue navigator:
@@ -448,8 +465,9 @@ for the generated module island.
 `make config-smoke` verifies explicit config loading, default config discovery,
 direct linter config support, and invalid config diagnostics.
 
-`make report-smoke` verifies `text`, `json`, and `xcode` lint output contracts
-on a targeted violation fixture.
+`make report-smoke` verifies `text`, `json`, `xcode`, and `sarif` lint output
+contracts on a targeted violation fixture, including SARIF repo-relative file
+URIs.
 
 `make action-smoke` verifies the reusable GitHub Action metadata and runs the
 same strict architecture lint path that the Action dispatches.

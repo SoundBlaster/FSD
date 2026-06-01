@@ -1,0 +1,45 @@
+name: FSD iOS SARIF
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  fsd-ios:
+    name: Run FSD iOS SARIF lint
+    runs-on: macos-26
+
+    steps:
+      - name: Checkout app
+        uses: actions/checkout@v5
+
+      - name: Checkout FSD iOS tooling
+        uses: actions/checkout@v5
+        with:
+          repository: SoundBlaster/FSD
+          ref: <pinned-tag-or-commit>
+          path: .fsd-ios-tooling
+
+      - name: Generate SARIF report
+        id: fsd_lint
+        continue-on-error: true
+        run: |
+          swift .fsd-ios-tooling/tools/fsd-ios.swift lint \
+            --config .fsd-ios.yml \
+            --format sarif > fsd-ios.sarif
+
+      - name: Upload SARIF report
+        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: fsd-ios.sarif
+
+      - name: Fail when FSD lint failed
+        if: steps.fsd_lint.outcome == 'failure'
+        run: exit 1

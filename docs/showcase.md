@@ -42,6 +42,7 @@ depending on active `codex/*` work branches.
 | Legacy modular adoption | `templates/fsd-ios-spm`, `make spm-template-test` | `main` |
 | Unified DX CLI | `tools/fsd-ios.swift`, `docs/cli.md`, `make cli-smoke` | `main` |
 | Configurable lint baseline | `.fsd-ios.yml`, `docs/configuration.md`, `make config-smoke` | `main` |
+| SARIF and Code Scanning reports | `--format sarif`, `examples/github-actions/*sarif.yml`, `make report-smoke` | `main` |
 | Tooling roadmap | `docs/roadmap.md` | `main` |
 | External project adoption | `docs/adoption/external-project.md`, `examples/github-actions/external-project-fsd-ios.yml` | `main` |
 | Reusable GitHub Action | `action.yml`, `examples/github-actions/external-project-fsd-ios-action.yml`, `make action-smoke` | `main` |

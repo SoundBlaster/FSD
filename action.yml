@@ -19,9 +19,13 @@ inputs:
     required: false
     default: "true"
   format:
-    description: Lint report format: text, json, or xcode.
+    description: Lint report format: text, json, xcode, or sarif.
     required: false
     default: "text"
+  output:
+    description: Optional output file for machine-readable formats such as sarif.
+    required: false
+    default: ""
   doctor:
     description: Run fsd-ios doctor before linting.
     required: false
@@ -52,6 +56,7 @@ runs:
         INPUT_STRICT: ${{ inputs.strict }}
         INPUT_ARCHITECTURE: ${{ inputs.architecture }}
         INPUT_FORMAT: ${{ inputs.format }}
+        INPUT_OUTPUT: ${{ inputs.output }}
       run: |
         set -euo pipefail
 
@@ -94,13 +99,18 @@ runs:
         esac
 
         case "$INPUT_FORMAT" in
-          text|json|xcode)
+          text|json|xcode|sarif)
             args+=(--format "$INPUT_FORMAT")
             ;;
           *)
-            echo "::error::format must be text, json, or xcode"
+            echo "::error::format must be text, json, xcode, or sarif"
             exit 2
             ;;
         esac
 
-        swift "$GITHUB_ACTION_PATH/tools/fsd-ios.swift" "${args[@]}"
+        if [ -n "$INPUT_OUTPUT" ]; then
+          mkdir -p "$(dirname "$INPUT_OUTPUT")"
+          swift "$GITHUB_ACTION_PATH/tools/fsd-ios.swift" "${args[@]}" > "$INPUT_OUTPUT"
+        else
+          swift "$GITHUB_ACTION_PATH/tools/fsd-ios.swift" "${args[@]}"
+        fi

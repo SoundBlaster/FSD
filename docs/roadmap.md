@@ -55,23 +55,25 @@ Success metrics:
 Goal: make lint output consumable by CI, GitHub annotations, and future editor
 integrations.
 
-Status: implemented for the baseline linter with `text`, `json`, and `xcode`
-report formats. Future annotation formats can build on the same finding model.
+Status: implemented for the baseline linter with `text`, `json`, `xcode`, and
+`sarif` report formats. GitHub Code Scanning examples upload SARIF through
+`github/codeql-action/upload-sarif`.
 
 Scope:
 
-- add `--format text|json|xcode` to lint output;
+- add `--format text|json|xcode|sarif` to lint output;
 - stabilize finding fields: rule id, severity, path, line, message, and
   suggested fix when available;
 - preserve human-readable output as the default;
 - document JSON examples for external projects;
-- document Xcode Run Script Build Phase usage for `--format xcode`.
+- document Xcode Run Script Build Phase usage for `--format xcode`;
+- document GitHub Code Scanning usage for `--format sarif`.
 
 Success metrics:
 
 - CI can parse lint findings without scraping text;
 - Xcode can display FSD diagnostics in the build log and issue navigator;
-- future GitHub annotation or SARIF output can reuse the same finding model.
+- GitHub Code Scanning can ingest SARIF output without scraping text.
 
 ### 3. Slice And Module Generators
 
@@ -155,7 +157,6 @@ Success metrics:
 
 ## Later Work
 
-- GitHub annotation output or SARIF export.
 - Richer `harmonize` suggestions with rule ids and confidence levels.
 - Template version metadata and compatibility checks.
 - More fixture apps that model UIKit legacy shells and mixed SwiftUI/UIKit
