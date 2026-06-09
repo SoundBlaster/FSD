@@ -351,38 +351,38 @@ func parseHarmonizeArguments(_ arguments: [String]) -> HarmonizeConfiguration? {
         case "--root":
             index += 1
             guard index < arguments.count else {
-                print("error: --root requires a path")
+                writeLineToStandardError("error: --root requires a path")
                 exit(2)
             }
             rootPath = arguments[index]
         case "--format":
             index += 1
             guard index < arguments.count, !arguments[index].hasPrefix("-") else {
-                print("error: --format requires one of: text, json")
+                writeLineToStandardError("error: --format requires one of: text, json")
                 exit(2)
             }
             guard let parsedFormat = HarmonizeReportFormat(rawValue: arguments[index]) else {
-                print("error: unsupported --format `\(arguments[index])`; expected one of: text, json")
+                writeLineToStandardError("error: unsupported --format `\(arguments[index])`; expected one of: text, json")
                 exit(2)
             }
             format = parsedFormat
         case "--expect-suggestions":
             index += 1
             guard index < arguments.count, let count = Int(arguments[index]) else {
-                print("error: --expect-suggestions requires an integer")
+                writeLineToStandardError("error: --expect-suggestions requires an integer")
                 exit(2)
             }
             exactSuggestionCount = count
         case "--expect-suggestions-at-least":
             index += 1
             guard index < arguments.count, let count = Int(arguments[index]) else {
-                print("error: --expect-suggestions-at-least requires an integer")
+                writeLineToStandardError("error: --expect-suggestions-at-least requires an integer")
                 exit(2)
             }
             expectedSuggestionCount = count
         default:
             if argument.hasPrefix("-") {
-                print("error: unknown option \(argument)")
+                writeLineToStandardError("error: unknown option \(argument)")
                 exit(2)
             }
             rootPath = argument
@@ -519,7 +519,7 @@ var isDirectory: ObjCBool = false
 guard FileManager.default.fileExists(atPath: rootURL.path, isDirectory: &isDirectory),
       isDirectory.boolValue
 else {
-    print("error: FSD root does not exist or is not a directory: \(rootURL.path)")
+    writeLineToStandardError("error: FSD root does not exist or is not a directory: \(rootURL.path)")
     exit(1)
 }
 
@@ -529,7 +529,7 @@ printReport(suggestions, configuration: configuration, rootURL: rootURL)
 
 if let expectedSuggestionCount = configuration.expectedSuggestionCount {
     guard suggestions.count >= expectedSuggestionCount else {
-        print(
+        writeLineToStandardError(
             "error: expected at least \(expectedSuggestionCount) suggestions, found \(suggestions.count)"
         )
         exit(1)
@@ -540,7 +540,7 @@ if let expectedSuggestionCount = configuration.expectedSuggestionCount {
 
 if let exactSuggestionCount = configuration.exactSuggestionCount {
     guard suggestions.count == exactSuggestionCount else {
-        print(
+        writeLineToStandardError(
             "error: expected exactly \(exactSuggestionCount) suggestions, found \(suggestions.count)"
         )
         exit(1)

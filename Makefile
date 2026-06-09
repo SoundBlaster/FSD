@@ -502,6 +502,14 @@ harmonize-report-smoke:
 		--root tests/fixtures/harmonize-advice/FSDApp \
 		--format json > $(DERIVED_DATA_PATH)/HarmonizeReport.json
 	$(SWIFT) -e 'import Foundation; let data = try Data(contentsOf: URL(fileURLWithPath: CommandLine.arguments[1])); let payload = try JSONSerialization.jsonObject(with: data) as! [String: Any]; precondition(payload["tool"] as? String == "fsd-harmonize"); precondition(payload["format"] as? String == "json"); let suggestions = payload["suggestions"] as! [[String: Any]]; precondition(suggestions.count == 2); let first = suggestions.first { $$0["ruleId"] as? String == "harmonize/shared-domain-language" }!; precondition(first["confidence"] as? String == "high"); precondition(first["impact"] as? String == "architecture"); precondition(first["path"] as? String == "shared/product-utils"); precondition(!(first["evidence"] as! [String]).isEmpty); precondition(!(first["recommendation"] as! String).isEmpty); precondition(!(first["nextSteps"] as! [String]).isEmpty)' $(DERIVED_DATA_PATH)/HarmonizeReport.json
+	@if $(SWIFT) tools/fsd-ios.swift harmonize --format yaml > $(DERIVED_DATA_PATH)/HarmonizeInvalidFormat.out 2> $(DERIVED_DATA_PATH)/HarmonizeInvalidFormat.err; then \
+		printf '%s\n' 'Expected invalid harmonize format to fail'; \
+		exit 1; \
+	else \
+		printf '%s\n' 'Invalid harmonize format failed as expected'; \
+	fi
+	@test ! -s $(DERIVED_DATA_PATH)/HarmonizeInvalidFormat.out
+	@grep -q 'unsupported --format' $(DERIVED_DATA_PATH)/HarmonizeInvalidFormat.err
 
 template-create-dry-run:
 	rm -rf $(DERIVED_DATA_PATH)/TemplateCreateDryRun
