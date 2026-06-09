@@ -75,6 +75,7 @@ When changing `harmonize`, run:
 ```bash
 make harmonize
 make harmonize-fixture
+make harmonize-report-smoke
 ```
 
 ## Review Expectations

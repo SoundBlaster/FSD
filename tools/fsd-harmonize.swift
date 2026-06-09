@@ -10,8 +10,14 @@ import Foundation
 
 struct HarmonizeConfiguration {
     let rootPath: String
+    let format: HarmonizeReportFormat
     let exactSuggestionCount: Int?
     let expectedSuggestionCount: Int?
+}
+
+enum HarmonizeReportFormat: String {
+    case text
+    case json
 }
 
 enum HarmonizeConfidence: String {
@@ -330,6 +336,7 @@ struct HarmonizeAdvisor {
 
 func parseHarmonizeArguments(_ arguments: [String]) -> HarmonizeConfiguration? {
     var rootPath = "FSDDemoApp"
+    var format = HarmonizeReportFormat.text
     var exactSuggestionCount: Int?
     var expectedSuggestionCount: Int?
     var index = 0
@@ -348,6 +355,17 @@ func parseHarmonizeArguments(_ arguments: [String]) -> HarmonizeConfiguration? {
                 exit(2)
             }
             rootPath = arguments[index]
+        case "--format":
+            index += 1
+            guard index < arguments.count, !arguments[index].hasPrefix("-") else {
+                print("error: --format requires one of: text, json")
+                exit(2)
+            }
+            guard let parsedFormat = HarmonizeReportFormat(rawValue: arguments[index]) else {
+                print("error: unsupported --format `\(arguments[index])`; expected one of: text, json")
+                exit(2)
+            }
+            format = parsedFormat
         case "--expect-suggestions":
             index += 1
             guard index < arguments.count, let count = Int(arguments[index]) else {
@@ -375,6 +393,7 @@ func parseHarmonizeArguments(_ arguments: [String]) -> HarmonizeConfiguration? {
 
     return HarmonizeConfiguration(
         rootPath: rootPath,
+        format: format,
         exactSuggestionCount: exactSuggestionCount,
         expectedSuggestionCount: expectedSuggestionCount
     )
@@ -384,7 +403,7 @@ func printHarmonizeUsage() {
     print(
         """
         Usage:
-          swift tools/fsd-harmonize.swift [--root <path>]
+          swift tools/fsd-harmonize.swift [--root <path>] [--format text|json]
           swift tools/fsd-harmonize.swift FSDDemoApp
 
         Produces read-only FSD refactoring suggestions:
@@ -396,6 +415,7 @@ func printHarmonizeUsage() {
 
         Options:
           --root <path>                         Source root to inspect. Defaults to `FSDDemoApp`.
+          --format <value>                      Output format: text or json. Defaults to text.
           --expect-suggestions <count>          Test helper. Fails unless exactly this many suggestions are found.
           --expect-suggestions-at-least <count> Test helper. Fails if fewer suggestions are found.
         """
@@ -412,25 +432,12 @@ func makeHarmonizeRootURL(from path: String) -> URL {
         .standardizedFileURL
 }
 
-guard let configuration = parseHarmonizeArguments(Array(CommandLine.arguments.dropFirst())) else {
-    exit(0)
-}
+func printTextReport(_ suggestions: [HarmonizeSuggestion]) {
+    if suggestions.isEmpty {
+        print("FSD harmonize found no suggestions")
+        return
+    }
 
-let rootURL = makeHarmonizeRootURL(from: configuration.rootPath)
-
-var isDirectory: ObjCBool = false
-guard FileManager.default.fileExists(atPath: rootURL.path, isDirectory: &isDirectory),
-      isDirectory.boolValue
-else {
-    print("error: FSD root does not exist or is not a directory: \(rootURL.path)")
-    exit(1)
-}
-
-let suggestions = HarmonizeAdvisor(rootURL: rootURL).run()
-
-if suggestions.isEmpty {
-    print("FSD harmonize found no suggestions")
-} else {
     print("FSD harmonize suggestions:")
 
     for (index, suggestion) in suggestions.enumerated() {
@@ -455,6 +462,71 @@ if suggestions.isEmpty {
     print("FSD harmonize finished: \(suggestions.count) suggestions")
 }
 
+func printJSONReport(_ suggestions: [HarmonizeSuggestion], rootURL: URL) {
+    let payload: [String: Any] = [
+        "tool": "fsd-harmonize",
+        "format": "json",
+        "root": rootURL.path,
+        "suggestions": suggestions.map { suggestion in
+            [
+                "ruleId": suggestion.ruleId,
+                "confidence": suggestion.confidence.rawValue,
+                "impact": suggestion.impact.rawValue,
+                "path": suggestion.path,
+                "title": suggestion.title,
+                "evidence": suggestion.evidence,
+                "why": suggestion.why,
+                "recommendation": suggestion.recommendation,
+                "nextSteps": suggestion.nextSteps,
+            ] as [String: Any]
+        },
+    ]
+
+    guard let data = try? JSONSerialization.data(withJSONObject: payload, options: [.prettyPrinted, .sortedKeys]),
+          let output = String(data: data, encoding: .utf8)
+    else {
+        print("{\"tool\":\"fsd-harmonize\",\"format\":\"json\",\"suggestions\":[]}")
+        return
+    }
+
+    print(output)
+}
+
+func printReport(_ suggestions: [HarmonizeSuggestion], configuration: HarmonizeConfiguration, rootURL: URL) {
+    switch configuration.format {
+    case .text:
+        printTextReport(suggestions)
+    case .json:
+        printJSONReport(suggestions, rootURL: rootURL)
+    }
+}
+
+func writeLineToStandardError(_ line: String) {
+    guard let data = "\(line)\n".data(using: .utf8) else {
+        return
+    }
+
+    FileHandle.standardError.write(data)
+}
+
+guard let configuration = parseHarmonizeArguments(Array(CommandLine.arguments.dropFirst())) else {
+    exit(0)
+}
+
+let rootURL = makeHarmonizeRootURL(from: configuration.rootPath)
+
+var isDirectory: ObjCBool = false
+guard FileManager.default.fileExists(atPath: rootURL.path, isDirectory: &isDirectory),
+      isDirectory.boolValue
+else {
+    print("error: FSD root does not exist or is not a directory: \(rootURL.path)")
+    exit(1)
+}
+
+let suggestions = HarmonizeAdvisor(rootURL: rootURL).run()
+
+printReport(suggestions, configuration: configuration, rootURL: rootURL)
+
 if let expectedSuggestionCount = configuration.expectedSuggestionCount {
     guard suggestions.count >= expectedSuggestionCount else {
         print(
@@ -463,7 +535,7 @@ if let expectedSuggestionCount = configuration.expectedSuggestionCount {
         exit(1)
     }
 
-    print("Expectation satisfied: found at least \(expectedSuggestionCount) suggestions")
+    writeLineToStandardError("Expectation satisfied: found at least \(expectedSuggestionCount) suggestions")
 }
 
 if let exactSuggestionCount = configuration.exactSuggestionCount {
@@ -474,7 +546,7 @@ if let exactSuggestionCount = configuration.exactSuggestionCount {
         exit(1)
     }
 
-    print("Expectation satisfied: found exactly \(exactSuggestionCount) suggestions")
+    writeLineToStandardError("Expectation satisfied: found exactly \(exactSuggestionCount) suggestions")
 }
 
 exit(0)
