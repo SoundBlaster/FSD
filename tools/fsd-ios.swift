@@ -898,6 +898,8 @@ func parseTemplateCreateArguments(kind: String, templatePath: String, arguments:
         name,
         "--output",
         absolutePath(output),
+        "--tool-version",
+        cliVersion,
     ]
 
     if dryRun {
@@ -1243,10 +1245,14 @@ func runCLI(_ arguments: [String]) throws -> Int32 {
             ? rawTemplateArguments
             : normalizePathOptions(
                 in: rawTemplateArguments,
-                options: ["--template"],
+                options: ["--template", "--tool-version"],
                 defaultOption: ("--template", repoPath("templates/fsd-ios"))
             )
-        return try runSwiftScript("fsd-template-validate.swift", arguments: templateArguments)
+        let versionedTemplateArguments = containsHelp(templateArguments)
+            || hasOption("--tool-version", in: templateArguments)
+            ? templateArguments
+            : templateArguments + ["--tool-version", cliVersion]
+        return try runSwiftScript("fsd-template-validate.swift", arguments: versionedTemplateArguments)
     case "doctor":
         if containsHelp(commandArguments) {
             printDoctorUsage()

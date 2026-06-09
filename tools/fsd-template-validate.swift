@@ -20,6 +20,7 @@ struct TemplateFinding {
 
 struct TemplateValidationConfiguration {
     let templatePath: String
+    let toolVersion: SemanticVersion
 }
 
 struct SemanticVersion: Comparable, CustomStringConvertible {
@@ -89,7 +90,7 @@ struct TemplateManifestParser {
 
             let key = String(line[..<separator]).trimmingCharacters(in: .whitespaces)
             let valueStart = line.index(after: separator)
-            let value = String(line[valueStart...]).trimmingCharacters(in: .whitespaces)
+            let value = normalizeScalar(String(line[valueStart...]))
 
             if !key.isEmpty, !value.isEmpty {
                 result[key] = value
@@ -113,7 +114,7 @@ struct TemplateManifestParser {
             }
 
             if line.hasPrefix("  - ") {
-                result.append(String(line.dropFirst(4)).trimmingCharacters(in: .whitespaces))
+                result.append(normalizeScalar(String(line.dropFirst(4))))
             }
         }
 
@@ -134,7 +135,7 @@ struct TemplateManifestParser {
             }
 
             if line.hasPrefix("    - ") {
-                result.append(String(line.dropFirst(6)).trimmingCharacters(in: .whitespaces))
+                result.append(normalizeScalar(String(line.dropFirst(6))))
             }
         }
 
@@ -153,8 +154,8 @@ struct TemplateManifestParser {
 struct TemplateValidator {
     private let fileManager = FileManager.default
     private let templateURL: URL
+    private let currentToolVersion: SemanticVersion
     private let supportedSchemaVersion = "1"
-    private let currentToolVersion = SemanticVersion(major: 0, minor: 4, patch: 0)
 
     private let expectedReferenceLayers = [
         "app",
@@ -203,8 +204,9 @@ struct TemplateValidator {
         "Tests/AppNameCreateSampleFeatureTests/CreateSampleProductActionTests.swift",
     ]
 
-    init(templateURL: URL) {
+    init(templateURL: URL, currentToolVersion: SemanticVersion) {
         self.templateURL = templateURL
+        self.currentToolVersion = currentToolVersion
     }
 
     func run() -> [TemplateFinding] {
@@ -288,19 +290,18 @@ struct TemplateValidator {
         }
 
         if let minimumToolVersion = manifest.values["minimumToolVersion"] {
-            guard let parsedVersion = SemanticVersion.parse(minimumToolVersion) else {
+            if let parsedVersion = SemanticVersion.parse(minimumToolVersion) {
+                if parsedVersion > currentToolVersion {
+                    findings.append(
+                        error(
+                            "template.yaml",
+                            "Manifest requires fsd-ios \(parsedVersion) but validator is \(currentToolVersion)"
+                        )
+                    )
+                }
+            } else {
                 findings.append(
                     error("template.yaml", "Manifest `minimumToolVersion` must use MAJOR.MINOR.PATCH")
-                )
-                return
-            }
-
-            if parsedVersion > currentToolVersion {
-                findings.append(
-                    error(
-                        "template.yaml",
-                        "Manifest requires fsd-ios \(parsedVersion) but validator is \(currentToolVersion)"
-                    )
                 )
             }
         }
@@ -495,6 +496,7 @@ struct TemplateValidator {
 
 func parseTemplateValidationArguments(_ arguments: [String]) -> TemplateValidationConfiguration? {
     var templatePath = "templates/fsd-ios"
+    var toolVersion: SemanticVersion?
     var index = 0
 
     while index < arguments.count {
@@ -511,6 +513,17 @@ func parseTemplateValidationArguments(_ arguments: [String]) -> TemplateValidati
                 exit(2)
             }
             templatePath = arguments[index]
+        case "--tool-version":
+            index += 1
+            guard index < arguments.count else {
+                print("error: --tool-version requires MAJOR.MINOR.PATCH")
+                exit(2)
+            }
+            guard let parsedVersion = SemanticVersion.parse(arguments[index]) else {
+                print("error: --tool-version must use MAJOR.MINOR.PATCH")
+                exit(2)
+            }
+            toolVersion = parsedVersion
         default:
             if argument.hasPrefix("-") {
                 print("error: unknown option \(argument)")
@@ -522,14 +535,19 @@ func parseTemplateValidationArguments(_ arguments: [String]) -> TemplateValidati
         index += 1
     }
 
-    return TemplateValidationConfiguration(templatePath: templatePath)
+    guard let resolvedToolVersion = toolVersion ?? detectToolVersion() else {
+        print("error: could not determine fsd-ios tool version; pass --tool-version MAJOR.MINOR.PATCH")
+        exit(2)
+    }
+
+    return TemplateValidationConfiguration(templatePath: templatePath, toolVersion: resolvedToolVersion)
 }
 
 func printTemplateValidationUsage() {
     print(
         """
         Usage:
-          swift tools/fsd-template-validate.swift [--template <path>]
+          swift tools/fsd-template-validate.swift [--template <path>] [--tool-version <version>]
           swift tools/fsd-template-validate.swift templates/fsd-ios
 
         Checks the copyable FSD iOS template package contract:
@@ -543,8 +561,73 @@ func printTemplateValidationUsage() {
 
         Options:
           --template <path>  Template package root. Defaults to `templates/fsd-ios`.
+          --tool-version <version>
+                             fsd-ios version used for template compatibility checks.
         """
     )
+}
+
+func normalizeScalar(_ rawValue: String) -> String {
+    var value = rawValue
+    var result = ""
+    var quote: Character?
+
+    for character in value {
+        if character == "\"" || character == "'" {
+            if quote == nil {
+                quote = character
+            } else if quote == character {
+                quote = nil
+            }
+        }
+
+        if character == "#", quote == nil {
+            break
+        }
+
+        result.append(character)
+    }
+
+    value = result.trimmingCharacters(in: .whitespaces)
+
+    if value.count >= 2,
+       let first = value.first,
+       let last = value.last,
+       (first == "\"" && last == "\"") || (first == "'" && last == "'")
+    {
+        return String(value.dropFirst().dropLast())
+    }
+
+    return value
+}
+
+func detectToolVersion() -> SemanticVersion? {
+    if let environmentVersion = ProcessInfo.processInfo.environment["FSD_IOS_VERSION"],
+       let parsedVersion = SemanticVersion.parse(environmentVersion)
+    {
+        return parsedVersion
+    }
+
+    let scriptURL = URL(fileURLWithPath: CommandLine.arguments[0])
+        .standardizedFileURL
+    let wrapperURL = scriptURL.deletingLastPathComponent().appendingPathComponent("fsd-ios.swift")
+
+    guard let source = try? String(contentsOf: wrapperURL, encoding: .utf8) else {
+        return nil
+    }
+
+    for line in source.components(separatedBy: .newlines) where line.contains("let cliVersion") {
+        guard let separator = line.firstIndex(of: "=") else {
+            continue
+        }
+
+        let value = normalizeScalar(String(line[line.index(after: separator)...]))
+        if let parsedVersion = SemanticVersion.parse(value) {
+            return parsedVersion
+        }
+    }
+
+    return nil
 }
 
 func makeTemplateURL(from path: String) -> URL {
@@ -562,7 +645,10 @@ guard let configuration = parseTemplateValidationArguments(Array(CommandLine.arg
 }
 
 let templateURL = makeTemplateURL(from: configuration.templatePath)
-let findings = TemplateValidator(templateURL: templateURL).run()
+let findings = TemplateValidator(
+    templateURL: templateURL,
+    currentToolVersion: configuration.toolVersion
+).run()
 
 for finding in findings {
     print("\(finding.severity.rawValue): \(finding.path): \(finding.message)")

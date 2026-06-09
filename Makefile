@@ -9,6 +9,7 @@ DESTINATION := platform=iOS Simulator,name=$(SIMULATOR)
 XCODEBUILD ?= xcodebuild
 SWIFT ?= swift
 SWIFTLINT ?= swiftlint
+CLI_VERSION ?= $(shell $(SWIFT) tools/fsd-ios.swift --version 2>/dev/null | awk '/^fsd-ios [0-9]+[.][0-9]+[.][0-9]+$$/ { print $$2 }')
 INSTALL_PREFIX ?= $(HOME)/.local
 INSTALL_BIN_DIR := $(INSTALL_PREFIX)/bin
 INSTALL_SMOKE_PREFIX := $(DERIVED_DATA_PATH)/LocalInstall
@@ -617,21 +618,33 @@ module-create-fixture:
 	$(SWIFT) test --package-path $(DERIVED_DATA_PATH)/ModuleCreateSmoke
 
 template-validate:
-	$(SWIFT) tools/fsd-template-validate.swift --template templates/fsd-ios
-	$(SWIFT) tools/fsd-template-validate.swift --template templates/fsd-ios-spm
+	$(SWIFT) tools/fsd-template-validate.swift --template templates/fsd-ios --tool-version $(CLI_VERSION)
+	$(SWIFT) tools/fsd-template-validate.swift --template templates/fsd-ios-spm --tool-version $(CLI_VERSION)
 	$(SWIFT) tools/fsd-lint.swift --root templates/fsd-ios/AppName --strict --architecture
 
 template-validate-negative:
-	@if $(SWIFT) tools/fsd-template-validate.swift --template tests/fixtures/template-invalid-missing-entrypoint; then \
+	@if $(SWIFT) tools/fsd-template-validate.swift --template tests/fixtures/template-invalid-missing-entrypoint --tool-version $(CLI_VERSION); then \
 		printf '%s\n' 'Expected invalid template fixture to fail'; \
 		exit 1; \
 	else \
 		printf '%s\n' 'Invalid template fixture failed as expected'; \
 	fi
 	@rm -rf $(DERIVED_DATA_PATH)/TemplateIncompatibleTool
+	@rm -rf $(DERIVED_DATA_PATH)/TemplateQuotedMetadata
+	@rm -rf $(DERIVED_DATA_PATH)/TemplateQuotedMetadataOutput
+	@mkdir -p $(DERIVED_DATA_PATH)
 	@cp -R templates/fsd-ios $(DERIVED_DATA_PATH)/TemplateIncompatibleTool
+	@cp -R templates/fsd-ios $(DERIVED_DATA_PATH)/TemplateQuotedMetadata
+	@perl -0pi -e 's/schemaVersion: .*/schemaVersion: "1" # schema comment/; s/minimumToolVersion: .*/minimumToolVersion: "0.4.0" # version comment/' $(DERIVED_DATA_PATH)/TemplateQuotedMetadata/template.yaml
+	$(SWIFT) tools/fsd-template-validate.swift --template $(DERIVED_DATA_PATH)/TemplateQuotedMetadata --tool-version $(CLI_VERSION)
+	$(SWIFT) tools/fsd-template-create.swift \
+		--template $(DERIVED_DATA_PATH)/TemplateQuotedMetadata \
+		--app-name QuotedMetadataApp \
+		--output $(DERIVED_DATA_PATH)/TemplateQuotedMetadataOutput \
+		--tool-version $(CLI_VERSION) \
+		--dry-run
 	@perl -0pi -e 's/minimumToolVersion: .*/minimumToolVersion: 99.0.0/' $(DERIVED_DATA_PATH)/TemplateIncompatibleTool/template.yaml
-	@if $(SWIFT) tools/fsd-template-validate.swift --template $(DERIVED_DATA_PATH)/TemplateIncompatibleTool; then \
+	@if $(SWIFT) tools/fsd-template-validate.swift --template $(DERIVED_DATA_PATH)/TemplateIncompatibleTool --tool-version $(CLI_VERSION); then \
 		printf '%s\n' 'Expected incompatible template fixture to fail'; \
 		exit 1; \
 	else \
@@ -641,6 +654,7 @@ template-validate-negative:
 		--template $(DERIVED_DATA_PATH)/TemplateIncompatibleTool \
 		--app-name IncompatibleApp \
 		--output $(DERIVED_DATA_PATH)/TemplateIncompatibleOutput \
+		--tool-version $(CLI_VERSION) \
 		--dry-run; then \
 		printf '%s\n' 'Expected incompatible template create to fail'; \
 		exit 1; \
