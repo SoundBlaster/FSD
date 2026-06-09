@@ -84,6 +84,16 @@ Use JSON output when another tool needs to consume advisory results:
 swift tools/fsd-ios.swift harmonize --root Sources/App --format json > fsd-harmonize.json
 ```
 
+Current advisory rules:
+
+| Rule ID | Signal |
+|---|---|
+| `harmonize/shared-domain-language` | `shared` path uses tokens inferred from `entities` |
+| `harmonize/vague-slice-name` | slice name is generic and does not describe ownership |
+| `harmonize/technical-slice-name` | slice name uses technical implementation language |
+| `harmonize/large-page-slice` | page slice has enough local files to consider extraction |
+| `harmonize/feature-slice-does-too-much` | feature slice appears to contain multiple user actions |
+
 Default repository paths are resolved from the CLI script location, so the
 command can be invoked from another working directory with an absolute script
 path. Explicit user paths such as `--root`, `--template`, and `--output` are

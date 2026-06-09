@@ -59,14 +59,10 @@ struct HarmonizeAdvisor {
     private let vagueSliceNames: Set<String> = [
         "base",
         "common",
-        "components",
         "do-stuff",
         "general",
-        "helpers",
         "misc",
-        "modules",
         "stuff",
-        "utils",
     ]
 
     private let technicalNameFragments = [
@@ -90,6 +86,7 @@ struct HarmonizeAdvisor {
         collectSharedDomainSuggestions(entityTokens: entityTokens, into: &suggestions)
         collectVagueSliceNameSuggestions(into: &suggestions)
         collectLargePageSuggestions(into: &suggestions)
+        collectLargeFeatureSuggestions(into: &suggestions)
 
         return suggestions.sorted {
             if $0.path == $1.path {
@@ -163,23 +160,30 @@ struct HarmonizeAdvisor {
             for sliceURL in childDirectories(of: layerURL) {
                 let sliceName = sliceURL.lastPathComponent
                 let normalizedName = sliceName.lowercased()
+                let isVagueName = vagueSliceNames.contains(normalizedName)
+                let technicalFragment = technicalNameFragments.first { normalizedName.contains($0) }
 
-                guard vagueSliceNames.contains(normalizedName) ||
-                    technicalNameFragments.contains(where: { normalizedName.contains($0) })
-                else {
+                guard isVagueName || technicalFragment != nil else {
                     continue
                 }
 
+                let ruleId = isVagueName ? "harmonize/vague-slice-name" : "harmonize/technical-slice-name"
+                let title = isVagueName ? "Slice name is vague" : "Slice name is technical"
+                let matchedEvidence = isVagueName
+                    ? "Matched vague name list."
+                    : "Matched technical fragment `\(technicalFragment ?? "")`."
+
                 suggestions.insert(
                     HarmonizeSuggestion(
-                        ruleId: "harmonize/vague-slice-name",
-                        confidence: vagueSliceNames.contains(normalizedName) ? .high : .medium,
+                        ruleId: ruleId,
+                        confidence: isVagueName ? .high : .medium,
                         impact: .naming,
                         path: relativePath(for: sliceURL),
-                        title: "Slice name is technical or vague",
+                        title: title,
                         evidence: [
                             "Slice name: `\(sliceName)`.",
                             "Layer: `\(layer)`.",
+                            matchedEvidence,
                         ],
                         why: "FSD slices should use product/business language, while `\(sliceName)` does not explain ownership.",
                         recommendation: "Rename the slice around the user action, domain concept, or route it actually owns.",
@@ -207,6 +211,8 @@ struct HarmonizeAdvisor {
                 continue
             }
 
+            let segmentCounts = segmentCounts(under: pageURL)
+
             suggestions.insert(
                 HarmonizeSuggestion(
                     ruleId: "harmonize/large-page-slice",
@@ -216,17 +222,84 @@ struct HarmonizeAdvisor {
                     title: "Page slice is getting large",
                     evidence: [
                         "Swift files under page: \(swiftFileCount).",
+                        "Segment distribution: \(formatSegmentCounts(segmentCounts)).",
                         "Threshold: 6 Swift files.",
                     ],
                     why: "This page owns \(swiftFileCount) Swift files. Large pages often hide reusable widgets or features.",
-                    recommendation: "Look for reusable composition blocks for `widgets` or user actions for `features`.",
+                    recommendation: largePageRecommendation(segmentCounts: segmentCounts),
+                    nextSteps: largePageNextSteps(segmentCounts: segmentCounts)
+                )
+            )
+        }
+    }
+
+    private func collectLargeFeatureSuggestions(into suggestions: inout Set<HarmonizeSuggestion>) {
+        let featuresURL = rootURL.appendingPathComponent("features")
+
+        guard directoryExists(featuresURL) else {
+            return
+        }
+
+        for featureURL in childDirectories(of: featuresURL) {
+            let files = swiftFiles(under: featureURL)
+            let swiftFileCount = files.count
+            let actionLikeFiles = files.filter(isActionLikeFeatureFile)
+
+            guard swiftFileCount >= 6 || actionLikeFiles.count >= 3 else {
+                continue
+            }
+
+            let confidence: HarmonizeConfidence = actionLikeFiles.count >= 3 ? .high : .medium
+
+            suggestions.insert(
+                HarmonizeSuggestion(
+                    ruleId: "harmonize/feature-slice-does-too-much",
+                    confidence: confidence,
+                    impact: .maintainability,
+                    path: relativePath(for: featureURL),
+                    title: "Feature slice may own too many actions",
+                    evidence: [
+                        "Swift files under feature: \(swiftFileCount).",
+                        "Action-like files: \(actionLikeFiles.count).",
+                        "Thresholds: 6 Swift files or 3 action-like files.",
+                    ],
+                    why: "A feature should represent one user action with business value. Several action-like files often mean multiple features share one slice.",
+                    recommendation: "Split independent user actions into separate `features` slices and compose them from a widget or page.",
                     nextSteps: [
-                        "Group UI composition files that could become a `widgets` slice.",
-                        "Group user action files that could become a `features` slice.",
+                        "List the user actions exposed by this feature slice.",
+                        "Keep shared action internals local only when they serve one public user action.",
+                        "Move unrelated actions into their own feature slices.",
                     ]
                 )
             )
         }
+    }
+
+    private func largePageRecommendation(segmentCounts: [String: Int]) -> String {
+        if (segmentCounts["ui"] ?? 0) >= 4 {
+            return "Extract reusable UI composition into `widgets` before adding more page-local views."
+        }
+
+        if (segmentCounts["model"] ?? 0) + (segmentCounts["api"] ?? 0) >= 3 {
+            return "Look for user actions or reusable state that should move into `features` or `entities`."
+        }
+
+        return "Look for reusable composition blocks for `widgets` or user actions for `features`."
+    }
+
+    private func largePageNextSteps(segmentCounts: [String: Int]) -> [String] {
+        if (segmentCounts["ui"] ?? 0) >= 4 {
+            return [
+                "Group repeated page UI pieces by the workflow they compose.",
+                "Extract reusable compositions into a `widgets` slice.",
+                "Keep route-specific orchestration in the page.",
+            ]
+        }
+
+        return [
+            "Group UI composition files that could become a `widgets` slice.",
+            "Group user action files that could become a `features` slice.",
+        ]
     }
 
     private func inferEntityTokens() -> Set<String> {
@@ -241,6 +314,62 @@ struct HarmonizeAdvisor {
                 tokenize(entityURL.lastPathComponent)
             }
         )
+    }
+
+    private func segmentCounts(under sliceURL: URL) -> [String: Int] {
+        let slicePath = sliceURL.standardizedFileURL.path
+        var counts: [String: Int] = [:]
+
+        for fileURL in swiftFiles(under: sliceURL) {
+            let filePath = fileURL.standardizedFileURL.path
+            let relative: String
+
+            if filePath.hasPrefix("\(slicePath)/") {
+                relative = String(filePath.dropFirst(slicePath.count + 1))
+            } else {
+                relative = fileURL.lastPathComponent
+            }
+
+            let segment = relative.split(separator: "/").first.map(String.init) ?? "."
+            counts[segment, default: 0] += 1
+        }
+
+        return counts
+    }
+
+    private func formatSegmentCounts(_ counts: [String: Int]) -> String {
+        counts
+            .sorted { lhs, rhs in
+                if lhs.value == rhs.value {
+                    return lhs.key < rhs.key
+                }
+
+                return lhs.value > rhs.value
+            }
+            .map { "\($0.key)=\($0.value)" }
+            .joined(separator: ", ")
+    }
+
+    private func isActionLikeFeatureFile(_ url: URL) -> Bool {
+        let tokens = Set(tokenize(url.deletingPathExtension().lastPathComponent))
+        let actionTokens: Set<String> = [
+            "action",
+            "apply",
+            "cancel",
+            "change",
+            "create",
+            "delete",
+            "export",
+            "import",
+            "load",
+            "remove",
+            "save",
+            "send",
+            "submit",
+            "update",
+        ]
+
+        return !tokens.isDisjoint(with: actionTokens)
     }
 
     private func tokenize(_ value: String) -> [String] {
