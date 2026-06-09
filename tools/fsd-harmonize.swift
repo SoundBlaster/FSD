@@ -14,12 +14,29 @@ struct HarmonizeConfiguration {
     let expectedSuggestionCount: Int?
 }
 
+enum HarmonizeConfidence: String {
+    case high
+    case medium
+    case low
+}
+
+enum HarmonizeImpact: String {
+    case architecture
+    case naming
+    case reuse
+    case maintainability
+}
+
 struct HarmonizeSuggestion: Hashable {
-    let id: String
+    let ruleId: String
+    let confidence: HarmonizeConfidence
+    let impact: HarmonizeImpact
     let path: String
     let title: String
+    let evidence: [String]
     let why: String
-    let consider: String
+    let recommendation: String
+    let nextSteps: [String]
 }
 
 struct HarmonizeAdvisor {
@@ -70,7 +87,7 @@ struct HarmonizeAdvisor {
 
         return suggestions.sorted {
             if $0.path == $1.path {
-                return $0.id < $1.id
+                return $0.ruleId < $1.ruleId
             }
 
             return $0.path < $1.path
@@ -109,11 +126,21 @@ struct HarmonizeAdvisor {
 
             suggestions.insert(
                 HarmonizeSuggestion(
-                    id: "shared-domain-language",
+                    ruleId: "harmonize/shared-domain-language",
+                    confidence: .high,
+                    impact: .architecture,
                     path: relative,
                     title: "`shared` appears to contain domain language",
+                    evidence: [
+                        "Matched entity token `\(token)` inferred from `entities`.",
+                        "Path under `shared`: `\(relative)`.",
+                    ],
                     why: "`shared` should stay generic, but this path contains the entity token `\(token)`.",
-                    consider: "Move business-specific code to `entities/\(token)`, a feature owner, or a page-local segment."
+                    recommendation: "Move business-specific code to `entities/\(token)`, a feature owner, or a page-local segment.",
+                    nextSteps: [
+                        "Check whether the code models `\(token)` as domain behavior.",
+                        "Move reusable domain code to `entities/\(token)` or keep one-off code in its page owner.",
+                    ]
                 )
             )
         }
@@ -139,11 +166,21 @@ struct HarmonizeAdvisor {
 
                 suggestions.insert(
                     HarmonizeSuggestion(
-                        id: "vague-slice-name",
+                        ruleId: "harmonize/vague-slice-name",
+                        confidence: vagueSliceNames.contains(normalizedName) ? .high : .medium,
+                        impact: .naming,
                         path: relativePath(for: sliceURL),
                         title: "Slice name is technical or vague",
+                        evidence: [
+                            "Slice name: `\(sliceName)`.",
+                            "Layer: `\(layer)`.",
+                        ],
                         why: "FSD slices should use product/business language, while `\(sliceName)` does not explain ownership.",
-                        consider: "Rename the slice around the user action, domain concept, or route it actually owns."
+                        recommendation: "Rename the slice around the user action, domain concept, or route it actually owns.",
+                        nextSteps: [
+                            "Identify the route, user action, or domain object owned by this slice.",
+                            "Rename the slice with that business meaning in kebab-case.",
+                        ]
                     )
                 )
             }
@@ -166,11 +203,21 @@ struct HarmonizeAdvisor {
 
             suggestions.insert(
                 HarmonizeSuggestion(
-                    id: "large-page-slice",
+                    ruleId: "harmonize/large-page-slice",
+                    confidence: .medium,
+                    impact: .reuse,
                     path: relativePath(for: pageURL),
                     title: "Page slice is getting large",
+                    evidence: [
+                        "Swift files under page: \(swiftFileCount).",
+                        "Threshold: 6 Swift files.",
+                    ],
                     why: "This page owns \(swiftFileCount) Swift files. Large pages often hide reusable widgets or features.",
-                    consider: "Look for reusable composition blocks for `widgets` or user actions for `features`."
+                    recommendation: "Look for reusable composition blocks for `widgets` or user actions for `features`.",
+                    nextSteps: [
+                        "Group UI composition files that could become a `widgets` slice.",
+                        "Group user action files that could become a `features` slice.",
+                    ]
                 )
             )
         }
@@ -382,16 +429,26 @@ else {
 let suggestions = HarmonizeAdvisor(rootURL: rootURL).run()
 
 if suggestions.isEmpty {
-    print("FSD harmonize found no high-confidence suggestions")
+    print("FSD harmonize found no suggestions")
 } else {
     print("FSD harmonize suggestions:")
 
     for (index, suggestion) in suggestions.enumerated() {
         print("")
-        print("\(index + 1). [\(suggestion.id)] \(suggestion.path)")
+        print("\(index + 1). [\(suggestion.ruleId)] \(suggestion.path)")
+        print("   Confidence: \(suggestion.confidence.rawValue)")
+        print("   Impact: \(suggestion.impact.rawValue)")
         print("   \(suggestion.title)")
+        print("   Evidence:")
+        for evidence in suggestion.evidence {
+            print("   - \(evidence)")
+        }
         print("   Why: \(suggestion.why)")
-        print("   Consider: \(suggestion.consider)")
+        print("   Recommendation: \(suggestion.recommendation)")
+        print("   Next steps:")
+        for step in suggestion.nextSteps {
+            print("   - \(step)")
+        }
     }
 
     print("")

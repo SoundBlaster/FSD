@@ -135,3 +135,16 @@ make harmonize
 Harmonize suggestions are intentionally not CI blockers for the app. CI only
 checks a fixture with known architecture smells so the advisor itself does not
 silently regress.
+
+Each suggestion uses a stable advisory contract:
+
+- `ruleId` names the advisory rule, for example
+  `harmonize/shared-domain-language`;
+- `confidence` explains how strong the heuristic signal is;
+- `impact` identifies the architectural concern, such as naming, reuse, or
+  layer responsibility;
+- `evidence`, `recommendation`, and `nextSteps` explain why the suggestion was
+  emitted and how to evaluate it.
+
+This keeps `harmonize` useful for refactoring discussions without turning
+heuristics into hard CI failures.
