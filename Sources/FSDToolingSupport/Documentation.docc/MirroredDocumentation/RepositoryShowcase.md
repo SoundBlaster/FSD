@@ -49,7 +49,7 @@ depending on active `codex/*` work branches.
 | External project adoption | `docs/adoption/external-project.md`, `examples/github-actions/external-project-fsd-ios.yml` | `main` |
 | Reusable GitHub Action | `action.yml`, `examples/github-actions/external-project-fsd-ios-action.yml`, `make action-smoke` | `main` |
 | Template package validation | `tools/fsd-template-validate.swift`, `make template-validate` | `main` |
-| Harmonize advisor | `tools/fsd-harmonize.swift`, `make harmonize` | `main` |
+| Harmonize advisor | `tools/fsd-harmonize.swift`, `make harmonize`, `make harmonize-report-smoke` | `main` |
 | Strict FSD structure lint | `tools/fsd-lint.swift` | `make lint-strict` |
 | Swift symbol dependency lint | `tools/fsd-lint.swift --architecture` | `make lint-architecture` |
 | Local developer UX | `Makefile` | `demo/makefile` |

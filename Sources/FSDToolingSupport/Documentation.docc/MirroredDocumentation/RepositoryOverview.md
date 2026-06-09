@@ -282,6 +282,9 @@ make harmonize-fixture
 make harmonize-report-smoke
 ```
 
+Use `harmonize` as an advisory review input rather than a CI blocker. Its JSON
+output is intended for dashboards, editor integrations, and migration reports.
+
 Generator smoke checks:
 
 ```bash

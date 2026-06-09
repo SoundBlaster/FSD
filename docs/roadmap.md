@@ -155,10 +155,34 @@ Success metrics:
 - CI examples can pin a tool version;
 - release notes explain breaking changes and migration steps.
 
+### 6. Harmonize Advisory Reports
+
+Goal: make `harmonize` useful as a non-blocking architecture review assistant
+for legacy migration and larger refactors.
+
+Status: implemented as a stacked update to the advisor contract, JSON output,
+richer rule-specific recommendations, and external-project adoption guidance.
+
+Scope:
+
+- stabilize advisory fields: rule id, confidence, impact, evidence,
+  recommendation, and next steps;
+- keep text output readable for humans;
+- add JSON output for dashboards, editor integrations, and migration reports;
+- make recommendations more specific for domain leakage, vague or technical
+  slice names, large page slices, and overloaded feature slices;
+- document how external projects should use advisory output without making it a
+  blocking CI gate.
+
+Success metrics:
+
+- teams can inspect high-confidence suggestions before refactoring a legacy
+  area;
+- tools can parse `harmonize --format json` without scraping text;
+- fixture coverage proves every current advisory rule id remains emitted.
+
 ## Later Work
 
-- Richer `harmonize` suggestions with rule ids, confidence levels, evidence,
-  and concrete next steps.
 - Template version metadata and compatibility checks.
 - More fixture apps that model UIKit legacy shells and mixed SwiftUI/UIKit
   adoption.
