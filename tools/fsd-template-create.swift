@@ -15,6 +15,44 @@ struct TemplateCreateConfiguration {
     let dryRun: Bool
 }
 
+struct SemanticVersion: Comparable, CustomStringConvertible {
+    let major: Int
+    let minor: Int
+    let patch: Int
+
+    var description: String {
+        "\(major).\(minor).\(patch)"
+    }
+
+    static func parse(_ value: String) -> SemanticVersion? {
+        let parts = value.split(separator: ".", omittingEmptySubsequences: false)
+        guard parts.count == 3,
+              let major = Int(parts[0]),
+              let minor = Int(parts[1]),
+              let patch = Int(parts[2]),
+              major >= 0,
+              minor >= 0,
+              patch >= 0
+        else {
+            return nil
+        }
+
+        return SemanticVersion(major: major, minor: minor, patch: patch)
+    }
+
+    static func < (lhs: SemanticVersion, rhs: SemanticVersion) -> Bool {
+        if lhs.major != rhs.major {
+            return lhs.major < rhs.major
+        }
+
+        if lhs.minor != rhs.minor {
+            return lhs.minor < rhs.minor
+        }
+
+        return lhs.patch < rhs.patch
+    }
+}
+
 struct MaterializedFile {
     let source: URL
     let relativeSourcePath: String
@@ -34,6 +72,8 @@ struct TemplateCreator {
     private let outputURL: URL
     private let placeholder: String
     private let appName: String
+    private let supportedSchemaVersion = "1"
+    private let currentToolVersion = SemanticVersion(major: 0, minor: 4, patch: 0)
     private let ignoredTemplateDirectories: Set<String> = [
         ".build",
         ".git",
@@ -52,6 +92,8 @@ struct TemplateCreator {
         guard directoryExists(templateURL) else {
             throw TemplateCreateError.invalidInput("Template root does not exist: \(templateURL.path)")
         }
+
+        try validateTemplateCompatibility()
 
         let files = try fileURLs(under: templateURL)
 
@@ -230,6 +272,70 @@ struct TemplateCreator {
         }
 
         return files
+    }
+
+    private func validateTemplateCompatibility() throws {
+        let manifestURL = templateURL.appendingPathComponent("template.yaml")
+
+        guard fileManager.fileExists(atPath: manifestURL.path) else {
+            throw TemplateCreateError.invalidInput("Template manifest is missing: \(manifestURL.path)")
+        }
+
+        guard let source = try? String(contentsOf: manifestURL, encoding: .utf8) else {
+            throw TemplateCreateError.invalidInput("Template manifest cannot be read as UTF-8: \(manifestURL.path)")
+        }
+
+        let values = topLevelValues(in: source)
+
+        guard values["schemaVersion"] == supportedSchemaVersion else {
+            throw TemplateCreateError.invalidInput(
+                "Template schemaVersion must be \(supportedSchemaVersion)"
+            )
+        }
+
+        guard let version = values["version"],
+              SemanticVersion.parse(version) != nil
+        else {
+            throw TemplateCreateError.invalidInput(
+                "Template version must use MAJOR.MINOR.PATCH"
+            )
+        }
+
+        guard let minimumToolVersion = values["minimumToolVersion"],
+              let parsedVersion = SemanticVersion.parse(minimumToolVersion)
+        else {
+            throw TemplateCreateError.invalidInput(
+                "Template minimumToolVersion must use MAJOR.MINOR.PATCH"
+            )
+        }
+
+        guard parsedVersion <= currentToolVersion else {
+            throw TemplateCreateError.invalidInput(
+                "Template requires fsd-ios \(parsedVersion) but generator is \(currentToolVersion)"
+            )
+        }
+    }
+
+    private func topLevelValues(in source: String) -> [String: String] {
+        var result: [String: String] = [:]
+
+        for line in source.components(separatedBy: .newlines) {
+            guard !line.hasPrefix(" "),
+                  let separator = line.firstIndex(of: ":")
+            else {
+                continue
+            }
+
+            let key = String(line[..<separator]).trimmingCharacters(in: .whitespaces)
+            let valueStart = line.index(after: separator)
+            let value = String(line[valueStart...]).trimmingCharacters(in: .whitespaces)
+
+            if !key.isEmpty, !value.isEmpty {
+                result[key] = value
+            }
+        }
+
+        return result
     }
 
     private func relativePath(for url: URL, under rootURL: URL) -> String {

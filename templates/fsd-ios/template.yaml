@@ -1,5 +1,7 @@
 name: fsd-ios
+schemaVersion: 1
 version: 0.1.0
+minimumToolVersion: 0.4.0
 kind: reference-template
 status: foundation
 language: Swift

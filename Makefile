@@ -618,6 +618,7 @@ module-create-fixture:
 
 template-validate:
 	$(SWIFT) tools/fsd-template-validate.swift --template templates/fsd-ios
+	$(SWIFT) tools/fsd-template-validate.swift --template templates/fsd-ios-spm
 	$(SWIFT) tools/fsd-lint.swift --root templates/fsd-ios/AppName --strict --architecture
 
 template-validate-negative:
@@ -626,6 +627,25 @@ template-validate-negative:
 		exit 1; \
 	else \
 		printf '%s\n' 'Invalid template fixture failed as expected'; \
+	fi
+	@rm -rf $(DERIVED_DATA_PATH)/TemplateIncompatibleTool
+	@cp -R templates/fsd-ios $(DERIVED_DATA_PATH)/TemplateIncompatibleTool
+	@perl -0pi -e 's/minimumToolVersion: .*/minimumToolVersion: 99.0.0/' $(DERIVED_DATA_PATH)/TemplateIncompatibleTool/template.yaml
+	@if $(SWIFT) tools/fsd-template-validate.swift --template $(DERIVED_DATA_PATH)/TemplateIncompatibleTool; then \
+		printf '%s\n' 'Expected incompatible template fixture to fail'; \
+		exit 1; \
+	else \
+		printf '%s\n' 'Incompatible template fixture failed as expected'; \
+	fi
+	@if $(SWIFT) tools/fsd-template-create.swift \
+		--template $(DERIVED_DATA_PATH)/TemplateIncompatibleTool \
+		--app-name IncompatibleApp \
+		--output $(DERIVED_DATA_PATH)/TemplateIncompatibleOutput \
+		--dry-run; then \
+		printf '%s\n' 'Expected incompatible template create to fail'; \
+		exit 1; \
+	else \
+		printf '%s\n' 'Incompatible template create failed as expected'; \
 	fi
 
 spm-template-test:

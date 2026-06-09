@@ -90,6 +90,8 @@ Stable behavior:
 - existing documented commands should keep working within a major version;
 - `text`, `json`, `xcode`, and `sarif` lint formats should remain parseable;
 - generated templates should continue to pass repository lint checks;
+- template `schemaVersion`, `version`, and `minimumToolVersion` metadata should
+  remain explicit and validated before release;
 - CI examples should pin a released version once binary artifacts exist.
 
 Allowed compatible changes:
@@ -97,6 +99,8 @@ Allowed compatible changes:
 - adding new optional config keys;
 - adding new report fields while preserving existing fields;
 - adding new generator templates;
+- raising a template `minimumToolVersion` when the generated layout needs newer
+  CLI behavior;
 - adding stricter checks only when disabled by default or documented as a minor
   release migration.
 
@@ -105,6 +109,7 @@ Breaking changes:
 - removing or renaming CLI commands/options;
 - changing JSON field names or required types;
 - changing template folder contracts in a way that breaks generated projects;
+- changing the template manifest schema without bumping `schemaVersion`;
 - changing default lint severity in a way that can fail previously passing
   external projects.
 

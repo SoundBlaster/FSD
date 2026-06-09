@@ -22,6 +22,44 @@ struct TemplateValidationConfiguration {
     let templatePath: String
 }
 
+struct SemanticVersion: Comparable, CustomStringConvertible {
+    let major: Int
+    let minor: Int
+    let patch: Int
+
+    var description: String {
+        "\(major).\(minor).\(patch)"
+    }
+
+    static func parse(_ value: String) -> SemanticVersion? {
+        let parts = value.split(separator: ".", omittingEmptySubsequences: false)
+        guard parts.count == 3,
+              let major = Int(parts[0]),
+              let minor = Int(parts[1]),
+              let patch = Int(parts[2]),
+              major >= 0,
+              minor >= 0,
+              patch >= 0
+        else {
+            return nil
+        }
+
+        return SemanticVersion(major: major, minor: minor, patch: patch)
+    }
+
+    static func < (lhs: SemanticVersion, rhs: SemanticVersion) -> Bool {
+        if lhs.major != rhs.major {
+            return lhs.major < rhs.major
+        }
+
+        if lhs.minor != rhs.minor {
+            return lhs.minor < rhs.minor
+        }
+
+        return lhs.patch < rhs.patch
+    }
+}
+
 struct TemplateManifest {
     let values: [String: String]
     let layers: [String]
@@ -115,8 +153,10 @@ struct TemplateManifestParser {
 struct TemplateValidator {
     private let fileManager = FileManager.default
     private let templateURL: URL
+    private let supportedSchemaVersion = "1"
+    private let currentToolVersion = SemanticVersion(major: 0, minor: 4, patch: 0)
 
-    private let expectedLayers = [
+    private let expectedReferenceLayers = [
         "app",
         "pages",
         "widgets",
@@ -125,7 +165,14 @@ struct TemplateValidator {
         "shared",
     ]
 
-    private let requiredPaths = [
+    private let expectedModuleLayers = [
+        "screen",
+        "feature",
+        "domain",
+        "core",
+    ]
+
+    private let referenceRequiredPaths = [
         "README.md",
         "template.yaml",
         "Makefile",
@@ -143,6 +190,17 @@ struct TemplateValidator {
         "AppName/entities/sample-item/ui/SampleItemRow.swift",
         "AppName/shared/ui/EmptyStateView.swift",
         "AppNameTests/AppNameTests.swift",
+    ]
+
+    private let moduleRequiredPaths = [
+        "README.md",
+        "template.yaml",
+        "Package.swift",
+        "Sources/AppNameProductListScreen/ProductListScreen.swift",
+        "Sources/AppNameCreateSampleFeature/CreateSampleProductAction.swift",
+        "Sources/AppNameProductDomain/Product.swift",
+        "Sources/AppNameCoreUI/EmptyStateView.swift",
+        "Tests/AppNameCreateSampleFeatureTests/CreateSampleProductActionTests.swift",
     ]
 
     init(templateURL: URL) {
@@ -164,10 +222,18 @@ struct TemplateValidator {
 
         validateManifest(manifest, findings: &findings)
         validateRequiredPaths(manifest: manifest, findings: &findings)
-        validateLayerDirectories(findings: &findings)
-        validateMakefile(findings: &findings)
-        validateWorkflow(findings: &findings)
-        validatePullRequestTemplate(findings: &findings)
+
+        switch manifest.values["kind"] {
+        case "reference-template":
+            validateReferenceLayerDirectories(findings: &findings)
+            validateMakefile(findings: &findings)
+            validateWorkflow(findings: &findings)
+            validatePullRequestTemplate(findings: &findings)
+        case "module-template":
+            validateModulePackage(findings: &findings)
+        default:
+            break
+        }
 
         return findings
     }
@@ -191,7 +257,9 @@ struct TemplateValidator {
     private func validateManifest(_ manifest: TemplateManifest, findings: inout [TemplateFinding]) {
         let requiredValues = [
             "name",
+            "schemaVersion",
             "version",
+            "minimumToolVersion",
             "kind",
             "status",
             "language",
@@ -202,11 +270,59 @@ struct TemplateValidator {
             findings.append(error("template.yaml", "Manifest is missing top-level value `\(key)`"))
         }
 
-        if manifest.values["kind"] != "reference-template" {
-            findings.append(error("template.yaml", "Manifest `kind` must be `reference-template`"))
+        if let schemaVersion = manifest.values["schemaVersion"],
+           schemaVersion != supportedSchemaVersion
+        {
+            findings.append(
+                error(
+                    "template.yaml",
+                    "Manifest `schemaVersion` must be \(supportedSchemaVersion)"
+                )
+            )
         }
 
-        if manifest.layers != expectedLayers {
+        if let version = manifest.values["version"],
+           SemanticVersion.parse(version) == nil
+        {
+            findings.append(error("template.yaml", "Manifest `version` must use MAJOR.MINOR.PATCH"))
+        }
+
+        if let minimumToolVersion = manifest.values["minimumToolVersion"] {
+            guard let parsedVersion = SemanticVersion.parse(minimumToolVersion) else {
+                findings.append(
+                    error("template.yaml", "Manifest `minimumToolVersion` must use MAJOR.MINOR.PATCH")
+                )
+                return
+            }
+
+            if parsedVersion > currentToolVersion {
+                findings.append(
+                    error(
+                        "template.yaml",
+                        "Manifest requires fsd-ios \(parsedVersion) but validator is \(currentToolVersion)"
+                    )
+                )
+            }
+        }
+
+        let expectedLayers: [String]
+
+        switch manifest.values["kind"] {
+        case "reference-template":
+            expectedLayers = expectedReferenceLayers
+        case "module-template":
+            expectedLayers = expectedModuleLayers
+        default:
+            findings.append(
+                error(
+                    "template.yaml",
+                    "Manifest `kind` must be `reference-template` or `module-template`"
+                )
+            )
+            expectedLayers = []
+        }
+
+        if !expectedLayers.isEmpty, manifest.layers != expectedLayers {
             findings.append(
                 error(
                     "template.yaml",
@@ -224,6 +340,17 @@ struct TemplateValidator {
         manifest: TemplateManifest,
         findings: inout [TemplateFinding]
     ) {
+        let requiredPaths: [String]
+
+        switch manifest.values["kind"] {
+        case "reference-template":
+            requiredPaths = referenceRequiredPaths
+        case "module-template":
+            requiredPaths = moduleRequiredPaths
+        default:
+            requiredPaths = []
+        }
+
         let allRequiredPaths = Set(requiredPaths).union(manifest.entrypointPaths)
 
         for path in allRequiredPaths.sorted() where !fileExists(path) {
@@ -231,14 +358,32 @@ struct TemplateValidator {
         }
     }
 
-    private func validateLayerDirectories(findings: inout [TemplateFinding]) {
-        for layer in expectedLayers {
+    private func validateReferenceLayerDirectories(findings: inout [TemplateFinding]) {
+        for layer in expectedReferenceLayers {
             let path = "AppName/\(layer)"
 
             guard directoryExists(templateURL.appendingPathComponent(path)) else {
                 findings.append(error(path, "Template source root is missing FSD layer `\(layer)`"))
                 continue
             }
+        }
+    }
+
+    private func validateModulePackage(findings: inout [TemplateFinding]) {
+        let path = "Package.swift"
+        guard let source = read(path, findings: &findings) else {
+            return
+        }
+
+        let requiredTargets = [
+            "AppNameProductListScreen",
+            "AppNameCreateSampleFeature",
+            "AppNameProductDomain",
+            "AppNameCoreUI",
+        ]
+
+        for target in requiredTargets where !source.contains(target) {
+            findings.append(error(path, "Module template package is missing target `\(target)`"))
         }
     }
 
@@ -388,7 +533,8 @@ func printTemplateValidationUsage() {
           swift tools/fsd-template-validate.swift templates/fsd-ios
 
         Checks the copyable FSD iOS template package contract:
-          - manifest has required metadata and canonical FSD layers
+          - manifest has required schema/version metadata and compatible tool version
+          - manifest has canonical FSD layers for its template kind
           - manifest entrypoints exist
           - template source root contains required layers and sample files
           - template Makefile exposes expected local workflow targets

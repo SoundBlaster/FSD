@@ -78,3 +78,17 @@ Inside a generated package:
 ```bash
 swift test
 ```
+
+## Template Contract
+
+`template.yaml` records the module template compatibility contract:
+
+```yaml
+schemaVersion: 1
+version: 0.1.0
+minimumToolVersion: 0.4.0
+```
+
+Keep `minimumToolVersion` at the oldest `fsd-ios` release that can validate and
+materialize the package. Run `make template-validate` after editing this
+manifest or the package layout.

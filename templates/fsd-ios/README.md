@@ -74,5 +74,17 @@ is a real boundary:
 ## Template Contract
 
 The skeleton is not a full generated Xcode project. It is a reference package
-for structure, naming, checks, and review expectations. Future template tooling
-can materialize this package into a concrete app.
+for structure, naming, checks, and review expectations.
+
+`template.yaml` records the template compatibility contract:
+
+```yaml
+schemaVersion: 1
+version: 0.1.0
+minimumToolVersion: 0.4.0
+```
+
+- `schemaVersion` is the manifest schema understood by `fsd-ios`.
+- `version` is the template contract version.
+- `minimumToolVersion` is the oldest `fsd-ios` release expected to validate and
+  materialize this template.
