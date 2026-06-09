@@ -62,7 +62,7 @@ func printUsage() {
           lint [--root <path>] [--config <path>] [--strict|--no-strict] [--architecture|--no-architecture] [--format text|json|xcode|sarif] [--report-root <path>]
               Run the FSD structure and optional architecture lint.
 
-          harmonize [--root <path>]
+          harmonize [--root <path>] [--format text|json]
               Print read-only FSD refactoring suggestions.
 
           create app --name <Name> --output <path> [--dry-run]

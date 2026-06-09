@@ -74,7 +74,7 @@ RELEASE_PATHS := \
 	tests \
 	tools
 
-.PHONY: help open install uninstall install-smoke install-xcode-templates uninstall-xcode-templates xcode-templates-smoke homebrew-formula-smoke cli-help cli-smoke cli-doctor config-smoke report-smoke action-smoke docc-mirror docc-mirror-check docc-pages docc-smoke release-docs release-artifact release-artifact-smoke lint lint-strict lint-architecture swiftlint harmonize harmonize-fixture template-create-dry-run template-create-fixture slice-create-fixture module-create-fixture template-validate template-validate-negative spm-template-test item-export-feature-test spm-template-create-fixture spm-plugin-smoke build test demo template-demo ci clean
+.PHONY: help open install uninstall install-smoke install-xcode-templates uninstall-xcode-templates xcode-templates-smoke homebrew-formula-smoke cli-help cli-smoke cli-doctor config-smoke report-smoke action-smoke docc-mirror docc-mirror-check docc-pages docc-smoke release-docs release-artifact release-artifact-smoke lint lint-strict lint-architecture swiftlint harmonize harmonize-fixture harmonize-report-smoke template-create-dry-run template-create-fixture slice-create-fixture module-create-fixture template-validate template-validate-negative spm-template-test item-export-feature-test spm-template-create-fixture spm-plugin-smoke build test demo template-demo ci clean
 
 help:
 	@printf '%s\n' \
@@ -106,6 +106,7 @@ help:
 		'  make swiftlint    Run SwiftLint style checks' \
 		'  make harmonize    Print read-only FSD refactoring suggestions' \
 		'  make harmonize-fixture  Verify harmonize suggestions on a fixture' \
+		'  make harmonize-report-smoke  Verify harmonize JSON output contract' \
 		'  make template-create-dry-run  Preview template materialization' \
 		'  make template-create-fixture  Materialize and verify a generated template smoke app' \
 		'  make slice-create-fixture  Generate sample page, feature, and entity slices' \
@@ -495,6 +496,21 @@ harmonize-fixture:
 	@grep -q 'Recommendation:' $(DERIVED_DATA_PATH)/HarmonizeFixture.txt
 	@grep -q 'Next steps:' $(DERIVED_DATA_PATH)/HarmonizeFixture.txt
 
+harmonize-report-smoke:
+	@mkdir -p $(DERIVED_DATA_PATH)
+	$(SWIFT) tools/fsd-ios.swift harmonize \
+		--root tests/fixtures/harmonize-advice/FSDApp \
+		--format json > $(DERIVED_DATA_PATH)/HarmonizeReport.json
+	$(SWIFT) -e 'import Foundation; let data = try Data(contentsOf: URL(fileURLWithPath: CommandLine.arguments[1])); let payload = try JSONSerialization.jsonObject(with: data) as! [String: Any]; precondition(payload["tool"] as? String == "fsd-harmonize"); precondition(payload["format"] as? String == "json"); let suggestions = payload["suggestions"] as! [[String: Any]]; precondition(suggestions.count == 2); let first = suggestions.first { $$0["ruleId"] as? String == "harmonize/shared-domain-language" }!; precondition(first["confidence"] as? String == "high"); precondition(first["impact"] as? String == "architecture"); precondition(first["path"] as? String == "shared/product-utils"); precondition(!(first["evidence"] as! [String]).isEmpty); precondition(!(first["recommendation"] as! String).isEmpty); precondition(!(first["nextSteps"] as! [String]).isEmpty)' $(DERIVED_DATA_PATH)/HarmonizeReport.json
+	@if $(SWIFT) tools/fsd-ios.swift harmonize --format yaml > $(DERIVED_DATA_PATH)/HarmonizeInvalidFormat.out 2> $(DERIVED_DATA_PATH)/HarmonizeInvalidFormat.err; then \
+		printf '%s\n' 'Expected invalid harmonize format to fail'; \
+		exit 1; \
+	else \
+		printf '%s\n' 'Invalid harmonize format failed as expected'; \
+	fi
+	@test ! -s $(DERIVED_DATA_PATH)/HarmonizeInvalidFormat.out
+	@grep -q 'unsupported --format' $(DERIVED_DATA_PATH)/HarmonizeInvalidFormat.err
+
 template-create-dry-run:
 	rm -rf $(DERIVED_DATA_PATH)/TemplateCreateDryRun
 	rm -f $(DERIVED_DATA_PATH)/TemplateCreateFileOutput
@@ -706,7 +722,7 @@ test:
 		test \
 		CODE_SIGNING_ALLOWED=NO
 
-ci: lint lint-strict lint-architecture swiftlint harmonize-fixture template-create-dry-run template-create-fixture slice-create-fixture module-create-fixture template-validate template-validate-negative spm-template-test item-export-feature-test spm-template-create-fixture spm-plugin-smoke cli-smoke cli-doctor config-smoke report-smoke install-smoke xcode-templates-smoke action-smoke docc-mirror-check docc-smoke release-docs release-artifact-smoke test
+ci: lint lint-strict lint-architecture swiftlint harmonize-fixture harmonize-report-smoke template-create-dry-run template-create-fixture slice-create-fixture module-create-fixture template-validate template-validate-negative spm-template-test item-export-feature-test spm-template-create-fixture spm-plugin-smoke cli-smoke cli-doctor config-smoke report-smoke install-smoke xcode-templates-smoke action-smoke docc-mirror-check docc-smoke release-docs release-artifact-smoke test
 
 clean:
 	rm -rf $(DERIVED_DATA_PATH)

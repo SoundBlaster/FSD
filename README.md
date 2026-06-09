@@ -277,6 +277,7 @@ Read-only advisor for refactoring suggestions:
 ```bash
 make harmonize
 make harmonize-fixture
+make harmonize-report-smoke
 ```
 
 Generator smoke checks:

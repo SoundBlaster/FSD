@@ -80,6 +80,12 @@ category, supporting `evidence`, a concrete `recommendation`, and ordered
 `nextSteps`. This makes the output useful in refactoring reviews while keeping
 objective lint failures in `lint`.
 
+Use JSON output when another tool needs to consume advisory results:
+
+```bash
+swift tools/fsd-ios.swift harmonize --root Sources/App --format json > fsd-harmonize.json
+```
+
 Default repository paths are resolved from the CLI script location, so the
 command can be invoked from another working directory with an absolute script
 path. Explicit user paths such as `--root`, `--template`, and `--output` are
@@ -474,6 +480,10 @@ for the generated module island.
 
 `make config-smoke` verifies explicit config loading, default config discovery,
 direct linter config support, and invalid config diagnostics.
+
+`make harmonize-report-smoke` verifies the advisory JSON output contract for
+`harmonize`, including rule id, confidence, impact, evidence, recommendation,
+and next-step fields.
 
 `make report-smoke` verifies `text`, `json`, `xcode`, and `sarif` lint output
 contracts on a targeted violation fixture, including SARIF repo-relative file
