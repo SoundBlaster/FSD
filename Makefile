@@ -483,9 +483,17 @@ harmonize:
 	$(SWIFT) tools/fsd-harmonize.swift --root $(APP_ROOT)
 
 harmonize-fixture:
+	@mkdir -p $(DERIVED_DATA_PATH)
 	$(SWIFT) tools/fsd-harmonize.swift \
 		--root tests/fixtures/harmonize-advice/FSDApp \
-		--expect-suggestions 2
+		--expect-suggestions 2 > $(DERIVED_DATA_PATH)/HarmonizeFixture.txt
+	@grep -q '\[harmonize/vague-slice-name\] features/do-stuff' $(DERIVED_DATA_PATH)/HarmonizeFixture.txt
+	@grep -q '\[harmonize/shared-domain-language\] shared/product-utils' $(DERIVED_DATA_PATH)/HarmonizeFixture.txt
+	@grep -q 'Confidence: high' $(DERIVED_DATA_PATH)/HarmonizeFixture.txt
+	@grep -q 'Impact: architecture' $(DERIVED_DATA_PATH)/HarmonizeFixture.txt
+	@grep -q 'Evidence:' $(DERIVED_DATA_PATH)/HarmonizeFixture.txt
+	@grep -q 'Recommendation:' $(DERIVED_DATA_PATH)/HarmonizeFixture.txt
+	@grep -q 'Next steps:' $(DERIVED_DATA_PATH)/HarmonizeFixture.txt
 
 template-create-dry-run:
 	rm -rf $(DERIVED_DATA_PATH)/TemplateCreateDryRun

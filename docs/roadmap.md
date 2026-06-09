@@ -157,7 +157,8 @@ Success metrics:
 
 ## Later Work
 
-- Richer `harmonize` suggestions with rule ids and confidence levels.
+- Richer `harmonize` suggestions with rule ids, confidence levels, evidence,
+  and concrete next steps.
 - Template version metadata and compatibility checks.
 - More fixture apps that model UIKit legacy shells and mixed SwiftUI/UIKit
   adoption.

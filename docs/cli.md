@@ -70,6 +70,14 @@ internal tools as the source of truth.
 | `validate template` | Validates a copyable template bundle |
 | `doctor` | Checks local prerequisites and quick repository health |
 
+## Harmonize Suggestions
+
+`harmonize` is advisory and exits with success even when suggestions are found.
+Each suggestion includes a stable `ruleId`, a `confidence` level, an `impact`
+category, supporting `evidence`, a concrete `recommendation`, and ordered
+`nextSteps`. This makes the output useful in refactoring reviews while keeping
+objective lint failures in `lint`.
+
 Default repository paths are resolved from the CLI script location, so the
 command can be invoked from another working directory with an absolute script
 path. Explicit user paths such as `--root`, `--template`, and `--output` are
