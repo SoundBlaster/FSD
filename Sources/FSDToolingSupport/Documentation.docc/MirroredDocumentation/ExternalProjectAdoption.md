@@ -155,6 +155,30 @@ For refactoring planning, use the read-only advisor:
 swift .fsd-ios-tooling/tools/fsd-ios.swift harmonize --root Sources/App
 ```
 
+`harmonize` is not a quality gate. Treat it as an architecture review input for
+legacy migration, large refactors, or periodic cleanup planning. Each suggestion
+includes a rule id, confidence level, impact category, evidence, recommendation,
+and concrete next steps.
+
+Use JSON when the external project wants to archive advisory output, publish it
+in a dashboard, or feed it into editor tooling:
+
+```bash
+swift .fsd-ios-tooling/tools/fsd-ios.swift harmonize \
+  --root Sources/App \
+  --format json > fsd-harmonize.json
+```
+
+Recommended adoption flow:
+
+1. Run `lint --architecture --strict` in CI as the blocking architecture baseline.
+2. Run `harmonize` locally before refactoring a legacy area.
+3. Review high-confidence suggestions first, especially
+   `harmonize/shared-domain-language` and `harmonize/feature-slice-does-too-much`.
+4. Convert accepted suggestions into small PRs that move one boundary at a time.
+5. Keep rejected suggestions as review context rather than suppressing them
+   immediately; heuristics should improve only after repeated false positives.
+
 ## Xcode Run Script Build Phase
 
 Add a Run Script Build Phase when developers should see FSD diagnostics directly
