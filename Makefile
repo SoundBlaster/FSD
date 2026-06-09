@@ -487,11 +487,15 @@ harmonize-fixture:
 	@mkdir -p $(DERIVED_DATA_PATH)
 	$(SWIFT) tools/fsd-harmonize.swift \
 		--root tests/fixtures/harmonize-advice/FSDApp \
-		--expect-suggestions 2 > $(DERIVED_DATA_PATH)/HarmonizeFixture.txt
+		--expect-suggestions 5 > $(DERIVED_DATA_PATH)/HarmonizeFixture.txt
 	@grep -q '\[harmonize/vague-slice-name\] features/do-stuff' $(DERIVED_DATA_PATH)/HarmonizeFixture.txt
+	@grep -q '\[harmonize/feature-slice-does-too-much\] features/order-tools' $(DERIVED_DATA_PATH)/HarmonizeFixture.txt
+	@grep -q '\[harmonize/technical-slice-name\] features/user-service' $(DERIVED_DATA_PATH)/HarmonizeFixture.txt
+	@grep -q '\[harmonize/large-page-slice\] pages/checkout' $(DERIVED_DATA_PATH)/HarmonizeFixture.txt
 	@grep -q '\[harmonize/shared-domain-language\] shared/product-utils' $(DERIVED_DATA_PATH)/HarmonizeFixture.txt
 	@grep -q 'Confidence: high' $(DERIVED_DATA_PATH)/HarmonizeFixture.txt
 	@grep -q 'Impact: architecture' $(DERIVED_DATA_PATH)/HarmonizeFixture.txt
+	@grep -q 'Segment distribution: ui=5, model=1' $(DERIVED_DATA_PATH)/HarmonizeFixture.txt
 	@grep -q 'Evidence:' $(DERIVED_DATA_PATH)/HarmonizeFixture.txt
 	@grep -q 'Recommendation:' $(DERIVED_DATA_PATH)/HarmonizeFixture.txt
 	@grep -q 'Next steps:' $(DERIVED_DATA_PATH)/HarmonizeFixture.txt
@@ -501,7 +505,7 @@ harmonize-report-smoke:
 	$(SWIFT) tools/fsd-ios.swift harmonize \
 		--root tests/fixtures/harmonize-advice/FSDApp \
 		--format json > $(DERIVED_DATA_PATH)/HarmonizeReport.json
-	$(SWIFT) -e 'import Foundation; let data = try Data(contentsOf: URL(fileURLWithPath: CommandLine.arguments[1])); let payload = try JSONSerialization.jsonObject(with: data) as! [String: Any]; precondition(payload["tool"] as? String == "fsd-harmonize"); precondition(payload["format"] as? String == "json"); let suggestions = payload["suggestions"] as! [[String: Any]]; precondition(suggestions.count == 2); let first = suggestions.first { $$0["ruleId"] as? String == "harmonize/shared-domain-language" }!; precondition(first["confidence"] as? String == "high"); precondition(first["impact"] as? String == "architecture"); precondition(first["path"] as? String == "shared/product-utils"); precondition(!(first["evidence"] as! [String]).isEmpty); precondition(!(first["recommendation"] as! String).isEmpty); precondition(!(first["nextSteps"] as! [String]).isEmpty)' $(DERIVED_DATA_PATH)/HarmonizeReport.json
+	$(SWIFT) -e 'import Foundation; let data = try Data(contentsOf: URL(fileURLWithPath: CommandLine.arguments[1])); let payload = try JSONSerialization.jsonObject(with: data) as! [String: Any]; precondition(payload["tool"] as? String == "fsd-harmonize"); precondition(payload["format"] as? String == "json"); let suggestions = payload["suggestions"] as! [[String: Any]]; precondition(suggestions.count == 5); let first = suggestions.first { $$0["ruleId"] as? String == "harmonize/shared-domain-language" }!; precondition(first["confidence"] as? String == "high"); precondition(first["impact"] as? String == "architecture"); precondition(first["path"] as? String == "shared/product-utils"); precondition(!(first["evidence"] as! [String]).isEmpty); precondition(!(first["recommendation"] as! String).isEmpty); precondition(!(first["nextSteps"] as! [String]).isEmpty); precondition(suggestions.contains { $$0["ruleId"] as? String == "harmonize/feature-slice-does-too-much" }); precondition(suggestions.contains { $$0["ruleId"] as? String == "harmonize/large-page-slice" }); precondition(suggestions.contains { $$0["ruleId"] as? String == "harmonize/technical-slice-name" })' $(DERIVED_DATA_PATH)/HarmonizeReport.json
 	@if $(SWIFT) tools/fsd-ios.swift harmonize --format yaml > $(DERIVED_DATA_PATH)/HarmonizeInvalidFormat.out 2> $(DERIVED_DATA_PATH)/HarmonizeInvalidFormat.err; then \
 		printf '%s\n' 'Expected invalid harmonize format to fail'; \
 		exit 1; \
