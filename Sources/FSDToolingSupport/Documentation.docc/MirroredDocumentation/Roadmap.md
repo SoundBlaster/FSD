@@ -185,7 +185,6 @@ Success metrics:
 
 ## Later Work
 
-- Template version metadata and compatibility checks.
 - More fixture apps that model UIKit legacy shells and mixed SwiftUI/UIKit
   adoption.
 - Optional Swift Package boundary validator for generated module islands.

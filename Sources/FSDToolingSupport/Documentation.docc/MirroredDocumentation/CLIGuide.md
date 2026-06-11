@@ -277,6 +277,21 @@ swift tools/fsd-ios.swift create app \
   --dry-run
 ```
 
+Both copyable templates carry explicit compatibility metadata in
+`template.yaml`:
+
+```yaml
+schemaVersion: 1
+version: 0.1.0
+minimumToolVersion: 0.4.0
+```
+
+`schemaVersion` is the manifest schema understood by the validator, `version` is
+the template contract version, and `minimumToolVersion` is the oldest `fsd-ios`
+release expected to understand and materialize the template. Run
+`make template-validate` after editing either template; it validates the full app
+template and the SwiftPM module template.
+
 ## Legacy Modular Adoption Flow
 
 Use this when the existing application is too large to reorganize immediately.

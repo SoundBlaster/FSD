@@ -12,7 +12,46 @@ struct TemplateCreateConfiguration {
     let templatePath: String
     let outputPath: String
     let appName: String
+    let toolVersion: SemanticVersion
     let dryRun: Bool
+}
+
+struct SemanticVersion: Comparable, CustomStringConvertible {
+    let major: Int
+    let minor: Int
+    let patch: Int
+
+    var description: String {
+        "\(major).\(minor).\(patch)"
+    }
+
+    static func parse(_ value: String) -> SemanticVersion? {
+        let parts = value.split(separator: ".", omittingEmptySubsequences: false)
+        guard parts.count == 3,
+              let major = Int(parts[0]),
+              let minor = Int(parts[1]),
+              let patch = Int(parts[2]),
+              major >= 0,
+              minor >= 0,
+              patch >= 0
+        else {
+            return nil
+        }
+
+        return SemanticVersion(major: major, minor: minor, patch: patch)
+    }
+
+    static func < (lhs: SemanticVersion, rhs: SemanticVersion) -> Bool {
+        if lhs.major != rhs.major {
+            return lhs.major < rhs.major
+        }
+
+        if lhs.minor != rhs.minor {
+            return lhs.minor < rhs.minor
+        }
+
+        return lhs.patch < rhs.patch
+    }
 }
 
 struct MaterializedFile {
@@ -34,6 +73,8 @@ struct TemplateCreator {
     private let outputURL: URL
     private let placeholder: String
     private let appName: String
+    private let currentToolVersion: SemanticVersion
+    private let supportedSchemaVersion = "1"
     private let ignoredTemplateDirectories: Set<String> = [
         ".build",
         ".git",
@@ -41,17 +82,26 @@ struct TemplateCreator {
         "DerivedData",
     ]
 
-    init(templateURL: URL, outputURL: URL, placeholder: String, appName: String) {
+    init(
+        templateURL: URL,
+        outputURL: URL,
+        placeholder: String,
+        appName: String,
+        currentToolVersion: SemanticVersion
+    ) {
         self.templateURL = templateURL
         self.outputURL = outputURL
         self.placeholder = placeholder
         self.appName = appName
+        self.currentToolVersion = currentToolVersion
     }
 
     func plan() throws -> TemplateCreatePlan {
         guard directoryExists(templateURL) else {
             throw TemplateCreateError.invalidInput("Template root does not exist: \(templateURL.path)")
         }
+
+        try validateTemplateCompatibility()
 
         let files = try fileURLs(under: templateURL)
 
@@ -232,6 +282,70 @@ struct TemplateCreator {
         return files
     }
 
+    private func validateTemplateCompatibility() throws {
+        let manifestURL = templateURL.appendingPathComponent("template.yaml")
+
+        guard fileManager.fileExists(atPath: manifestURL.path) else {
+            throw TemplateCreateError.invalidInput("Template manifest is missing: \(manifestURL.path)")
+        }
+
+        guard let source = try? String(contentsOf: manifestURL, encoding: .utf8) else {
+            throw TemplateCreateError.invalidInput("Template manifest cannot be read as UTF-8: \(manifestURL.path)")
+        }
+
+        let values = topLevelValues(in: source)
+
+        guard values["schemaVersion"] == supportedSchemaVersion else {
+            throw TemplateCreateError.invalidInput(
+                "Template schemaVersion must be \(supportedSchemaVersion)"
+            )
+        }
+
+        guard let version = values["version"],
+              SemanticVersion.parse(version) != nil
+        else {
+            throw TemplateCreateError.invalidInput(
+                "Template version must use MAJOR.MINOR.PATCH"
+            )
+        }
+
+        guard let minimumToolVersion = values["minimumToolVersion"],
+              let parsedVersion = SemanticVersion.parse(minimumToolVersion)
+        else {
+            throw TemplateCreateError.invalidInput(
+                "Template minimumToolVersion must use MAJOR.MINOR.PATCH"
+            )
+        }
+
+        guard parsedVersion <= currentToolVersion else {
+            throw TemplateCreateError.invalidInput(
+                "Template requires fsd-ios \(parsedVersion) but generator is \(currentToolVersion)"
+            )
+        }
+    }
+
+    private func topLevelValues(in source: String) -> [String: String] {
+        var result: [String: String] = [:]
+
+        for line in source.components(separatedBy: .newlines) {
+            guard !line.hasPrefix(" "),
+                  let separator = line.firstIndex(of: ":")
+            else {
+                continue
+            }
+
+            let key = String(line[..<separator]).trimmingCharacters(in: .whitespaces)
+            let valueStart = line.index(after: separator)
+            let value = normalizeScalar(String(line[valueStart...]))
+
+            if !key.isEmpty, !value.isEmpty {
+                result[key] = value
+            }
+        }
+
+        return result
+    }
+
     private func relativePath(for url: URL, under rootURL: URL) -> String {
         let rootPath = rootURL.standardizedFileURL.path
         let path = url.standardizedFileURL.path
@@ -274,6 +388,7 @@ func parseTemplateCreateArguments(_ arguments: [String]) -> TemplateCreateConfig
     var templatePath = "templates/fsd-ios"
     var outputPath: String?
     var appName: String?
+    var toolVersion: SemanticVersion?
     var dryRun = false
     var index = 0
 
@@ -305,6 +420,17 @@ func parseTemplateCreateArguments(_ arguments: [String]) -> TemplateCreateConfig
                 exit(2)
             }
             appName = arguments[index]
+        case "--tool-version":
+            index += 1
+            guard index < arguments.count else {
+                print("error: --tool-version requires MAJOR.MINOR.PATCH")
+                exit(2)
+            }
+            guard let parsedVersion = SemanticVersion.parse(arguments[index]) else {
+                print("error: --tool-version must use MAJOR.MINOR.PATCH")
+                exit(2)
+            }
+            toolVersion = parsedVersion
         case "--dry-run":
             dryRun = true
         default:
@@ -334,10 +460,16 @@ func parseTemplateCreateArguments(_ arguments: [String]) -> TemplateCreateConfig
         exit(2)
     }
 
+    guard let resolvedToolVersion = toolVersion ?? detectToolVersion() else {
+        print("error: could not determine fsd-ios tool version; pass --tool-version MAJOR.MINOR.PATCH")
+        exit(2)
+    }
+
     return TemplateCreateConfiguration(
         templatePath: templatePath,
         outputPath: outputPath,
         appName: appName,
+        toolVersion: resolvedToolVersion,
         dryRun: dryRun
     )
 }
@@ -346,7 +478,7 @@ func printTemplateCreateUsage() {
     print(
         """
         Usage:
-          swift tools/fsd-template-create.swift --app-name <Name> --output <path> [--template <path>] [--dry-run]
+          swift tools/fsd-template-create.swift --app-name <Name> --output <path> [--template <path>] [--tool-version <version>] [--dry-run]
 
         Materializes the copyable FSD iOS template package:
           - copies template files into the output folder
@@ -358,9 +490,74 @@ func printTemplateCreateUsage() {
           --app-name <Name>   Swift module name to replace `AppName`.
           --output <path>     Destination folder.
           --template <path>   Template package root. Defaults to `templates/fsd-ios`.
+          --tool-version <version>
+                              fsd-ios version used for template compatibility checks.
           --dry-run           Print planned file operations without writing files.
         """
     )
+}
+
+func normalizeScalar(_ rawValue: String) -> String {
+    var value = rawValue
+    var result = ""
+    var quote: Character?
+
+    for character in value {
+        if character == "\"" || character == "'" {
+            if quote == nil {
+                quote = character
+            } else if quote == character {
+                quote = nil
+            }
+        }
+
+        if character == "#", quote == nil {
+            break
+        }
+
+        result.append(character)
+    }
+
+    value = result.trimmingCharacters(in: .whitespaces)
+
+    if value.count >= 2,
+       let first = value.first,
+       let last = value.last,
+       (first == "\"" && last == "\"") || (first == "'" && last == "'")
+    {
+        return String(value.dropFirst().dropLast())
+    }
+
+    return value
+}
+
+func detectToolVersion() -> SemanticVersion? {
+    if let environmentVersion = ProcessInfo.processInfo.environment["FSD_IOS_VERSION"],
+       let parsedVersion = SemanticVersion.parse(environmentVersion)
+    {
+        return parsedVersion
+    }
+
+    let scriptURL = URL(fileURLWithPath: CommandLine.arguments[0])
+        .standardizedFileURL
+    let wrapperURL = scriptURL.deletingLastPathComponent().appendingPathComponent("fsd-ios.swift")
+
+    guard let source = try? String(contentsOf: wrapperURL, encoding: .utf8) else {
+        return nil
+    }
+
+    for line in source.components(separatedBy: .newlines) where line.contains("let cliVersion") {
+        guard let separator = line.firstIndex(of: "=") else {
+            continue
+        }
+
+        let value = normalizeScalar(String(line[line.index(after: separator)...]))
+        if let parsedVersion = SemanticVersion.parse(value) {
+            return parsedVersion
+        }
+    }
+
+    return nil
 }
 
 func makeURL(from path: String) -> URL {
@@ -451,7 +648,8 @@ let creator = TemplateCreator(
     templateURL: makeURL(from: configuration.templatePath),
     outputURL: makeURL(from: configuration.outputPath),
     placeholder: "AppName",
-    appName: configuration.appName
+    appName: configuration.appName,
+    currentToolVersion: configuration.toolVersion
 )
 
 do {
